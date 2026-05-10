@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CT Seals — Panel de Inventario</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0d0f14;font-family:system-ui,sans-serif;color:#e8e8ee;min-height:100vh;padding:20px}
+.dash{max-width:1100px;margin:0 auto}
+.top-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px;flex-wrap:wrap;gap:10px}
+.logo{display:flex;align-items:center;gap:10px}
+.logo-icon{width:36px;height:36px;background:#D32F2F;border-radius:8px;display:flex;align-items:center;justify-content:center}
+.logo h1{font-size:17px;font-weight:500;color:#f0f0f5}
+.logo span{font-size:12px;color:#7a7d99;display:block;margin-top:1px}
+.top-actions{display:flex;align-items:center;gap:10px}
+.badge{background:#8B1538;color:#f9ccd7;font-size:11px;padding:4px 10px;border-radius:20px}
+.btn{border:none;font-size:12px;padding:7px 14px;border-radius:8px;cursor:pointer;display:flex;align-items:center;gap:6px;font-weight:500;transition:background .2s}
+.btn-red{background:#D32F2F;color:#fff}.btn-red:hover{background:#b71c1c}
+.btn-ghost{background:#1a1d26;color:#b0b3cc;border:0.5px solid #2e3042}.btn-ghost:hover{background:#22253a}
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:20px}
+.kpi{background:#1a1d26;border:0.5px solid #2e3042;border-radius:12px;padding:14px 16px}
+.kpi-label{font-size:10px;color:#7a7d99;text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px}
+.kpi-val{font-size:24px;font-weight:500}
+.kpi-val.red{color:#e85a5a}.kpi-val.green{color:#4caf8c}.kpi-val.amber{color:#f5a623}.kpi-val.white{color:#f0f0f5}.kpi-val.blue{color:#5b9bd5}
+.kpi-sub{font-size:11px;color:#5a5e7a;margin-top:4px}
+.charts-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px}
+@media(max-width:600px){.charts-row{grid-template-columns:1fr}}
+.card{background:#1a1d26;border:0.5px solid #2e3042;border-radius:12px;padding:16px}
+.card-title{font-size:11px;color:#7a7d99;text-transform:uppercase;letter-spacing:.5px;margin-bottom:14px;display:flex;align-items:center;gap:6px}
+.bar-row{display:flex;align-items:center;gap:10px;margin-bottom:9px}
+.bar-label{font-size:11px;color:#b0b3cc;width:110px;flex-shrink:0}
+.bar-track{flex:1;height:8px;background:#22253a;border-radius:4px;overflow:hidden}
+.bar-fill{height:100%;border-radius:4px;transition:width .4s}
+.bar-val{font-size:11px;color:#7a7d99;width:36px;text-align:right}
+.donut-wrap{display:flex;align-items:center;justify-content:center;gap:16px}
+.legend{display:flex;flex-direction:column;gap:9px}
+.leg-item{display:flex;align-items:center;gap:8px;font-size:12px;color:#b0b3cc}
+.leg-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+
+/* FILTROS */
+.filters-section{background:#1a1d26;border:0.5px solid #2e3042;border-radius:12px;padding:16px;margin-bottom:20px}
+.filters-title{font-size:11px;color:#7a7d99;text-transform:uppercase;letter-spacing:.5px;margin-bottom:14px;display:flex;align-items:center;gap:6px}
+.filters-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}
+.filter-group{display:flex;flex-direction:column;gap:5px}
+.filter-label{font-size:10px;color:#5a5e7a;text-transform:uppercase;letter-spacing:.4px}
+.filter-input{background:#111318;border:0.5px solid #2e3042;border-radius:8px;padding:7px 10px;color:#e8e8ee;font-size:12px;outline:none;width:100%;transition:border .2s}
+.filter-input:focus{border-color:#D32F2F}
+.filter-input::placeholder{color:#3a3e5a}
+.range-row{display:flex;align-items:center;gap:6px}
+.range-row span{color:#3a3e5a;font-size:11px}
+.filter-actions{display:flex;align-items:flex-end;gap:8px}
+.active-filters{margin-top:12px;display:flex;flex-wrap:wrap;gap:6px;min-height:0}
+.filter-tag{background:#22253a;border:0.5px solid #2e3042;color:#b0b3cc;font-size:11px;padding:3px 10px;border-radius:20px;display:flex;align-items:center;gap:6px;cursor:pointer}
+.filter-tag:hover{border-color:#e85a5a;color:#e85a5a}
+
+/* TABLA */
+.table-section{background:#1a1d26;border:0.5px solid #2e3042;border-radius:12px;padding:16px;margin-bottom:20px}
+.table-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px}
+.tbl-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:12px}
+thead th{color:#5a5e7a;font-weight:500;text-align:left;padding:8px 10px;border-bottom:0.5px solid #2e3042;font-size:10px;text-transform:uppercase;letter-spacing:.5px;white-space:nowrap;cursor:pointer;user-select:none}
+thead th:hover{color:#b0b3cc}
+thead th.sort-asc::after{content:" ↑"}
+thead th.sort-desc::after{content:" ↓"}
+tbody td{padding:9px 10px;border-bottom:0.5px solid #1e2134;color:#c8cce0}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover td{background:#1e2134}
+.pill{display:inline-block;font-size:10px;padding:3px 9px;border-radius:20px;font-weight:500}
+.pill-ok{background:#1a3a2a;color:#4caf8c}
+.pill-low{background:#3a2e10;color:#f5a623}
+.pill-out{background:#2e1a1a;color:#e85a5a}
+.row-count{margin-top:10px;font-size:11px;color:#5a5e7a}
+
+/* ALERTAS */
+.alert-card{background:#1a1d26;border:0.5px solid #2e3042;border-radius:12px;padding:16px}
+.alert-item{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:0.5px solid #1e2134}
+.alert-item:last-child{border-bottom:none}
+.alert-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
+.alert-icon.red{background:#2e1a1a}.alert-icon.amber{background:#3a2e10}
+.alert-text{flex:1}
+.alert-name{font-size:13px;color:#d0d3e8}
+.alert-desc{font-size:11px;color:#5a5e7a;margin-top:2px}
+.no-data{text-align:center;color:#5a5e7a;padding:24px;font-size:13px}
+.footer{text-align:center;margin-top:24px;font-size:11px;color:#3a3e5a;padding-bottom:8px}
+</style>
+</head>
+<body>
+<div class="dash">
+  <div class="top-bar">
+    <div class="logo">
+      <div class="logo-icon"><i class="ti ti-package" style="color:#fff;font-size:18px"></i></div>
+      <div>
+        <h1>CT Seals</h1>
+        <span>Panel de Inventario</span>
+      </div>
+    </div>
+    <div class="top-actions">
+      <span class="badge" id="fechaBadge"></span>
+      <button class="btn btn-ghost" onclick="resetFilters()"><i class="ti ti-refresh"></i>Limpiar filtros</button>
+      <button class="btn btn-red" onclick="exportExcel()"><i class="ti ti-file-spreadsheet"></i>Exportar Excel</button>
+    </div>
+  </div>
+
+  <!-- KPIs -->
+  <div class="kpi-grid" id="kpis"></div>
+
+  <!-- Gráficos -->
+  <div class="charts-row">
+    <div class="card">
+      <div class="card-title"><i class="ti ti-chart-bar"></i>Stock por categoría</div>
+      <div id="bars"></div>
+    </div>
+    <div class="card">
+      <div class="card-title"><i class="ti ti-chart-donut"></i>Estado del inventario</div>
+      <div class="donut-wrap">
+        <svg id="donut" width="110" height="110" viewBox="0 0 110 110" role="img" aria-label="Distribución de estados"></svg>
+        <div class="legend" id="donut-legend"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FILTROS -->
+  <div class="filters-section">
+    <div class="filters-title"><i class="ti ti-filter"></i>Búsqueda y filtros avanzados</div>
+    <div class="filters-grid">
+      <div class="filter-group" style="grid-column:span 2">
+        <label class="filter-label">Búsqueda general</label>
+        <input class="filter-input" id="q" type="text" placeholder="Nombre, código, categoría..." oninput="applyFilters()">
+      </div>
+      <div class="filter-group">
+        <label class="filter-label">Categoría</label>
+        <select class="filter-input" id="fCat" onchange="applyFilters()">
+          <option value="">Todas</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label class="filter-label">Estado</label>
+        <select class="filter-input" id="fStatus" onchange="applyFilters()">
+          <option value="">Todos</option>
+          <option value="OK">OK</option>
+          <option value="Bajo">Bajo mínimo</option>
+          <option value="Agotado">Agotado</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label class="filter-label">Unidad</label>
+        <select class="filter-input" id="fUnd" onchange="applyFilters()">
+          <option value="">Todas</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label class="filter-label">Precio unit. (S/)</label>
+        <div class="range-row">
+          <input class="filter-input" id="precioMin" type="number" placeholder="Mín" min="0" oninput="applyFilters()">
+          <span>—</span>
+          <input class="filter-input" id="precioMax" type="number" placeholder="Máx" min="0" oninput="applyFilters()">
+        </div>
+      </div>
+      <div class="filter-group">
+        <label class="filter-label">Stock actual</label>
+        <div class="range-row">
+          <input class="filter-input" id="stockMin" type="number" placeholder="Mín" min="0" oninput="applyFilters()">
+          <span>—</span>
+          <input class="filter-input" id="stockMax" type="number" placeholder="Máx" min="0" oninput="applyFilters()">
+        </div>
+      </div>
+      <div class="filter-group">
+        <label class="filter-label">Fecha actualización</label>
+        <div class="range-row">
+          <input class="filter-input" id="fechaMin" type="date" oninput="applyFilters()">
+          <span>—</span>
+          <input class="filter-input" id="fechaMax" type="date" oninput="applyFilters()">
+        </div>
+      </div>
+    </div>
+    <div class="active-filters" id="activeTags"></div>
+  </div>
+
+  <!-- Tabla -->
+  <div class="table-section">
+    <div class="table-header">
+      <div class="card-title" style="margin:0"><i class="ti ti-list"></i>Inventario de productos</div>
+      <div style="font-size:11px;color:#5a5e7a" id="rowCount"></div>
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th onclick="sortBy('cod')">Código</th>
+            <th onclick="sortBy('nombre')">Producto</th>
+            <th onclick="sortBy('cat')">Categoría</th>
+            <th onclick="sortBy('und')">Unidad</th>
+            <th onclick="sortBy('stock')">Stock</th>
+            <th onclick="sortBy('min')">Mín.</th>
+            <th onclick="sortBy('precio')">Precio (S/)</th>
+            <th onclick="sortBy('valor')">Valor (S/)</th>
+            <th onclick="sortBy('fecha')">Actualizado</th>
+            <th>Estado</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
+    <div class="row-count" id="rowCountBottom"></div>
+  </div>
+
+  <!-- Alertas -->
+  <div class="alert-card">
+    <div class="card-title"><i class="ti ti-bell" style="color:#e85a5a"></i>Alertas prioritarias</div>
+    <div id="alerts"></div>
+  </div>
+
+  <div class="footer">CT Seals · Sistema de Inventario · <span id="footerYear"></span></div>
+</div>
+
+<script>
+// ── DATOS ──────────────────────────────────────────────────────────────────
+const productos = [
+  {cod:"SH-001",nombre:"Sello hidráulico U-cup 50mm",cat:"Sellos Hidráulicos",und:"pza",stock:38,min:10,precio:28.50,fecha:"2026-05-01"},
+  {cod:"SH-002",nombre:"Sello hidráulico U-cup 80mm",cat:"Sellos Hidráulicos",und:"pza",stock:24,min:10,precio:34.00,fecha:"2026-05-01"},
+  {cod:"SH-003",nombre:"Sello hidráulico U-cup 100mm",cat:"Sellos Hidráulicos",und:"pza",stock:0,min:8,precio:42.00,fecha:"2026-04-20"},
+  {cod:"SH-004",nombre:"Sello pistón doble acción 63mm",cat:"Sellos Hidráulicos",und:"pza",stock:15,min:8,precio:55.00,fecha:"2026-05-03"},
+  {cod:"SH-005",nombre:"Sello pistón doble acción 80mm",cat:"Sellos Hidráulicos",und:"pza",stock:6,min:8,precio:62.00,fecha:"2026-04-28"},
+  {cod:"SH-006",nombre:"Raspador metálico 50mm",cat:"Sellos Hidráulicos",und:"pza",stock:20,min:10,precio:18.00,fecha:"2026-05-02"},
+  {cod:"SH-007",nombre:"Raspador metálico 100mm",cat:"Sellos Hidráulicos",und:"pza",stock:11,min:10,precio:24.00,fecha:"2026-05-02"},
+  {cod:"SN-001",nombre:"Sello neumático 25mm",cat:"Sellos Neumáticos",und:"pza",stock:12,min:15,precio:15.00,fecha:"2026-04-25"},
+  {cod:"SN-002",nombre:"Sello neumático 40mm",cat:"Sellos Neumáticos",und:"pza",stock:30,min:12,precio:19.50,fecha:"2026-05-05"},
+  {cod:"SN-003",nombre:"Sello rod 35mm",cat:"Sellos Neumáticos",und:"pza",stock:3,min:10,precio:22.00,fecha:"2026-04-18"},
+  {cod:"SN-004",nombre:"Sello rod 50mm",cat:"Sellos Neumáticos",und:"pza",stock:18,min:10,precio:26.00,fecha:"2026-05-04"},
+  {cod:"SN-005",nombre:"Guía de banda 40mm",cat:"Sellos Neumáticos",und:"pza",stock:0,min:10,precio:12.00,fecha:"2026-04-15"},
+  {cod:"OR-001",nombre:"O-ring NBR 40×3mm",cat:"O-Rings",und:"pza",stock:0,min:20,precio:2.50,fecha:"2026-04-10"},
+  {cod:"OR-002",nombre:"O-ring NBR 60×4mm",cat:"O-Rings",und:"pza",stock:85,min:20,precio:3.20,fecha:"2026-05-06"},
+  {cod:"OR-003",nombre:"O-ring Viton 50×3mm",cat:"O-Rings",und:"pza",stock:40,min:15,precio:8.50,fecha:"2026-05-06"},
+  {cod:"OR-004",nombre:"O-ring Viton 80×5mm",cat:"O-Rings",und:"pza",stock:22,min:15,precio:11.00,fecha:"2026-05-06"},
+  {cod:"OR-005",nombre:"O-ring EPDM 30×2mm",cat:"O-Rings",und:"pza",stock:9,min:20,precio:4.00,fecha:"2026-04-22"},
+  {cod:"RC-001",nombre:"Kit reparación cilindro 50mm",cat:"Repuestos Cilindros",und:"kit",stock:5,min:3,precio:120.00,fecha:"2026-05-01"},
+  {cod:"RC-002",nombre:"Kit reparación cilindro 80mm",cat:"Repuestos Cilindros",und:"kit",stock:3,min:3,precio:145.00,fecha:"2026-05-01"},
+  {cod:"RC-003",nombre:"Kit reparación cilindro 100mm",cat:"Repuestos Cilindros",und:"kit",stock:2,min:3,precio:180.00,fecha:"2026-04-30"},
+  {cod:"RC-004",nombre:"Vástago acero inox 40mm",cat:"Repuestos Cilindros",und:"pza",stock:8,min:4,precio:95.00,fecha:"2026-05-03"},
+  {cod:"RC-005",nombre:"Tuerca de fijación cilindro",cat:"Repuestos Cilindros",und:"pza",stock:14,min:5,precio:35.00,fecha:"2026-05-03"},
+  {cod:"EM-001",nombre:"Empaque PTFE 30mm",cat:"Empaques",und:"pza",stock:0,min:12,precio:18.00,fecha:"2026-04-12"},
+  {cod:"EM-002",nombre:"Empaque PTFE 50mm",cat:"Empaques",und:"pza",stock:7,min:10,precio:22.00,fecha:"2026-04-28"},
+  {cod:"EM-003",nombre:"Empaque grafitado 1/8\"",cat:"Empaques",und:"m",stock:25,min:10,precio:14.00,fecha:"2026-05-02"},
+  {cod:"EM-004",nombre:"Empaque espiral 3\"",cat:"Empaques",und:"pza",stock:4,min:5,precio:65.00,fecha:"2026-04-29"},
+  {cod:"OT-001",nombre:"Grasa para sellos hidráulicos",cat:"Otros",und:"kg",stock:12,min:5,precio:48.00,fecha:"2026-05-07"},
+  {cod:"OT-002",nombre:"Lubricante neumático ISO 46",cat:"Otros",und:"lt",stock:8,min:3,precio:32.00,fecha:"2026-05-07"},
+  {cod:"OT-003",nombre:"Limpiador de superficies",cat:"Otros",und:"lt",stock:5,min:3,precio:28.00,fecha:"2026-05-07"},
+];
+
+// ── ESTADO ─────────────────────────────────────────────────────────────────
+let filtered = [...productos];
+let sortCol = null, sortDir = 1;
+
+function getStatus(p){ return p.stock===0?"Agotado":p.stock<p.min?"Bajo":"OK"; }
+function getValor(p){ return p.stock*p.precio; }
+
+// ── INIT ───────────────────────────────────────────────────────────────────
+document.getElementById("fechaBadge").textContent = new Date().toLocaleDateString("es-PE",{month:"long",year:"numeric"});
+document.getElementById("footerYear").textContent = new Date().getFullYear();
+
+const cats=[...new Set(productos.map(p=>p.cat))];
+const unds=[...new Set(productos.map(p=>p.und))];
+const catSel=document.getElementById("fCat");
+cats.forEach(c=>{ const o=document.createElement("option");o.value=c;o.textContent=c;catSel.appendChild(o); });
+const undSel=document.getElementById("fUnd");
+unds.forEach(u=>{ const o=document.createElement("option");o.value=u;o.textContent=u;undSel.appendChild(o); });
+
+buildKPIs(); buildBars(); buildDonut(); renderTable(); buildAlerts();
+
+// ── KPIs ───────────────────────────────────────────────────────────────────
+function buildKPIs(){
+  const tot=productos.length;
+  const ag=productos.filter(p=>p.stock===0).length;
+  const bj=productos.filter(p=>p.stock>0&&p.stock<p.min).length;
+  const val=productos.reduce((a,p)=>a+getValor(p),0);
+  const ok=tot-ag-bj;
+  document.getElementById("kpis").innerHTML=`
+    <div class="kpi"><div class="kpi-label">Total productos</div><div class="kpi-val white">${tot}</div><div class="kpi-sub">6 categorías</div></div>
+    <div class="kpi"><div class="kpi-label">En stock (OK)</div><div class="kpi-val green">${ok}</div><div class="kpi-sub">sobre el mínimo</div></div>
+    <div class="kpi"><div class="kpi-label">Stock crítico</div><div class="kpi-val amber">${bj}</div><div class="kpi-sub">bajo el mínimo</div></div>
+    <div class="kpi"><div class="kpi-label">Agotados</div><div class="kpi-val red">${ag}</div><div class="kpi-sub">sin stock</div></div>
+    <div class="kpi"><div class="kpi-label">Valor inventario</div><div class="kpi-val blue">S/ ${val.toLocaleString("es-PE",{minimumFractionDigits:2,maximumFractionDigits:2})}</div><div class="kpi-sub">precio × stock</div></div>
+  `;
+}
+
+// ── GRÁFICOS ───────────────────────────────────────────────────────────────
+function buildBars(){
+  const cats={};
+  productos.forEach(p=>{ cats[p.cat]=(cats[p.cat]||0)+p.stock; });
+  const maxV=Math.max(...Object.values(cats));
+  const colors=["#D32F2F","#8B1538","#b71c1c","#6a0f2a","#e53935","#7b1228"];
+  document.getElementById("bars").innerHTML=Object.entries(cats).map(([cat,v],i)=>`
+    <div class="bar-row">
+      <span class="bar-label">${cat.length>16?cat.slice(0,15)+"…":cat}</span>
+      <div class="bar-track"><div class="bar-fill" style="width:${Math.round(v/maxV*100)}%;background:${colors[i]}"></div></div>
+      <span class="bar-val">${v}</span>
+    </div>`).join("");
+}
+
+function buildDonut(){
+  const ok=productos.filter(p=>getStatus(p)==="OK").length;
+  const bajo=productos.filter(p=>getStatus(p)==="Bajo").length;
+  const agot=productos.filter(p=>getStatus(p)==="Agotado").length;
+  const tot=productos.length;
+  const r=40,cx=55,cy=55,circ=2*Math.PI*r;
+  const data=[{label:"OK",count:ok,color:"#4caf8c"},{label:"Bajo mínimo",count:bajo,color:"#f5a623"},{label:"Agotado",count:agot,color:"#e85a5a"}];
+  let off=0;
+  const svg=document.getElementById("donut");
+  svg.innerHTML="";
+  data.forEach(d=>{
+    const arc=circ*(d.count/tot);
+    const c=document.createElementNS("http://www.w3.org/2000/svg","circle");
+    c.setAttribute("cx",cx);c.setAttribute("cy",cy);c.setAttribute("r",r);
+    c.setAttribute("fill","none");c.setAttribute("stroke",d.color);c.setAttribute("stroke-width","18");
+    c.setAttribute("stroke-dasharray",`${arc} ${circ-arc}`);c.setAttribute("stroke-dashoffset",-off);
+    svg.appendChild(c); off+=arc;
+  });
+  ["55,52,14,500,#f0f0f5,"+ok,"55,65,10,400,#7a7d99,productos"].forEach(s=>{
+    const [x,y,fs,fw,fill,txt]=s.split(",");
+    const el=document.createElementNS("http://www.w3.org/2000/svg","text");
+    el.setAttribute("x",x);el.setAttribute("y",y);el.setAttribute("text-anchor","middle");
+    el.setAttribute("font-size",fs);el.setAttribute("font-weight",fw);el.setAttribute("fill",fill);
+    el.textContent=txt; svg.appendChild(el);
+  });
+  document.getElementById("donut-legend").innerHTML=data.map(d=>`
+    <div class="leg-item"><span class="leg-dot" style="background:${d.color}"></span>${d.label} — ${d.count} (${Math.round(d.count/tot*100)}%)</div>`).join("");
+}
+
+// ── FILTROS ────────────────────────────────────────────────────────────────
+function applyFilters(){
+  const q=(document.getElementById("q").value||"").toLowerCase();
+  const cat=document.getElementById("fCat").value;
+  const st=document.getElementById("fStatus").value;
+  const und=document.getElementById("fUnd").value;
+  const pMin=parseFloat(document.getElementById("precioMin").value)||0;
+  const pMax=parseFloat(document.getElementById("precioMax").value)||Infinity;
+  const sMin=parseFloat(document.getElementById("stockMin").value)||0;
+  const sMax=parseFloat(document.getElementById("stockMax").value)||Infinity;
+  const fMin=document.getElementById("fechaMin").value||"0000-00-00";
+  const fMax=document.getElementById("fechaMax").value||"9999-99-99";
+
+  filtered=productos.filter(p=>{
+    const s=getStatus(p);
+    return (!q||(p.nombre.toLowerCase().includes(q)||p.cod.toLowerCase().includes(q)||p.cat.toLowerCase().includes(q)))
+      &&(!cat||p.cat===cat)&&(!st||s===st)&&(!und||p.und===und)
+      &&p.precio>=pMin&&p.precio<=pMax
+      &&p.stock>=sMin&&p.stock<=sMax
+      &&p.fecha>=fMin&&p.fecha<=fMax;
+  });
+  renderActiveTags(q,cat,st,und,pMin,pMax===Infinity?null:pMax,sMin,sMax===Infinity?null:sMax,fMin==="0000-00-00"?null:fMin,fMax==="9999-99-99"?null:fMax);
+  renderTable();
+}
+
+function renderActiveTags(q,cat,st,und,pMin,pMax,sMin,sMax,fMin,fMax){
+  const tags=[];
+  if(q) tags.push(`Texto: "${q}"`);
+  if(cat) tags.push(`Cat: ${cat}`);
+  if(st) tags.push(`Estado: ${st}`);
+  if(und) tags.push(`Unidad: ${und}`);
+  if(pMin||pMax) tags.push(`Precio: S/${pMin}${pMax?` – S/${pMax}`:""}`);
+  if(sMin||sMax) tags.push(`Stock: ${sMin}${sMax?` – ${sMax}`:""}`);
+  if(fMin||fMax) tags.push(`Fecha: ${fMin||""}${fMax?` → ${fMax}`:""}`);
+  document.getElementById("activeTags").innerHTML=tags.map(t=>`
+    <span class="filter-tag" title="Click para limpiar filtros" onclick="resetFilters()"><i class="ti ti-x" style="font-size:10px"></i>${t}</span>`).join("");
+}
+
+function resetFilters(){
+  ["q","fCat","fStatus","fUnd","precioMin","precioMax","stockMin","stockMax","fechaMin","fechaMax"]
+    .forEach(id=>{ const el=document.getElementById(id); el.value=el.tagName==="SELECT"?"":el.type==="number"?"":""; });
+  filtered=[...productos];
+  document.getElementById("activeTags").innerHTML="";
+  renderTable();
+}
+
+// ── TABLA CON ORDENAMIENTO ─────────────────────────────────────────────────
+function sortBy(col){
+  if(sortCol===col) sortDir*=-1; else { sortCol=col; sortDir=1; }
+  document.querySelectorAll("thead th").forEach(th=>{th.className="";});
+  event.target.className=sortDir===1?"sort-asc":"sort-desc";
+  filtered.sort((a,b)=>{
+    let av=col==="valor"?getValor(a):a[col];
+    let bv=col==="valor"?getValor(b):b[col];
+    if(typeof av==="string") return av.localeCompare(bv)*sortDir;
+    return (av-bv)*sortDir;
+  });
+  renderTable();
+}
+
+function renderTable(){
+  const tb=document.getElementById("tableBody");
+  if(!filtered.length){
+    tb.innerHTML=`<tr><td colspan="10" class="no-data">No se encontraron productos con los filtros aplicados</td></tr>`;
+    document.getElementById("rowCount").textContent="";
+    document.getElementById("rowCountBottom").textContent="";
+    return;
+  }
+  const pillCls=s=>s==="OK"?"pill-ok":s==="Bajo"?"pill-low":"pill-out";
+  tb.innerHTML=filtered.map(p=>{
+    const s=getStatus(p);
+    const val=getValor(p);
+    return `<tr>
+      <td style="color:#7a7d99;font-family:monospace;font-size:11px">${p.cod}</td>
+      <td>${p.nombre}</td>
+      <td style="color:#8a8daa">${p.cat}</td>
+      <td style="color:#5a5e7a">${p.und}</td>
+      <td style="font-weight:500;color:${p.stock===0?"#e85a5a":p.stock<p.min?"#f5a623":"#c8cce0"}">${p.stock}</td>
+      <td style="color:#5a5e7a">${p.min}</td>
+      <td>S/ ${p.precio.toFixed(2)}</td>
+      <td style="color:#4caf8c">S/ ${val.toLocaleString("es-PE",{minimumFractionDigits:2})}</td>
+      <td style="color:#5a5e7a;font-size:11px">${p.fecha}</td>
+      <td><span class="pill ${pillCls(s)}">${s}</span></td>
+    </tr>`;
+  }).join("");
+  const txt=`Mostrando ${filtered.length} de ${productos.length} productos`;
+  document.getElementById("rowCount").textContent=txt;
+  document.getElementById("rowCountBottom").textContent=txt;
+}
+
+// ── ALERTAS ────────────────────────────────────────────────────────────────
+function buildAlerts(){
+  const urgentes=productos.filter(p=>getStatus(p)!=="OK").sort((a,b)=>a.stock-b.stock).slice(0,6);
+  document.getElementById("alerts").innerHTML=urgentes.map(p=>{
+    const s=getStatus(p),isOut=s==="Agotado";
+    return `<div class="alert-item">
+      <div class="alert-icon ${isOut?"red":"amber"}">
+        <i class="ti ti-${isOut?"alert-triangle":"arrow-down"}" style="color:${isOut?"#e85a5a":"#f5a623"}"></i>
+      </div>
+      <div class="alert-text">
+        <div class="alert-name">${p.nombre} <span style="color:#5a5e7a;font-size:11px">(${p.cod})</span></div>
+        <div class="alert-desc">Stock: ${p.stock} | Mínimo: ${p.min} | Precio: S/ ${p.precio.toFixed(2)} | Actualizado: ${p.fecha}</div>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+// ── EXPORTAR EXCEL ─────────────────────────────────────────────────────────
+function exportExcel(){
+  const hdr=["Código","Producto","Categoría","Unidad","Stock","Mínimo","Precio Unit. (S/)","Valor Total (S/)","Fecha Actualización","Estado"];
+  const rows=filtered.map(p=>[p.cod,p.nombre,p.cat,p.und,p.stock,p.min,p.precio,getValor(p).toFixed(2),p.fecha,getStatus(p)]);
+  const wb=XLSX.utils.book_new();
+  const ws=XLSX.utils.aoa_to_sheet([hdr,...rows]);
+  ws["!cols"]=[{wch:10},{wch:36},{wch:22},{wch:8},{wch:8},{wch:8},{wch:16},{wch:16},{wch:18},{wch:12}];
+  XLSX.utils.book_append_sheet(wb,"Inventario",ws);
+
+  const ag=productos.filter(p=>p.stock===0).length;
+  const bj=productos.filter(p=>p.stock>0&&p.stock<p.min).length;
+  const val=productos.reduce((a,p)=>a+getValor(p),0);
+  const resumen=[
+    ["RESUMEN — CT Seals Inventario"],["Generado:",new Date().toLocaleDateString("es-PE")],[""],
+    ["Total productos",productos.length],["En stock (OK)",productos.length-ag-bj],
+    ["Bajo mínimo",bj],["Agotados",ag],
+    ["Valor total (S/)",val.toFixed(2)],[""],
+    ["Filtros aplicados","Mostrando "+filtered.length+" de "+productos.length+" productos"],
+  ];
+  const ws2=XLSX.utils.aoa_to_sheet(resumen);
+  ws2["!cols"]=[{wch:28},{wch:22}];
+  XLSX.utils.book_append_sheet(wb,"Resumen",ws2);
+
+  const fecha=new Date().toISOString().slice(0,10);
+  XLSX.writeFile(wb,`CT_Seals_Inventario_${fecha}.xlsx`);
+}
+</script>
+</body>
+</html>
