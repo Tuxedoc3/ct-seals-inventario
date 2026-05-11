@@ -326,17 +326,17 @@ tbody tr:hover td{background:#1e2134}
     <div class="form-group">
       <label class="form-label">Tipo de movimiento *</label>
       <select class="form-input" id="mov_tipo">
-        <option value="entrada">📥 Entrada (agregar tubos)</option>
-        <option value="salida">📤 Salida / Consumo</option>
+        <option value="entrada">📥 Entrada (agregar tubos completos)</option>
+        <option value="salida">📤 Consumo (descontar mm de altura)</option>
       </select>
     </div>
     <div class="form-group">
-      <label class="form-label">Cantidad de tubos *</label>
-      <input class="form-input" id="mov_cantidad" type="number" placeholder="1" min="1">
+      <label class="form-label">Cantidad de tubos (solo para entradas)</label>
+      <input class="form-input" id="mov_cantidad" type="number" placeholder="1" min="1" value="1">
     </div>
     <div class="form-group">
-      <label class="form-label">Altura consumida (mm) — opcional</label>
-      <input class="form-input" id="mov_altura" type="number" placeholder="Ej: 150">
+      <label class="form-label">Altura consumida (mm) — obligatorio para consumos *</label>
+      <input class="form-input" id="mov_altura" type="number" placeholder="Ej: 150 mm cortados">
     </div>
     <div class="form-group">
       <label class="form-label">Nota / Observación</label>
@@ -708,26 +708,50 @@ async function loadTubos(){
     return;
   }
 
-  // Obtener movimientos
   const ids=tubos.map(t=>t.id);
   const {data:movs}=await sb.from("movimientos").select("*").in("tubo_id",ids).order("fecha",{ascending:false});
 
   document.getElementById("tubos-list").innerHTML=tubos.map(t=>{
     const movsT=(movs||[]).filter(m=>m.tubo_id===t.id);
-    const entradas=movsT.filter(m=>m.tipo==="entrada").reduce((a,m)=>a+m.cantidad,0);
-    const salidas=movsT.filter(m=>m.tipo==="salida").reduce((a,m)=>a+m.cantidad,0);
-    const stock=t.cantidad+entradas-salidas;
-    const pct=t.cantidad>0?Math.max(0,Math.min(100,Math.round(salidas/t.cantidad*100))):0;
-    const color=stock<=0?"#e85a5a":stock<=2?"#f5a623":"#4caf8c";
+
+    // ── LÓGICA CORRECTA ──────────────────────────────────────────────────
+    // Cada tubo tiene altura_total (mm). Los consumos descuentan mm.
+    // Cuando se agotan los mm de un tubo, pasa al siguiente.
+    const alturaTotal=t.altura_total||0;         // mm por tubo
+    const cantidadInicial=t.cantidad||0;          // tubos iniciales
+    const alturaDisponibleTotal=alturaTotal*cantidadInicial; // mm totales
+
+    // Sumar entradas en mm (entradas agregan tubos nuevos → altura extra)
+    const entradasTubos=movsT.filter(m=>m.tipo==="entrada").reduce((a,m)=>a+m.cantidad,0);
+    const alturaEntradas=entradasTubos*alturaTotal;
+
+    // Sumar salidas en mm
+    const mmConsumidos=movsT.filter(m=>m.tipo==="salida").reduce((a,m)=>a+(m.altura_usada||0),0);
+
+    // Total mm disponibles
+    const mmTotales=alturaDisponibleTotal+alturaEntradas;
+    const mmRestantes=Math.max(0,mmTotales-mmConsumidos);
+
+    // Tubos equivalentes restantes
+    const tubosTotales=cantidadInicial+entradasTubos;
+    const tubosAgotados=alturaTotal>0?Math.floor(mmConsumidos/alturaTotal):0;
+    const tubosRestantes=Math.max(0,tubosTotales-tubosAgotados);
+    const mmEnTuboActual=alturaTotal>0?mmRestantes%alturaTotal||alturaTotal:0;
+
+    // Porcentaje consumido del total
+    const pct=mmTotales>0?Math.min(100,Math.round(mmConsumidos/mmTotales*100)):0;
+    const color=mmRestantes<=0?"#e85a5a":pct>75?"#f5a623":"#4caf8c";
 
     const movsHtml=movsT.slice(0,5).map(m=>`
       <div class="mov-item">
-        <div class="mov-icon ${m.tipo==="entrada"?"mov-in":"mov-out'}"}">
+        <div class="mov-icon ${m.tipo==="entrada"?"mov-in":"mov-out"}">
           <i class="ti ti-arrow-${m.tipo==="entrada"?"down":"up"}"></i>
         </div>
         <div style="flex:1">
-          <span style="color:${m.tipo==="entrada"?"#4caf8c":"#e85a5a"};font-weight:500">${m.tipo==="entrada"?"+ ":"- "}${m.cantidad} tubo${m.cantidad>1?"s":""}</span>
-          ${m.altura_usada?`<span style="color:#5a5e7a"> · ${m.altura_usada}mm</span>`:""}
+          <span style="color:${m.tipo==="entrada"?"#4caf8c":"#e85a5a"};font-weight:500">
+            ${m.tipo==="entrada"?"+":"−"}${m.cantidad} tubo${m.cantidad>1?"s":""}
+          </span>
+          ${m.altura_usada?`<span style="color:#5a5e7a"> · ${m.altura_usada}mm consumidos</span>`:""}
           ${m.nota?`<span style="color:#7a7d99"> · ${m.nota}</span>`:""}
         </div>
         <span style="color:#3a3e5a;font-size:10px">${new Date(m.fecha).toLocaleDateString("es-PE")}</span>
@@ -737,22 +761,69 @@ async function loadTubos(){
       <div class="tubo-header">
         <div>
           <div class="tubo-title">${t.descripcion}</div>
-          <div class="tubo-sub">${t.codigo_mat||"Sin código"} ${t.diametro_ext?`· Ø${t.diametro_ext}mm`:""} ${t.altura_total?`· ${t.altura_total}mm altura`:""}</div>
+          <div class="tubo-sub">
+            ${t.codigo_mat||"Sin código"}
+            ${t.diametro_ext?`· Ø${t.diametro_ext}mm`:""}
+            ${alturaTotal?`· ${alturaTotal}mm por tubo`:""}
+          </div>
         </div>
-        <div style="display:flex;gap:6px">
-          <button class="btn btn-green" style="font-size:11px" onclick="openModalMovFor(${t.id},'${t.descripcion.replace(/'/g,"\\'")}')">
-            <i class="ti ti-arrows-exchange"></i>Movimiento
-          </button>
+        <button class="btn btn-green" style="font-size:11px" onclick="openModalMovFor(${t.id},'${t.descripcion.replace(/'/g,"\\'")}')">
+          <i class="ti ti-arrows-exchange"></i>Movimiento
+        </button>
+      </div>
+
+      <!-- STATS PRINCIPALES -->
+      <div class="tubo-stats" style="margin-bottom:10px">
+        <div class="tubo-stat">
+          <div class="tubo-stat-val" style="color:${color}">${tubosRestantes}</div>
+          <div class="tubo-stat-lbl">Tubos restantes</div>
+        </div>
+        <div class="tubo-stat">
+          <div class="tubo-stat-val" style="color:${color}">${mmEnTuboActual.toFixed(0)}<span style="font-size:12px">mm</span></div>
+          <div class="tubo-stat-lbl">En tubo actual</div>
+        </div>
+        <div class="tubo-stat">
+          <div class="tubo-stat-val" style="color:#5b9bd5">${mmRestantes.toFixed(0)}<span style="font-size:12px">mm</span></div>
+          <div class="tubo-stat-lbl">Total disponible</div>
+        </div>
+        <div class="tubo-stat">
+          <div class="tubo-stat-val" style="color:#e85a5a">${mmConsumidos.toFixed(0)}<span style="font-size:12px">mm</span></div>
+          <div class="tubo-stat-lbl">Total consumido</div>
         </div>
       </div>
-      <div class="tubo-stats">
-        <div class="tubo-stat"><div class="tubo-stat-val" style="color:${color}">${stock}</div><div class="tubo-stat-lbl">Stock actual</div></div>
-        <div class="tubo-stat"><div class="tubo-stat-val">${t.cantidad}</div><div class="tubo-stat-lbl">Stock inicial</div></div>
-        <div class="tubo-stat"><div class="tubo-stat-val" style="color:#4caf8c">+${entradas}</div><div class="tubo-stat-lbl">Entradas</div></div>
-        <div class="tubo-stat"><div class="tubo-stat-val" style="color:#e85a5a">-${salidas}</div><div class="tubo-stat-lbl">Salidas</div></div>
+
+      <!-- BARRA DE PROGRESO POR TUBO -->
+      ${alturaTotal>0&&tubosTotales>0?`
+      <div style="font-size:10px;color:#5a5e7a;margin-bottom:5px">ESTADO POR TUBO</div>
+      <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px">
+        ${Array.from({length:tubosTotales}).map((_,i)=>{
+          const mmInicioTubo=i*alturaTotal;
+          const mmFinTubo=(i+1)*alturaTotal;
+          if(mmConsumidos>=mmFinTubo){
+            // Tubo agotado
+            return `<div title="Tubo ${i+1}: agotado" style="flex:1;min-width:20px;max-width:60px;height:14px;background:#2e1a1a;border-radius:3px;border:0.5px solid #e85a5a33"></div>`;
+          } else if(mmConsumidos>mmInicioTubo){
+            // Tubo en uso
+            const pctTubo=Math.round((mmConsumidos-mmInicioTubo)/alturaTotal*100);
+            return `<div title="Tubo ${i+1}: ${100-pctTubo}% restante (${(alturaTotal-(mmConsumidos-mmInicioTubo)).toFixed(0)}mm)" style="flex:1;min-width:20px;max-width:60px;height:14px;background:#22253a;border-radius:3px;border:0.5px solid #f5a62366;position:relative;overflow:hidden">
+              <div style="position:absolute;left:0;top:0;height:100%;width:${pctTubo}%;background:#f5a62355;border-radius:3px"></div>
+            </div>`;
+          } else {
+            // Tubo intacto
+            return `<div title="Tubo ${i+1}: completo (${alturaTotal}mm)" style="flex:1;min-width:20px;max-width:60px;height:14px;background:#1a3a2a;border-radius:3px;border:0.5px solid #4caf8c55"></div>`;
+          }
+        }).join("")}
       </div>
-      <div class="progress-bar"><div class="progress-fill" style="width:${pct}%;background:${pct>80?"#e85a5a":pct>50?"#f5a623":"#4caf8c"}"></div></div>
-      <div style="font-size:10px;color:#5a5e7a;margin-bottom:6px">${pct}% consumido</div>
+      <div style="display:flex;gap:12px;font-size:10px;color:#5a5e7a;margin-bottom:8px">
+        <span><span style="display:inline-block;width:10px;height:10px;background:#1a3a2a;border:0.5px solid #4caf8c55;border-radius:2px;margin-right:4px"></span>Completo</span>
+        <span><span style="display:inline-block;width:10px;height:10px;background:#22253a;border:0.5px solid #f5a62366;border-radius:2px;margin-right:4px"></span>En uso</span>
+        <span><span style="display:inline-block;width:10px;height:10px;background:#2e1a1a;border:0.5px solid #e85a5a33;border-radius:2px;margin-right:4px"></span>Agotado</span>
+      </div>`:""}
+
+      <!-- BARRA TOTAL -->
+      <div class="progress-bar"><div class="progress-fill" style="width:${pct}%;background:${color}"></div></div>
+      <div style="font-size:10px;color:#5a5e7a;margin-bottom:6px">${pct}% consumido del total · ${mmTotales.toFixed(0)}mm totales</div>
+
       ${movsT.length?`<div class="movs-list"><div style="font-size:10px;color:#5a5e7a;margin-bottom:6px">ÚLTIMOS MOVIMIENTOS</div>${movsHtml}</div>`:""}
     </div>`;
   }).join("");
@@ -821,17 +892,33 @@ function closeModalMov(){ document.getElementById("modalMov").style.display="non
 async function saveMovimiento(){
   const tuboId=parseInt(document.getElementById("mov_tubo_id").value);
   const tipo=document.getElementById("mov_tipo").value;
-  const cant=parseInt(document.getElementById("mov_cantidad").value)||0;
-  if(!cant||cant<=0){toast("Ingresa una cantidad válida","err");return;}
+  const cant=parseInt(document.getElementById("mov_cantidad").value)||1;
+  const altura=parseFloat(document.getElementById("mov_altura").value)||null;
+
+  // Validaciones
+  if(tipo==="salida"&&!altura){
+    toast("Para un consumo debes ingresar los mm de altura cortados","err");
+    return;
+  }
+  if(tipo==="entrada"&&cant<=0){
+    toast("Ingresa cuántos tubos entraron","err");
+    return;
+  }
+
   const obj={
-    tubo_id:tuboId,tipo,cantidad:cant,
-    altura_usada:parseFloat(document.getElementById("mov_altura").value)||null,
+    tubo_id:tuboId,
+    tipo,
+    cantidad:tipo==="entrada"?cant:1, // en consumos, siempre 1 (los mm hacen el cálculo)
+    altura_usada:altura,
     nota:document.getElementById("mov_nota").value.trim()||null,
   };
   const {error}=await sb.from("movimientos").insert(obj);
   if(error){toast("Error: "+error.message,"err");return;}
   closeModalMov();
-  toast(`✓ Movimiento registrado (${tipo}: ${cant} tubo${cant>1?"s":""})`, "ok");
+  const msg=tipo==="entrada"
+    ?`✓ Entrada: ${cant} tubo${cant>1?"s":""} agregado${cant>1?"s":""}`
+    :`✓ Consumo: ${altura}mm descontados`;
+  toast(msg,"ok");
   loadTubos();
 }
 
