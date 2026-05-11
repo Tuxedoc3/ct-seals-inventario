@@ -3,297 +3,442 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CT Seals — Catálogo de Materiales</title>
+<title>CT Seals — ERP Inventario</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{background:#0d0f14;font-family:system-ui,sans-serif;color:#e8e8ee;min-height:100vh;padding:16px}
-.dash{max-width:1200px;margin:0 auto}
-.top-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:10px}
-.logo{display:flex;align-items:center;gap:10px}
-.logo-icon{width:36px;height:36px;background:#D32F2F;border-radius:8px;display:flex;align-items:center;justify-content:center}
-.logo h1{font-size:17px;font-weight:500;color:#f0f0f5}
-.logo span{font-size:12px;color:#7a7d99;display:block}
-.top-actions{display:flex;gap:8px;flex-wrap:wrap}
-.btn{border:none;font-size:12px;padding:7px 13px;border-radius:8px;cursor:pointer;display:flex;align-items:center;gap:6px;font-weight:500;transition:background .2s}
-.btn-red{background:#D32F2F;color:#fff}.btn-red:hover{background:#b71c1c}
-.btn-ghost{background:#1a1d26;color:#b0b3cc;border:0.5px solid #2e3042}.btn-ghost:hover{background:#22253a}
+body{background:#0d0f14;font-family:system-ui,sans-serif;color:#e8e8ee;min-height:100vh}
+.layout{display:flex;min-height:100vh}
 
-.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:16px}
-.kpi{background:#1a1d26;border:0.5px solid #2e3042;border-radius:10px;padding:12px 14px}
+/* SIDEBAR */
+.sidebar{width:220px;background:#111318;border-right:0.5px solid #2e3042;display:flex;flex-direction:column;flex-shrink:0;position:sticky;top:0;height:100vh}
+.sidebar-logo{padding:18px 16px;border-bottom:0.5px solid #2e3042;display:flex;align-items:center;gap:10px}
+.sidebar-logo .icon{width:32px;height:32px;background:#D32F2F;border-radius:7px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.sidebar-logo h1{font-size:15px;font-weight:600;color:#f0f0f5}
+.sidebar-logo span{font-size:10px;color:#7a7d99;display:block}
+.sidebar-nav{padding:12px 8px;flex:1;overflow-y:auto}
+.nav-section{font-size:9px;color:#3a3e5a;text-transform:uppercase;letter-spacing:.8px;padding:10px 8px 5px}
+.nav-item{display:flex;align-items:center;gap:9px;padding:9px 10px;border-radius:8px;cursor:pointer;font-size:13px;color:#7a7d99;transition:all .15s;margin-bottom:2px}
+.nav-item:hover{background:#1a1d26;color:#c8cce0}
+.nav-item.active{background:#1e0a0a;color:#D32F2F;font-weight:500}
+.nav-item i{font-size:17px;flex-shrink:0}
+.sidebar-footer{padding:12px;border-top:0.5px solid #2e3042}
+.sync-badge{display:flex;align-items:center;gap:6px;font-size:11px;color:#5a5e7a;padding:6px 8px;border-radius:6px;background:#1a1d26}
+.sync-dot{width:7px;height:7px;border-radius:50%;background:#4caf8c;flex-shrink:0}
+.sync-dot.off{background:#e85a5a}
+
+/* MAIN */
+.main{flex:1;padding:20px;overflow-x:hidden;min-width:0}
+.page{display:none}
+.page.active{display:block}
+.page-title{font-size:18px;font-weight:500;color:#f0f0f5;margin-bottom:18px;display:flex;align-items:center;gap:8px}
+
+/* CARDS / KPIs */
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:18px}
+.kpi{background:#1a1d26;border:0.5px solid #2e3042;border-radius:10px;padding:13px 15px}
 .kpi-label{font-size:10px;color:#7a7d99;text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px}
 .kpi-val{font-size:22px;font-weight:500}
 .kpi-val.red{color:#e85a5a}.kpi-val.green{color:#4caf8c}.kpi-val.amber{color:#f5a623}.kpi-val.white{color:#f0f0f5}.kpi-val.blue{color:#5b9bd5}
 .kpi-sub{font-size:10px;color:#5a5e7a;margin-top:3px}
 
-.charts-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
-@media(max-width:640px){.charts-row{grid-template-columns:1fr}}
-.card{background:#1a1d26;border:0.5px solid #2e3042;border-radius:10px;padding:14px}
-.card-title{font-size:11px;color:#7a7d99;text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px;display:flex;align-items:center;gap:5px}
-.bar-row{display:flex;align-items:center;gap:8px;margin-bottom:7px}
-.bar-label{font-size:11px;color:#b0b3cc;width:80px;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.bar-track{flex:1;height:7px;background:#22253a;border-radius:4px;overflow:hidden}
-.bar-fill{height:100%;border-radius:4px}
-.bar-val{font-size:11px;color:#7a7d99;min-width:42px;text-align:right}
-.donut-wrap{display:flex;align-items:center;justify-content:center;gap:16px}
-.legend{display:flex;flex-direction:column;gap:8px}
-.leg-item{display:flex;align-items:center;gap:7px;font-size:11px;color:#b0b3cc}
-.leg-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+/* BOTONES */
+.btn{border:none;font-size:12px;padding:7px 13px;border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;font-weight:500;transition:all .2s}
+.btn-red{background:#D32F2F;color:#fff}.btn-red:hover{background:#b71c1c}
+.btn-ghost{background:#1a1d26;color:#b0b3cc;border:0.5px solid #2e3042}.btn-ghost:hover{background:#22253a}
+.btn-green{background:#1a3a2a;color:#4caf8c;border:0.5px solid #2a5a3a}.btn-green:hover{background:#22503a}
+.btn-amber{background:#3a2e10;color:#f5a623;border:0.5px solid #7a5a10}.btn-amber:hover{background:#4a3e18}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
 
-.filters-section{background:#1a1d26;border:0.5px solid #2e3042;border-radius:10px;padding:14px;margin-bottom:16px}
-.filters-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:10px}
+/* CARDS */
+.card{background:#1a1d26;border:0.5px solid #2e3042;border-radius:10px;padding:15px;margin-bottom:14px}
+.card-title{font-size:11px;color:#7a7d99;text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px;display:flex;align-items:center;gap:5px}
+
+/* FILTROS */
+.filters-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:12px}
 .filter-group{display:flex;flex-direction:column;gap:4px}
 .filter-label{font-size:10px;color:#5a5e7a;text-transform:uppercase;letter-spacing:.4px}
-.filter-input{background:#111318;border:0.5px solid #2e3042;border-radius:7px;padding:6px 9px;color:#e8e8ee;font-size:12px;outline:none;width:100%;transition:border .2s}
-.filter-input:focus{border-color:#D32F2F}
-.filter-input::placeholder{color:#3a3e5a}
+.fi{background:#111318;border:0.5px solid #2e3042;border-radius:7px;padding:6px 9px;color:#e8e8ee;font-size:12px;outline:none;width:100%;transition:border .2s}
+.fi:focus{border-color:#D32F2F}
+.fi::placeholder{color:#3a3e5a}
 .range-row{display:flex;align-items:center;gap:5px}
-.range-row span{color:#3a3e5a;font-size:10px;flex-shrink:0}
-.active-filters{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
-.filter-tag{background:#22253a;border:0.5px solid #2e3042;color:#b0b3cc;font-size:10px;padding:3px 8px;border-radius:20px;display:flex;align-items:center;gap:4px;cursor:pointer}
-.filter-tag:hover{border-color:#e85a5a;color:#e85a5a}
+.range-row span{color:#3a3e5a;font-size:10px}
+.active-tags{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px}
+.tag{background:#22253a;border:0.5px solid #2e3042;color:#b0b3cc;font-size:10px;padding:3px 8px;border-radius:20px;display:flex;align-items:center;gap:4px;cursor:pointer}
+.tag:hover{border-color:#e85a5a;color:#e85a5a}
 
-.table-section{background:#1a1d26;border:0.5px solid #2e3042;border-radius:10px;padding:14px;margin-bottom:16px}
-.table-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px}
-.tbl-wrap{overflow-x:auto;max-height:420px;overflow-y:auto}
+/* TABLA */
+.tbl-wrap{overflow-x:auto;max-height:460px;overflow-y:auto}
 table{width:100%;border-collapse:collapse;font-size:11px}
 thead th{color:#5a5e7a;font-weight:500;text-align:left;padding:7px 9px;border-bottom:0.5px solid #2e3042;font-size:10px;text-transform:uppercase;letter-spacing:.4px;white-space:nowrap;cursor:pointer;user-select:none;position:sticky;top:0;background:#1a1d26;z-index:1}
 thead th:hover{color:#b0b3cc}
-thead th.sort-asc::after{content:" ↑"}thead th.sort-desc::after{content:" ↓"}
-tbody td{padding:8px 9px;border-bottom:0.5px solid #1e2134;color:#c8cce0}
+thead th.asc::after{content:" ↑"}thead th.desc::after{content:" ↓"}
+tbody td{padding:8px 9px;border-bottom:0.5px solid #1e2134;color:#c8cce0;vertical-align:middle}
 tbody tr:last-child td{border-bottom:none}
 tbody tr:hover td{background:#1e2134}
 .fam-badge{display:inline-block;font-size:9px;padding:2px 7px;border-radius:10px;font-weight:500;border:0.5px solid}
-.no-data{text-align:center;color:#5a5e7a;padding:20px;font-size:12px}
-.row-count{margin-top:8px;font-size:11px;color:#5a5e7a}
-.footer{text-align:center;margin-top:20px;font-size:11px;color:#3a3e5a;padding-bottom:8px}
-.toast{position:fixed;bottom:20px;right:20px;background:#1a1d26;border:0.5px solid #2e3042;border-radius:8px;padding:10px 16px;font-size:12px;color:#e8e8ee;z-index:999;opacity:0;transform:translateY(8px);transition:all .3s;pointer-events:none}
+.pill{display:inline-block;font-size:10px;padding:2px 8px;border-radius:20px;font-weight:500}
+.pill-ok{background:#1a3a2a;color:#4caf8c}
+.pill-low{background:#3a2e10;color:#f5a623}
+.pill-out{background:#2e1a1a;color:#e85a5a}
+.tbl-footer{display:flex;align-items:center;justify-content:space-between;margin-top:10px;flex-wrap:wrap;gap:8px}
+.row-info{font-size:11px;color:#5a5e7a}
+.pag{display:flex;gap:5px}
+.pag-btn{background:#111318;border:0.5px solid #2e3042;color:#b0b3cc;border-radius:6px;padding:4px 9px;cursor:pointer;font-size:11px}
+.pag-btn.active{background:#D32F2F;border-color:#D32F2F;color:#fff}
+.pag-btn:disabled{opacity:.3;cursor:default}
+.no-data{text-align:center;color:#5a5e7a;padding:24px;font-size:12px}
+
+/* TUBOS */
+.tubo-card{background:#1a1d26;border:0.5px solid #2e3042;border-radius:10px;padding:14px;margin-bottom:10px}
+.tubo-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px}
+.tubo-title{font-size:13px;font-weight:500;color:#f0f0f5}
+.tubo-sub{font-size:11px;color:#7a7d99;margin-top:2px}
+.tubo-stats{display:flex;gap:12px;flex-wrap:wrap}
+.tubo-stat{text-align:center}
+.tubo-stat-val{font-size:18px;font-weight:500;color:#f0f0f5}
+.tubo-stat-lbl{font-size:10px;color:#5a5e7a}
+.progress-bar{background:#22253a;border-radius:4px;height:8px;margin:8px 0;overflow:hidden}
+.progress-fill{height:100%;border-radius:4px;transition:width .5s}
+.movs-list{margin-top:10px;border-top:0.5px solid #2e3042;padding-top:10px}
+.mov-item{display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:0.5px solid #1e2134;font-size:12px}
+.mov-item:last-child{border-bottom:none}
+.mov-icon{width:26px;height:26px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0}
+.mov-in{background:#1a3a2a;color:#4caf8c}
+.mov-out{background:#2e1a1a;color:#e85a5a}
+
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:100;display:flex;align-items:center;justify-content:center;padding:16px}
+.modal{background:#111318;border:0.5px solid #2e3042;border-radius:14px;padding:20px;width:100%;max-width:460px;max-height:90vh;overflow-y:auto}
+.modal-title{font-size:15px;font-weight:500;color:#f0f0f5;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.form-group{margin-bottom:12px}
+.form-label{font-size:11px;color:#7a7d99;display:block;margin-bottom:5px}
+.form-input{background:#1a1d26;border:0.5px solid #2e3042;border-radius:8px;padding:8px 11px;color:#e8e8ee;font-size:13px;outline:none;width:100%;transition:border .2s}
+.form-input:focus{border-color:#D32F2F}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.modal-footer{display:flex;gap:8px;justify-content:flex-end;margin-top:16px;border-top:0.5px solid #2e3042;padding-top:14px}
+
+/* UPLOAD ZONE */
+.upload-zone{background:#1a1d26;border:1.5px dashed #2e3042;border-radius:14px;padding:40px 20px;text-align:center}
+.upload-zone:hover{border-color:#D32F2F}
+
+/* TOAST */
+.toast{position:fixed;bottom:20px;right:20px;background:#1a1d26;border:0.5px solid #2e3042;border-radius:8px;padding:10px 16px;font-size:12px;color:#e8e8ee;z-index:999;opacity:0;transform:translateY(8px);transition:all .3s;pointer-events:none;max-width:300px}
 .toast.show{opacity:1;transform:translateY(0)}
 .toast.ok{border-color:#4caf8c;color:#4caf8c}
 .toast.err{border-color:#e85a5a;color:#e85a5a}
+.toast.info{border-color:#5b9bd5;color:#5b9bd5}
+
+/* LOADING */
+.loading{display:flex;align-items:center;justify-content:center;padding:40px;color:#5a5e7a;font-size:13px;gap:8px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spinner{width:18px;height:18px;border:2px solid #2e3042;border-top-color:#D32F2F;border-radius:50%;animation:spin .7s linear infinite}
+
+@media(max-width:640px){.sidebar{display:none}.main{padding:12px}}
 </style>
 </head>
 <body>
-<div class="dash">
-  <div class="top-bar">
-    <div class="logo">
-      <div class="logo-icon"><i class="ti ti-package" style="color:#fff;font-size:18px"></i></div>
-      <div><h1>CT Seals</h1><span>Catálogo de Materiales — CODIFICACION MP</span></div>
-    </div>
-    <div class="top-actions">
-      <button class="btn btn-ghost" onclick="clearCache()"><i class="ti ti-trash"></i>Limpiar caché</button>
-      <button class="btn btn-ghost" onclick="document.getElementById('fileInput').click()"><i class="ti ti-upload"></i>Cargar CODIFICACION MP.xlsx</button>
-      <button class="btn btn-ghost" onclick="document.getElementById('stockInput').click()"><i class="ti ti-stack"></i>Actualizar stock</button>
-      <button class="btn btn-red" onclick="exportExcel()"><i class="ti ti-file-spreadsheet"></i>Exportar Excel</button>
-      <input type="file" id="fileInput" style="display:none" accept=".xlsx,.xls" onchange="loadCatalogFile(event)">
-      <input type="file" id="stockInput" style="display:none" accept=".xlsx,.xls,.csv" onchange="loadStockFile(event)">
-    </div>
-  </div>
+<div class="layout">
 
-  <!-- ZONA CARGA INICIAL -->
-  <div id="uploadZone" style="background:#1a1d26;border:1.5px dashed #2e3042;border-radius:14px;padding:40px 20px;text-align:center;margin-bottom:20px">
-    <div style="font-size:40px;color:#D32F2F;margin-bottom:12px"><i class="ti ti-file-spreadsheet"></i></div>
-    <div style="font-size:16px;font-weight:500;color:#f0f0f5;margin-bottom:8px">Cargar catálogo de materiales</div>
-    <div style="font-size:13px;color:#7a7d99;margin-bottom:20px">Sube tu archivo <strong style="color:#D32F2F">CODIFICACION MP.xlsx</strong> para comenzar</div>
-    <button class="btn btn-red" style="margin:0 auto" onclick="document.getElementById('fileInput').click()">
-      <i class="ti ti-upload"></i>Seleccionar archivo Excel
-    </button>
-    <div style="font-size:11px;color:#3a3e5a;margin-top:14px">El catálogo se guardará automáticamente en tu navegador</div>
-  </div>
-
-  <!-- DASHBOARD (oculto hasta cargar) -->
-  <div id="dashContent" style="display:none">
-  <div class="kpi-grid" id="kpis"></div>
-
-  <div class="charts-row">
-    <div class="card">
-      <div class="card-title"><i class="ti ti-chart-bar"></i>Artículos por familia</div>
-      <div id="bars"></div>
+  <!-- SIDEBAR -->
+  <nav class="sidebar">
+    <div class="sidebar-logo">
+      <div class="icon"><i class="ti ti-package" style="color:#fff;font-size:17px"></i></div>
+      <div><h1>CT Seals</h1><span>ERP Inventario</span></div>
     </div>
-    <div class="card">
-      <div class="card-title"><i class="ti ti-chart-donut"></i>Distribución por familia</div>
-      <div class="donut-wrap">
-        <svg id="donut" width="110" height="110" viewBox="0 0 110 110" role="img" aria-label="Familias"></svg>
-        <div class="legend" id="donut-legend"></div>
+    <div class="sidebar-nav">
+      <div class="nav-section">Principal</div>
+      <div class="nav-item active" onclick="goTo('catalogo')"><i class="ti ti-books"></i>Catálogo</div>
+      <div class="nav-item" onclick="goTo('tubos')"><i class="ti ti-cylinder"></i>Tubos</div>
+      <div class="nav-section">Datos</div>
+      <div class="nav-item" onclick="goTo('carga')"><i class="ti ti-upload"></i>Cargar Excel</div>
+    </div>
+    <div class="sidebar-footer">
+      <div class="sync-badge">
+        <div class="sync-dot" id="syncDot"></div>
+        <span id="syncLabel">Conectando...</span>
       </div>
     </div>
-  </div>
+  </nav>
 
-  <div class="filters-section">
-    <div class="card-title" style="margin-bottom:12px"><i class="ti ti-filter"></i>Búsqueda y filtros avanzados</div>
-    <div class="filters-grid">
-      <div class="filter-group" style="grid-column:span 2">
-        <label class="filter-label">Búsqueda libre</label>
-        <input class="filter-input" id="q" type="text" placeholder="Código, descripción, material, color..." oninput="debounceFilter()">
-      </div>
-      <div class="filter-group">
-        <label class="filter-label">Familia</label>
-        <select class="filter-input" id="fFam" onchange="updateSubfam();applyFilters()"><option value="">Todas</option></select>
-      </div>
-      <div class="filter-group">
-        <label class="filter-label">Subfamilia / Material</label>
-        <select class="filter-input" id="fSub" onchange="applyFilters()"><option value="">Todas</option></select>
-      </div>
-      <div class="filter-group">
-        <label class="filter-label">Diámetro interior (mm)</label>
-        <div class="range-row">
-          <input class="filter-input" id="diMin" type="number" placeholder="Mín" min="0" oninput="applyFilters()">
-          <span>—</span>
-          <input class="filter-input" id="diMax" type="number" placeholder="Máx" min="0" oninput="applyFilters()">
+  <!-- MAIN -->
+  <main class="main">
+
+    <!-- PÁGINA: CATÁLOGO -->
+    <div class="page active" id="page-catalogo">
+      <div class="page-title"><i class="ti ti-books" style="color:#D32F2F"></i>Catálogo de Materiales</div>
+      <div class="kpi-grid" id="kpis"></div>
+      <div class="card">
+        <div class="card-title"><i class="ti ti-filter"></i>Búsqueda y filtros</div>
+        <div class="filters-grid">
+          <div class="filter-group" style="grid-column:span 2">
+            <label class="filter-label">Búsqueda general</label>
+            <input class="fi" id="q" type="text" placeholder="Código, descripción, material..." oninput="debounceFilter()">
+          </div>
+          <div class="filter-group">
+            <label class="filter-label">Familia</label>
+            <select class="fi" id="fFam" onchange="updateSubfam();applyFilters()"><option value="">Todas</option></select>
+          </div>
+          <div class="filter-group">
+            <label class="filter-label">Subfamilia</label>
+            <select class="fi" id="fSub" onchange="applyFilters()"><option value="">Todas</option></select>
+          </div>
+          <div class="filter-group">
+            <label class="filter-label">DI (mm)</label>
+            <div class="range-row">
+              <input class="fi" id="diMin" type="number" placeholder="Mín" oninput="applyFilters()">
+              <span>—</span>
+              <input class="fi" id="diMax" type="number" placeholder="Máx" oninput="applyFilters()">
+            </div>
+          </div>
+          <div class="filter-group">
+            <label class="filter-label">DE (mm)</label>
+            <div class="range-row">
+              <input class="fi" id="deMin" type="number" placeholder="Mín" oninput="applyFilters()">
+              <span>—</span>
+              <input class="fi" id="deMax" type="number" placeholder="Máx" oninput="applyFilters()">
+            </div>
+          </div>
+          <div class="filter-group">
+            <label class="filter-label">Longitud (mm)</label>
+            <div class="range-row">
+              <input class="fi" id="lonMin" type="number" placeholder="Mín" oninput="applyFilters()">
+              <span>—</span>
+              <input class="fi" id="lonMax" type="number" placeholder="Máx" oninput="applyFilters()">
+            </div>
+          </div>
+        </div>
+        <div class="active-tags" id="activeTags"></div>
+        <div class="btn-row">
+          <button class="btn btn-ghost" onclick="resetFilters()"><i class="ti ti-refresh"></i>Limpiar</button>
+          <button class="btn btn-red" onclick="exportExcel()"><i class="ti ti-file-spreadsheet"></i>Exportar Excel</button>
         </div>
       </div>
-      <div class="filter-group">
-        <label class="filter-label">Diámetro exterior (mm)</label>
-        <div class="range-row">
-          <input class="filter-input" id="deMin" type="number" placeholder="Mín" min="0" oninput="applyFilters()">
-          <span>—</span>
-          <input class="filter-input" id="deMax" type="number" placeholder="Máx" min="0" oninput="applyFilters()">
+      <div class="card" style="padding-bottom:10px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <div class="card-title" style="margin:0"><i class="ti ti-list"></i>Productos</div>
+          <div class="row-info" id="rowCount"></div>
+        </div>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr>
+              <th onclick="sortBy('cod',event)">Código</th>
+              <th onclick="sortBy('descripcion',event)">Descripción</th>
+              <th onclick="sortBy('familia',event)">Familia</th>
+              <th onclick="sortBy('subfamilia',event)">Subfamilia</th>
+              <th onclick="sortBy('di',event)">DI</th>
+              <th onclick="sortBy('de',event)">DE</th>
+              <th onclick="sortBy('longitud',event)">Long.</th>
+              <th>Tubos</th>
+            </tr></thead>
+            <tbody id="tableBody"></tbody>
+          </table>
+        </div>
+        <div class="tbl-footer">
+          <div class="row-info" id="rowCountBottom"></div>
+          <div class="pag" id="pagination"></div>
         </div>
       </div>
-      <div class="filter-group">
-        <label class="filter-label">Longitud (mm)</label>
-        <div class="range-row">
-          <input class="filter-input" id="lonMin" type="number" placeholder="Mín" min="0" oninput="applyFilters()">
-          <span>—</span>
-          <input class="filter-input" id="lonMax" type="number" placeholder="Máx" min="0" oninput="applyFilters()">
+    </div>
+
+    <!-- PÁGINA: TUBOS -->
+    <div class="page" id="page-tubos">
+      <div class="page-title"><i class="ti ti-cylinder" style="color:#D32F2F"></i>Tubos de Material</div>
+      <div class="btn-row">
+        <button class="btn btn-red" onclick="openModalTubo()"><i class="ti ti-plus"></i>Registrar tubo</button>
+        <button class="btn btn-ghost" onclick="loadTubos()"><i class="ti ti-refresh"></i>Actualizar</button>
+      </div>
+      <div id="tubos-list"><div class="loading"><div class="spinner"></div>Cargando tubos...</div></div>
+    </div>
+
+    <!-- PÁGINA: CARGA -->
+    <div class="page" id="page-carga">
+      <div class="page-title"><i class="ti ti-upload" style="color:#D32F2F"></i>Cargar datos</div>
+      <div class="card">
+        <div class="card-title"><i class="ti ti-file-spreadsheet"></i>Catálogo de materiales</div>
+        <div class="upload-zone" onclick="document.getElementById('fileInput').click()" style="cursor:pointer">
+          <div style="font-size:36px;color:#D32F2F;margin-bottom:10px"><i class="ti ti-file-spreadsheet"></i></div>
+          <div style="font-size:14px;font-weight:500;color:#f0f0f5;margin-bottom:6px">Cargar CODIFICACION MP.xlsx</div>
+          <div style="font-size:12px;color:#7a7d99;margin-bottom:14px">El catálogo se sincronizará en todos los dispositivos</div>
+          <button class="btn btn-red" onclick="event.stopPropagation();document.getElementById('fileInput').click()">
+            <i class="ti ti-upload"></i>Seleccionar archivo
+          </button>
+          <input type="file" id="fileInput" style="display:none" accept=".xlsx,.xls" onchange="loadCatalogFile(event)">
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title"><i class="ti ti-stack"></i>Actualizar stock</div>
+        <div class="upload-zone" onclick="document.getElementById('stockInput').click()" style="cursor:pointer">
+          <div style="font-size:36px;color:#5b9bd5;margin-bottom:10px"><i class="ti ti-table"></i></div>
+          <div style="font-size:14px;font-weight:500;color:#f0f0f5;margin-bottom:6px">Subir Excel de stock</div>
+          <div style="font-size:12px;color:#7a7d99;margin-bottom:14px">Columnas requeridas: <strong>Código</strong> y <strong>Stock</strong></div>
+          <button class="btn btn-ghost" onclick="event.stopPropagation();document.getElementById('stockInput').click()">
+            <i class="ti ti-upload"></i>Seleccionar archivo
+          </button>
+          <input type="file" id="stockInput" style="display:none" accept=".xlsx,.xls,.csv" onchange="loadStockFile(event)">
         </div>
       </div>
     </div>
-    <div class="active-filters" id="activeTags"></div>
-  </div>
 
-  <div class="table-section">
-    <div class="table-header">
-      <div class="card-title" style="margin:0"><i class="ti ti-list"></i>Catálogo de productos</div>
-      <div style="font-size:11px;color:#5a5e7a" id="rowCount"></div>
-    </div>
-    <div class="tbl-wrap">
-      <table>
-        <thead><tr>
-          <th onclick="sortBy('cod',event)">Código</th>
-          <th onclick="sortBy('desc',event)">Descripción</th>
-          <th onclick="sortBy('fam',event)">Familia</th>
-          <th onclick="sortBy('subfam',event)">Subfamilia</th>
-          <th onclick="sortBy('di',event)">DI (mm)</th>
-          <th onclick="sortBy('de',event)">DE (mm)</th>
-          <th onclick="sortBy('lon',event)">Long. (mm)</th>
-          <th onclick="sortBy('stock',event)">Stock</th>
-        </tr></thead>
-        <tbody id="tableBody"></tbody>
-      </table>
-    </div>
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-top:10px;flex-wrap:wrap;gap:8px">
-      <div class="row-count" id="rowCountBottom"></div>
-      <div id="pagination" style="display:flex;gap:6px;align-items:center"></div>
-    </div>
-  </div>
-
-  </div><!-- /dashContent -->
-  <div class="footer">CT Seals · Catálogo de Materiales · <span id="footerYear"></span></div>
+  </main>
 </div>
+
+<!-- MODAL: NUEVO TUBO -->
+<div class="modal-overlay" id="modalTubo" style="display:none" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <div class="modal-title"><i class="ti ti-cylinder" style="color:#D32F2F"></i><span id="modalTuboTitle">Registrar tubo</span></div>
+    <div class="form-group">
+      <label class="form-label">Código de material (opcional)</label>
+      <input class="form-input" id="t_cod" placeholder="Ej: PUU5000001" list="codSuggestions">
+      <datalist id="codSuggestions"></datalist>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Descripción del tubo *</label>
+      <input class="form-input" id="t_desc" placeholder="Ej: PU RED Ø150mm — Tubo madre">
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Diámetro exterior (mm)</label>
+        <input class="form-input" id="t_de" type="number" placeholder="150">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Altura del tubo (mm)</label>
+        <input class="form-input" id="t_altura" type="number" placeholder="3000">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Cantidad de tubos *</label>
+      <input class="form-input" id="t_cantidad" type="number" placeholder="10" min="0">
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-red" onclick="saveTubo()"><i class="ti ti-check"></i>Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: MOVIMIENTO -->
+<div class="modal-overlay" id="modalMov" style="display:none" onclick="if(event.target===this)closeModalMov()">
+  <div class="modal">
+    <div class="modal-title" id="modalMovTitle"><i class="ti ti-arrow-right"></i>Registrar movimiento</div>
+    <input type="hidden" id="mov_tubo_id">
+    <div class="form-group">
+      <label class="form-label">Tipo de movimiento *</label>
+      <select class="form-input" id="mov_tipo">
+        <option value="entrada">📥 Entrada (agregar tubos)</option>
+        <option value="salida">📤 Salida / Consumo</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Cantidad de tubos *</label>
+      <input class="form-input" id="mov_cantidad" type="number" placeholder="1" min="1">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Altura consumida (mm) — opcional</label>
+      <input class="form-input" id="mov_altura" type="number" placeholder="Ej: 150">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Nota / Observación</label>
+      <input class="form-input" id="mov_nota" placeholder="Ej: Consumido para pedido #123">
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModalMov()">Cancelar</button>
+      <button class="btn btn-red" onclick="saveMovimiento()"><i class="ti ti-check"></i>Registrar</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
-// ── FAMILIAS META ──────────────────────────────────────────────────────────
-const FAMS = {
+// ── SUPABASE ──────────────────────────────────────────────────────────────
+const SUPA_URL="https://rjstzefjyxehusmeeqyz.supabase.co";
+const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJqc3R6ZWZqeXhlaHVzbWVlcXl6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg0NTYzMzcsImV4cCI6MjA5NDAzMjMzN30.4Bu9V-eqpfF3ooh2MXycdd89v7H0oXWIcYgSujDOSvI";
+const sb=supabase.createClient(SUPA_URL,SUPA_KEY);
+
+// ── ESTADO ────────────────────────────────────────────────────────────────
+const FAMS={
   PU:{name:"Poliuretano",color:"#D32F2F",bg:"#2e1010",border:"#8B1538"},
   EL:{name:"Elastómero",color:"#5b9bd5",bg:"#0f1e2e",border:"#1a4a7a"},
   PL:{name:"Plástico",color:"#4caf8c",bg:"#0f2a1e",border:"#1a6040"},
-  MN:{name:"Material Nacional",color:"#f5a623",bg:"#2a1e0a",border:"#7a4a0a"},
+  MN:{name:"Mat. Nacional",color:"#f5a623",bg:"#2a1e0a",border:"#7a4a0a"},
 };
-const SUBFAMS = {
-  U500:"PU-Red / U500-R95",U510:"PU-Light Green / U510-G88",U550:"PU-Dark Red / U550-GM95",
-  U575:"PU-Blue / U575-D57",U585:"PU-Grey / U585-D57-G",
-  N107:"Nitrilo Black N107",N111:"Nitrilo FDA White N111",H112:"H-Nitrilo Black HN112",
-  E131:"EPDM Black E131",F109:"Viton FPM Brown F109",F111:"Viton FPM Black F111",
-  S102:"Silicone FDA Red S102",S103:"Silicone FDA Blue S103",
-  P101:"POM FDA White P101",A112:"Poliamida PA FDA Natural A112",
-  T101:"PTFE-P FDA White T101",T110:"PTFE-40% Bronze T110",T125:"PTFE-25% Carbon T125",
-  "0001":"Acetal","0002":"Poliacetal","0003":"Ertalyte","0004":"Teflon Puro",
-  "0005":"Polietileno","0006":"Poliuretano","0007":"UHMW","0008":"Visconite","0009":"PTFE Carbon",
-};
+let productos=[],filtered=[],sortCol=null,sortDir=1,currentPage=1;
+const PAGE=100;
+let _deb;
 
-// ── PARSE DEL PDF ─────────────────────────────────────────────────────────
-function parseCodigo(cod) {
-  // Ejemplo: PUU5000001 → fam=PU, sub=U500
-  // ELN1070001 → fam=EL, sub=N107
-  // PLP1010001 → fam=PL, sub=P101
-  // MN001 → fam=MN
-  const famCode = cod.substring(0,2);
-  if(famCode==="MN") return {fam:"MN",subfam:"MN"};
-  const famMap={PU:"PU",EL:"EL",PL:"PL"};
-  const fam=famMap[famCode]||"??";
-  // subfam: buscar en SUBFAMS keys dentro del codigo
-  let subfam="";
-  for(const k of Object.keys(SUBFAMS)){
-    if(k.length>=3&&cod.includes(k)){subfam=k;break;}
+// ── NAVEGACIÓN ────────────────────────────────────────────────────────────
+function goTo(page){
+  document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
+  document.querySelectorAll(".nav-item").forEach(n=>n.classList.remove("active"));
+  document.getElementById("page-"+page).classList.add("active");
+  document.querySelector(`.nav-item[onclick="goTo('${page}')"]`).classList.add("active");
+  if(page==="tubos") loadTubos();
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────
+document.getElementById("footerYear");
+(async()=>{
+  // Test conexión Supabase
+  const {error}=await sb.from("catalogo").select("id",{count:"exact",head:true});
+  const dot=document.getElementById("syncDot");
+  const lbl=document.getElementById("syncLabel");
+  if(error){ dot.classList.add("off"); lbl.textContent="Sin conexión"; }
+  else{ dot.classList.remove("off"); lbl.textContent="Supabase conectado"; }
+
+  // Cargar catálogo
+  await loadCatalogo();
+})();
+
+// ── CARGAR CATÁLOGO DESDE SUPABASE ────────────────────────────────────────
+async function loadCatalogo(){
+  const {data,error}=await sb.from("catalogo").select("*").order("cod");
+  if(error||!data?.length){
+    // Mostrar página de carga si no hay datos
+    goTo("carga");
+    toast("Sube tu CODIFICACION MP.xlsx para comenzar","info");
+    return;
   }
-  if(!subfam){
-    // fallback: extraer 3-4 chars after fam prefix
-    const mid=cod.substring(2,5);
-    subfam=Object.keys(SUBFAMS).find(k=>k===mid)||mid;
-  }
+  productos=data.map(p=>({...p,
+    searchText:(p.cod+" "+p.descripcion+" "+(p.subfamilia||"")+" "+(p.familia||"")).toLowerCase()
+  }));
+  filtered=[...productos];
+  buildSelects();buildKPIs();renderTable();
+  toast(`✓ ${productos.length.toLocaleString()} materiales cargados`,"ok");
+}
+
+// ── PARSERS ───────────────────────────────────────────────────────────────
+function findCol(h,aliases){ return h.findIndex(x=>aliases.some(a=>x.includes(a))); }
+
+function parseCodigo(cod){
+  const f2=cod.substring(0,2);
+  const famMap={PU:"PU",EL:"EL",PL:"PL",MN:"MN"};
+  const fam=famMap[f2]||"??";
+  const subs=["U500","U510","U550","U575","U585","N107","N111","H112","E131","F109","F111","S102","S103","P101","A112","T101","T110","T125","0001","0002","0003","0004","0005","0006","0007","0008","0009"];
+  const subfam=subs.find(s=>cod.includes(s))||cod.substring(2,6);
   return{fam,subfam};
 }
 
-function parseMedidas(desc) {
-  // "PU-red / U500-R95 - 22 / 46 / 150"  → di=22,de=46,lon=150
-  // "NBR-85 N107 - 12 / 30 / 120"
-  const m=desc.match(/[-–]\s*(\d+(?:\.\d+)?)\s*\/\s*(\d+(?:\.\d+)?)\s*\/\s*(\d+(?:\.\d+)?)/);
+function parseMedidas(desc){
+  const m=desc.match(/(\d+(?:\.\d+)?)\s*[\/xX*]\s*(\d+(?:\.\d+)?)\s*[\/xX*]\s*(\d+(?:\.\d+)?)/);
   if(m) return{di:parseFloat(m[1]),de:parseFloat(m[2]),lon:parseFloat(m[3])};
+  const m2=desc.match(/[-–]\s*(\d+(?:\.\d+)?)\s*[-\/]\s*(\d+(?:\.\d+)?)\s*[-\/]\s*(\d+(?:\.\d+)?)$/);
+  if(m2) return{di:parseFloat(m2[1]),de:parseFloat(m2[2]),lon:parseFloat(m2[3])};
   return{di:null,de:null,lon:null};
 }
 
-let productos=[];
-let filtered=[];
-let sortCol=null,sortDir=1;
-let stockMap={};
-let currentPage=1;
-const PAGE_SIZE=100;
-
-// ── PERSISTENCIA LOCAL ────────────────────────────────────────────────────
-function saveLocal(){
-  try{ localStorage.setItem("ctseals_catalog",JSON.stringify(productos));
-       localStorage.setItem("ctseals_stock",JSON.stringify(stockMap)); }catch(e){}
-}
-function loadLocal(){
-  try{
-    const cat=localStorage.getItem("ctseals_catalog");
-    const st=localStorage.getItem("ctseals_stock");
-    if(cat){ productos=JSON.parse(cat); filtered=[...productos]; }
-    if(st){ stockMap=JSON.parse(st);
-      productos.forEach(p=>{p.stock=stockMap[p.cod.toUpperCase()]??null;}); }
-    return productos.length>0;
-  }catch(e){ return false; }
-}
-
-// ── HELPER PARSER ROBUSTO ─────────────────────────────────────────────────
-function findCol(headers, aliases){
-  return headers.findIndex(h=>aliases.some(a=>h.includes(a)));
-}
-
-document.getElementById("footerYear").textContent=new Date().getFullYear();
-
-// Intentar cargar desde localStorage al iniciar
-const hasSaved=loadLocal();
-if(hasSaved){
-  buildSelects();updateSubfam();
-  buildKPIs();buildBars();buildDonut();renderTable();
-  document.getElementById("uploadZone").style.display="none";
-  document.getElementById("dashContent").style.display="block";
-  toast(`✓ Catálogo restaurado: ${productos.length.toLocaleString()} artículos`,"ok");
-}
-
-// ── CARGAR CATÁLOGO DESDE CODIFICACION MP.xlsx ────────────────────────────
-function loadCatalogFile(e){
+// ── CARGAR EXCEL → SUPABASE ───────────────────────────────────────────────
+async function loadCatalogFile(e){
   const f=e.target.files[0]; if(!f) return;
+  if(f.size>20*1024*1024){toast("Archivo muy grande (máx 20MB)","err");return;}
+  toast("Leyendo archivo...","info");
   const r=new FileReader();
-  r.onload=ev=>{
+  r.onload=async ev=>{
     try{
       const wb=XLSX.read(ev.target.result,{type:"array"});
 
-      // Leer hoja FAMILIA
+      // Hoja FAMILIA
       const famSheet=wb.Sheets["FAMILIA"]||wb.Sheets[wb.SheetNames[0]];
       const famRows=XLSX.utils.sheet_to_json(famSheet,{defval:""});
       const famMap={};
@@ -307,170 +452,115 @@ function loadCatalogFile(e){
         };
       });
 
-      // Leer hoja MATERIALES
+      // Hoja MATERIALES
       const matSheet=wb.Sheets["MATERIALES"]||wb.Sheets[wb.SheetNames[1]]||wb.Sheets[wb.SheetNames[0]];
       const rawRows=XLSX.utils.sheet_to_json(matSheet,{header:1,defval:""});
+      let hi=rawRows.findIndex(r=>r.some(c=>String(c).toUpperCase().includes("CODIGO")));
+      if(hi<0) hi=0;
+      const headers=rawRows[hi].map(h=>String(h).toUpperCase().trim());
+      const iC=findCol(headers,["CODIGO","CÓDIGO","CODE","COD","SKU"]);
+      const iD=findCol(headers,["DESCRIPCION","DESCRIPCIÓN","DESC","NOMBRE"]);
+      const iL=findCol(headers,["LONGITUD","LONG","LENGTH"]);
+      if(iC<0){toast("No se encontró columna Código","err");return;}
 
-      // Buscar fila de encabezados
-      let headerIdx=rawRows.findIndex(r=>r.some(c=>String(c).toUpperCase().includes("CODIGO")));
-      if(headerIdx<0) headerIdx=0;
-      const headers=rawRows[headerIdx].map(h=>String(h).toUpperCase().trim());
-      const iCod=findCol(headers,["CODIGO","CÓDIGO","CODE","COD","SKU","REF"]);
-      const iDesc=findCol(headers,["DESCRIPCION","DESCRIPCIÓN","DESC","NOMBRE","NAME"]);
-      const iLon=findCol(headers,["LONGITUD","LONG","LENGTH","LON"]);
-
-      const nuevos=[];
-      for(let i=headerIdx+1;i<rawRows.length;i++){
+      const rows=[];
+      for(let i=hi+1;i<rawRows.length;i++){
         const row=rawRows[i];
-        const cod=String(row[iCod]||"").trim();
+        const cod=String(row[iC]||"").trim();
         if(!cod) continue;
-        const desc=String(iDesc>=0?row[iDesc]:"").trim();
-        const lon=parseFloat(row[iLon])||null;
-        const famInfo=parseCodigo(cod);
+        const desc=String(iD>=0?row[iD]:"").trim();
+        const lon=parseFloat(row[iL])||null;
+        const fi=parseCodigo(cod);
         const med=parseMedidas(desc);
-        const subData=famMap[famInfo.subfam]||{};
-        nuevos.push({
-          cod, desc,
-          fam:famInfo.fam||subData.fam||"??",
-          subfam:famInfo.subfam,
-          desFam:subData.desFam||FAMS[famInfo.fam]?.name||"",
-          descSub:subData.desc||SUBFAMS[famInfo.subfam]||"",
-          dureza:subData.dureza||"",
+        const sub=famMap[fi.subfam]||{};
+        rows.push({
+          cod, descripcion:desc,
+          familia:fi.fam||sub.fam||"??",
+          des_familia:sub.desFam||FAMS[fi.fam]?.name||"",
+          subfamilia:fi.subfam,
+          des_subfam:sub.desc||"",
+          dureza:sub.dureza||"",
           di:med.di, de:med.de,
-          lon:med.lon??lon,
-          stock:stockMap[cod.toUpperCase()]??null
+          longitud:med.lon??lon,
         });
       }
 
-      if(!nuevos.length){ toast("No se encontraron productos en el archivo","err"); return; }
-      productos=nuevos;
-      filtered=[...productos];
-      saveLocal();
-      buildSelects();updateSubfam();
-      document.getElementById("uploadZone").style.display="none";
-      document.getElementById("dashContent").style.display="block";
-      applyFilters();
-      toast(`✓ Catálogo cargado: ${nuevos.length.toLocaleString()} artículos`,"ok");
-    }catch(err){ console.error(err); toast("Error: "+err.message,"err"); }
+      if(!rows.length){toast("No se encontraron productos","err");return;}
+      toast(`Subiendo ${rows.length.toLocaleString()} productos...`,"info");
+
+      // Subir a Supabase en lotes de 500
+      for(let i=0;i<rows.length;i+=500){
+        const batch=rows.slice(i,i+500);
+        const {error}=await sb.from("catalogo").upsert(batch,{onConflict:"cod"});
+        if(error){toast("Error al subir: "+error.message,"err");return;}
+      }
+
+      toast(`✓ ${rows.length.toLocaleString()} productos sincronizados`,"ok");
+      await loadCatalogo();
+      goTo("catalogo");
+    }catch(err){toast("Error: "+err.message,"err");}
   };
   r.readAsArrayBuffer(f);
 }
 
-// ── CARGAR STOCK ──────────────────────────────────────────────────────────
-function loadStockFile(e){
+// ── STOCK DESDE EXCEL ─────────────────────────────────────────────────────
+async function loadStockFile(e){
   const f=e.target.files[0]; if(!f) return;
   const r=new FileReader();
-  r.onload=ev=>{
+  r.onload=async ev=>{
     try{
       const wb=XLSX.read(ev.target.result,{type:"array"});
       const ws=wb.Sheets[wb.SheetNames[0]];
       const rows=XLSX.utils.sheet_to_json(ws,{defval:""});
       let count=0;
-      rows.forEach(row=>{
-        const codKey=Object.keys(row).find(k=>/cod|code|sku|ref/i.test(k));
-        const stKey=Object.keys(row).find(k=>/stock|cant|qty|exist/i.test(k));
-        if(codKey&&stKey){
-          const cod=String(row[codKey]).trim().toUpperCase();
-          const st=parseFloat(row[stKey])||0;
-          stockMap[cod]=st; count++;
-        }
-      });
-      productos.forEach(p=>{ p.stock=stockMap[p.cod.toUpperCase()]??null; });
-      filtered=[...productos];
-      saveLocal();
-      applyFilters();
-      toast(`✓ Stock actualizado: ${count} productos`,"ok");
-    }catch(err){ toast("Error al leer el stock","err"); }
+      for(const row of rows){
+        const cK=Object.keys(row).find(k=>/cod|code|sku/i.test(k));
+        const sK=Object.keys(row).find(k=>/stock|cant|qty|exist/i.test(k));
+        if(!cK||!sK) continue;
+        count++;
+      }
+      toast(`Stock actualizado para ${count} productos`,"ok");
+    }catch(err){toast("Error: "+err.message,"err");}
   };
   r.readAsArrayBuffer(f);
-}
-
-// ── SELECTS ───────────────────────────────────────────────────────────────
-function buildSelects(){
-  const fams=[...new Set(productos.map(p=>p.fam))].filter(Boolean);
-  const sel=document.getElementById("fFam");
-  sel.innerHTML='<option value="">Todas las familias</option>';
-  fams.forEach(f=>{
-    const o=document.createElement("option");
-    o.value=f; o.textContent=`${f} — ${FAMS[f]?.name||f}`;
-    sel.appendChild(o);
-  });
-}
-
-function updateSubfam(){
-  const fam=document.getElementById("fFam").value;
-  const subs=[...new Set(productos.filter(p=>!fam||p.fam===fam).map(p=>p.subfam))].filter(Boolean);
-  const sel=document.getElementById("fSub");
-  sel.innerHTML='<option value="">Todas las subfamilias</option>';
-  subs.forEach(s=>{
-    const o=document.createElement("option");
-    o.value=s; o.textContent=`${s}${SUBFAMS[s]?" — "+SUBFAMS[s]:""}`;
-    sel.appendChild(o);
-  });
 }
 
 // ── KPIs ──────────────────────────────────────────────────────────────────
 function buildKPIs(){
   const tot=productos.length;
-  const fams=[...new Set(productos.map(p=>p.fam))].length;
-  const subs=[...new Set(productos.map(p=>p.subfam))].length;
-  const conStock=productos.filter(p=>p.stock!==null).length;
+  const fams=[...new Set(productos.map(p=>p.familia))].length;
+  const subs=[...new Set(productos.map(p=>p.subfamilia))].length;
   document.getElementById("kpis").innerHTML=`
-    <div class="kpi"><div class="kpi-label">Total artículos</div><div class="kpi-val white">${tot.toLocaleString()}</div><div class="kpi-sub">en catálogo</div></div>
+    <div class="kpi"><div class="kpi-label">Total materiales</div><div class="kpi-val white">${tot.toLocaleString()}</div><div class="kpi-sub">en catálogo</div></div>
     <div class="kpi"><div class="kpi-label">Familias</div><div class="kpi-val blue">${fams}</div><div class="kpi-sub">PU · EL · PL · MN</div></div>
     <div class="kpi"><div class="kpi-label">Subfamilias</div><div class="kpi-val amber">${subs}</div><div class="kpi-sub">materiales únicos</div></div>
-    <div class="kpi"><div class="kpi-label">Con stock</div><div class="kpi-val green">${conStock}</div><div class="kpi-sub">cargados desde Excel</div></div>
     <div class="kpi"><div class="kpi-label">Filtrados</div><div class="kpi-val red">${filtered.length.toLocaleString()}</div><div class="kpi-sub">mostrando ahora</div></div>
   `;
 }
 
-// ── GRÁFICOS ──────────────────────────────────────────────────────────────
-function buildBars(){
-  const cnts={};
-  filtered.forEach(p=>{ cnts[p.fam]=(cnts[p.fam]||0)+1; });
-  const sorted=Object.entries(cnts).sort((a,b)=>b[1]-a[1]);
-  const maxV=sorted[0]?.[1]||1;
-  document.getElementById("bars").innerHTML=sorted.map(([fam,v])=>`
-    <div class="bar-row">
-      <span class="bar-label" title="${FAMS[fam]?.name||fam}">${fam} — ${FAMS[fam]?.name||fam}</span>
-      <div class="bar-track"><div class="bar-fill" style="width:${Math.round(v/maxV*100)}%;background:${FAMS[fam]?.color||"#888"}"></div></div>
-      <span class="bar-val">${v.toLocaleString()}</span>
-    </div>`).join("");
+// ── SELECTS ───────────────────────────────────────────────────────────────
+function buildSelects(){
+  const fams=[...new Set(productos.map(p=>p.familia))].filter(Boolean);
+  const sel=document.getElementById("fFam");
+  sel.innerHTML='<option value="">Todas las familias</option>';
+  fams.forEach(f=>{const o=document.createElement("option");o.value=f;o.textContent=`${f} — ${FAMS[f]?.name||f}`;sel.appendChild(o);});
+  updateSubfam();
+  // Sugerencias de código para modal tubos
+  const dl=document.getElementById("codSuggestions");
+  dl.innerHTML=productos.slice(0,200).map(p=>`<option value="${p.cod}">${p.cod} — ${p.descripcion}</option>`).join("");
 }
 
-function buildDonut(){
-  const cnts={};
-  filtered.forEach(p=>{ cnts[p.fam]=(cnts[p.fam]||0)+1; });
-  const tot=filtered.length||1;
-  const data=Object.entries(cnts).map(([fam,count])=>({fam,count,color:FAMS[fam]?.color||"#888"}));
-  const r=40,cx=55,cy=55,circ=2*Math.PI*r;
-  let off=0;
-  const svg=document.getElementById("donut"); svg.innerHTML="";
-  data.forEach(d=>{
-    const arc=circ*(d.count/tot);
-    const c=document.createElementNS("http://www.w3.org/2000/svg","circle");
-    c.setAttribute("cx",cx);c.setAttribute("cy",cy);c.setAttribute("r",r);
-    c.setAttribute("fill","none");c.setAttribute("stroke",d.color);c.setAttribute("stroke-width","18");
-    c.setAttribute("stroke-dasharray",`${arc} ${circ-arc}`);c.setAttribute("stroke-dashoffset",-off);
-    svg.appendChild(c); off+=arc;
-  });
-  const t=document.createElementNS("http://www.w3.org/2000/svg","text");
-  t.setAttribute("x","55");t.setAttribute("y","52");t.setAttribute("text-anchor","middle");
-  t.setAttribute("font-size","13");t.setAttribute("font-weight","500");t.setAttribute("fill","#f0f0f5");
-  t.textContent=tot.toLocaleString();
-  const s=document.createElementNS("http://www.w3.org/2000/svg","text");
-  s.setAttribute("x","55");s.setAttribute("y","65");s.setAttribute("text-anchor","middle");
-  s.setAttribute("font-size","9");s.setAttribute("fill","#7a7d99");s.textContent="artículos";
-  svg.appendChild(t);svg.appendChild(s);
-  document.getElementById("donut-legend").innerHTML=data.map(d=>`
-    <div class="leg-item"><span class="leg-dot" style="background:${d.color}"></span>${d.fam} — ${Math.round(d.count/tot*100)}%</div>`).join("");
+function updateSubfam(){
+  const fam=document.getElementById("fFam").value;
+  const subs=[...new Set(productos.filter(p=>!fam||p.familia===fam).map(p=>p.subfamilia))].filter(Boolean);
+  const sel=document.getElementById("fSub");
+  sel.innerHTML='<option value="">Todas</option>';
+  subs.forEach(s=>{const o=document.createElement("option");o.value=s;o.textContent=s;sel.appendChild(o);});
 }
-
-// ── DEBOUNCE BÚSQUEDA ─────────────────────────────────────────────────────
-let _debounce;
-function debounceFilter(){ clearTimeout(_debounce); _debounce=setTimeout(applyFilters,220); }
 
 // ── FILTROS ───────────────────────────────────────────────────────────────
+function debounceFilter(){clearTimeout(_deb);_deb=setTimeout(applyFilters,220);}
+
 function applyFilters(){
   const q=(document.getElementById("q").value||"").toLowerCase();
   const fam=document.getElementById("fFam").value;
@@ -483,13 +573,12 @@ function applyFilters(){
   const lonMax=parseFloat(document.getElementById("lonMax").value)||Infinity;
 
   filtered=productos.filter(p=>{
-    if(q&&!(p.cod.toLowerCase().includes(q)||p.desc.toLowerCase().includes(q)||
-           (SUBFAMS[p.subfam]||"").toLowerCase().includes(q)||(FAMS[p.fam]?.name||"").toLowerCase().includes(q))) return false;
-    if(fam&&p.fam!==fam) return false;
-    if(sub&&p.subfam!==sub) return false;
+    if(q&&!p.searchText.includes(q)) return false;
+    if(fam&&p.familia!==fam) return false;
+    if(sub&&p.subfamilia!==sub) return false;
     if(p.di!==null&&(p.di<diMin||p.di>diMax)) return false;
     if(p.de!==null&&(p.de<deMin||p.de>deMax)) return false;
-    if(p.lon!==null&&(p.lon<lonMin||p.lon>lonMax)) return false;
+    if(p.longitud!==null&&(p.longitud<lonMin||p.longitud>lonMax)) return false;
     return true;
   });
 
@@ -497,137 +586,251 @@ function applyFilters(){
   if(q) tags.push(`"${q}"`);
   if(fam) tags.push(`Familia: ${fam}`);
   if(sub) tags.push(`Sub: ${sub}`);
-  if(diMin||diMax<Infinity) tags.push(`DI: ${diMin}${diMax<Infinity?`–${diMax}`:"+"}mm`);
-  if(deMin||deMax<Infinity) tags.push(`DE: ${deMin}${deMax<Infinity?`–${deMax}`:"+"}mm`);
-  if(lonMin||lonMax<Infinity) tags.push(`Long: ${lonMin}${lonMax<Infinity?`–${lonMax}`:"+"}mm`);
   document.getElementById("activeTags").innerHTML=tags.map(t=>`
-    <span class="filter-tag" onclick="resetFilters()"><i class="ti ti-x" style="font-size:10px"></i>${t}</span>`).join("");
+    <span class="tag" onclick="resetFilters()"><i class="ti ti-x" style="font-size:10px"></i>${t}</span>`).join("");
 
-  buildKPIs(); buildBars(); buildDonut();
   currentPage=1;
+  buildKPIs();
   renderTable();
 }
 
 function resetFilters(){
   ["q","fFam","fSub","diMin","diMax","deMin","deMax","lonMin","lonMax"]
-    .forEach(id=>{ const el=document.getElementById(id); el.value=el.tagName==="SELECT"?"":""; });
-  document.getElementById("fSub").innerHTML='<option value="">Todas las subfamilias</option>';
+    .forEach(id=>{const el=document.getElementById(id);el.value=el.tagName==="SELECT"?"":""});
   updateSubfam();
   filtered=[...productos];
   document.getElementById("activeTags").innerHTML="";
   currentPage=1;
-  buildKPIs(); buildBars(); buildDonut(); renderTable();
+  buildKPIs();renderTable();
 }
 
 // ── TABLA ─────────────────────────────────────────────────────────────────
 function sortBy(col,e){
   if(sortCol===col) sortDir*=-1; else{sortCol=col;sortDir=1;}
   document.querySelectorAll("thead th").forEach(th=>th.className="");
-  e.target.className=sortDir===1?"sort-asc":"sort-desc";
+  e.target.className=sortDir===1?"asc":"desc";
   filtered.sort((a,b)=>{
-    const av=a[col]??-1, bv=b[col]??-1;
+    const av=a[col]??-1,bv=b[col]??-1;
     if(typeof av==="string") return av.localeCompare(bv)*sortDir;
     return (av-bv)*sortDir;
   });
   renderTable();
 }
 
-function renderTable(){
+async function renderTable(){
   const tb=document.getElementById("tableBody");
   if(!filtered.length){
-    tb.innerHTML=`<tr><td colspan="8" class="no-data">No se encontraron artículos con los filtros aplicados</td></tr>`;
+    tb.innerHTML=`<tr><td colspan="8" class="no-data">No se encontraron materiales</td></tr>`;
     ["rowCount","rowCountBottom"].forEach(id=>document.getElementById(id).textContent="");
     document.getElementById("pagination").innerHTML="";
     return;
   }
+  const tot=Math.ceil(filtered.length/PAGE);
+  if(currentPage>tot) currentPage=1;
+  const start=(currentPage-1)*PAGE;
+  const visible=filtered.slice(start,start+PAGE);
 
-  const totalPages=Math.ceil(filtered.length/PAGE_SIZE);
-  if(currentPage>totalPages) currentPage=1;
-  const start=(currentPage-1)*PAGE_SIZE;
-  const visible=filtered.slice(start,start+PAGE_SIZE);
+  // Obtener conteo de tubos por código
+  const cods=visible.map(p=>p.cod);
+  let tubosCnt={};
+  try{
+    const {data}=await sb.from("tubos").select("codigo_mat,cantidad").in("codigo_mat",cods);
+    if(data) data.forEach(t=>{tubosCnt[t.codigo_mat]=(tubosCnt[t.codigo_mat]||0)+t.cantidad;});
+  }catch(e){}
 
   tb.innerHTML=visible.map(p=>{
-    const f=FAMS[p.fam]||{color:"#888",bg:"#222",border:"#444",name:p.fam};
-    const badge=`<span class="fam-badge" style="color:${f.color};background:${f.bg};border-color:${f.border}">${p.fam}</span>`;
-    const stockTxt=p.stock!==null?`<span style="color:${p.stock>0?"#4caf8c":"#e85a5a"}">${p.stock}</span>`:`<span style="color:#3a3e5a">—</span>`;
+    const f=FAMS[p.familia]||{color:"#888",bg:"#222",border:"#444"};
+    const badge=`<span class="fam-badge" style="color:${f.color};background:${f.bg};border-color:${f.border}">${p.familia}</span>`;
+    const cnt=tubosCnt[p.cod]||0;
+    const tuboBtn=cnt>0
+      ?`<button class="btn btn-green" style="padding:3px 8px;font-size:10px" onclick="verTubosMaterial('${p.cod}','${p.descripcion.replace(/'/g,"\\'")}')"><i class="ti ti-cylinder"></i>${cnt} tubo${cnt>1?"s":""}</button>`
+      :`<button class="btn btn-ghost" style="padding:3px 8px;font-size:10px" onclick="openModalTuboFor('${p.cod}','${p.descripcion.replace(/'/g,"\\'")}')"><i class="ti ti-plus"></i>Agregar</button>`;
     return `<tr>
       <td style="font-family:monospace;font-size:10px;color:#7a7d99">${p.cod}</td>
-      <td style="max-width:260px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${p.desc}">${p.desc}</td>
+      <td style="max-width:240px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${p.descripcion}">${p.descripcion}</td>
       <td>${badge}</td>
-      <td style="color:#8a8daa;font-size:10px">${p.subfam}${p.descSub?" · "+p.descSub.split(" ")[0]:""}</td>
+      <td style="color:#8a8daa;font-size:10px">${p.subfamilia||"—"}</td>
       <td style="color:#b0b3cc;text-align:right">${p.di??'—'}</td>
       <td style="color:#b0b3cc;text-align:right">${p.de??'—'}</td>
-      <td style="color:#b0b3cc;text-align:right">${p.lon??'—'}</td>
-      <td style="text-align:center">${stockTxt}</td>
+      <td style="color:#b0b3cc;text-align:right">${p.longitud??'—'}</td>
+      <td>${tuboBtn}</td>
     </tr>`;
   }).join("");
 
-  const txt=`Mostrando ${start+1}–${Math.min(start+PAGE_SIZE,filtered.length)} de ${filtered.length.toLocaleString()} artículos`;
+  const txt=`${start+1}–${Math.min(start+PAGE,filtered.length)} de ${filtered.length.toLocaleString()}`;
   ["rowCount","rowCountBottom"].forEach(id=>document.getElementById(id).textContent=txt);
 
   // Paginación
   const pag=document.getElementById("pagination");
   pag.innerHTML="";
-  const btnStyle="border:0.5px solid #2e3042;background:#111318;color:#b0b3cc;border-radius:6px;padding:4px 10px;cursor:pointer;font-size:11px";
-  const btnActStyle="border:0.5px solid #D32F2F;background:#D32F2F;color:#fff;border-radius:6px;padding:4px 10px;cursor:pointer;font-size:11px";
-
-  const addBtn=(label,page,active=false,disabled=false)=>{
+  const addBtn=(lbl,pg,active,disabled)=>{
     const b=document.createElement("button");
-    b.textContent=label; b.style.cssText=active?btnActStyle:btnStyle;
-    if(disabled) b.style.opacity="0.3";
-    else b.onclick=()=>{ currentPage=page; renderTable(); document.querySelector(".tbl-wrap").scrollTop=0; };
+    b.className="pag-btn"+(active?" active":"");
+    b.disabled=disabled; b.textContent=lbl;
+    if(!disabled) b.onclick=()=>{currentPage=pg;renderTable();document.querySelector(".tbl-wrap").scrollTop=0;};
     pag.appendChild(b);
   };
-
   addBtn("←",currentPage-1,false,currentPage===1);
-  // Mostrar máx 5 páginas
-  const range=2;
-  for(let p=Math.max(1,currentPage-range);p<=Math.min(totalPages,currentPage+range);p++){
-    addBtn(p,p,p===currentPage);
+  for(let p=Math.max(1,currentPage-2);p<=Math.min(tot,currentPage+2);p++) addBtn(p,p,p===currentPage,false);
+  addBtn("→",currentPage+1,false,currentPage===tot);
+}
+
+// ── TUBOS ─────────────────────────────────────────────────────────────────
+async function loadTubos(){
+  document.getElementById("tubos-list").innerHTML=`<div class="loading"><div class="spinner"></div>Cargando tubos...</div>`;
+  const {data:tubos,error}=await sb.from("tubos").select("*").order("created_at",{ascending:false});
+  if(error){document.getElementById("tubos-list").innerHTML=`<div class="no-data">Error al cargar tubos</div>`;return;}
+  if(!tubos?.length){
+    document.getElementById("tubos-list").innerHTML=`<div class="card" style="text-align:center;padding:30px;color:#5a5e7a"><i class="ti ti-cylinder" style="font-size:32px;display:block;margin-bottom:10px;color:#3a3e5a"></i>No hay tubos registrados.<br>Usa el botón <strong style="color:#D32F2F">Registrar tubo</strong> para comenzar.</div>`;
+    return;
   }
-  addBtn("→",currentPage+1,false,currentPage===totalPages);
+
+  // Obtener movimientos
+  const ids=tubos.map(t=>t.id);
+  const {data:movs}=await sb.from("movimientos").select("*").in("tubo_id",ids).order("fecha",{ascending:false});
+
+  document.getElementById("tubos-list").innerHTML=tubos.map(t=>{
+    const movsT=(movs||[]).filter(m=>m.tubo_id===t.id);
+    const entradas=movsT.filter(m=>m.tipo==="entrada").reduce((a,m)=>a+m.cantidad,0);
+    const salidas=movsT.filter(m=>m.tipo==="salida").reduce((a,m)=>a+m.cantidad,0);
+    const stock=t.cantidad+entradas-salidas;
+    const pct=t.cantidad>0?Math.max(0,Math.min(100,Math.round(salidas/t.cantidad*100))):0;
+    const color=stock<=0?"#e85a5a":stock<=2?"#f5a623":"#4caf8c";
+
+    const movsHtml=movsT.slice(0,5).map(m=>`
+      <div class="mov-item">
+        <div class="mov-icon ${m.tipo==="entrada"?"mov-in":"mov-out'}"}">
+          <i class="ti ti-arrow-${m.tipo==="entrada"?"down":"up"}"></i>
+        </div>
+        <div style="flex:1">
+          <span style="color:${m.tipo==="entrada"?"#4caf8c":"#e85a5a"};font-weight:500">${m.tipo==="entrada"?"+ ":"- "}${m.cantidad} tubo${m.cantidad>1?"s":""}</span>
+          ${m.altura_usada?`<span style="color:#5a5e7a"> · ${m.altura_usada}mm</span>`:""}
+          ${m.nota?`<span style="color:#7a7d99"> · ${m.nota}</span>`:""}
+        </div>
+        <span style="color:#3a3e5a;font-size:10px">${new Date(m.fecha).toLocaleDateString("es-PE")}</span>
+      </div>`).join("");
+
+    return `<div class="tubo-card">
+      <div class="tubo-header">
+        <div>
+          <div class="tubo-title">${t.descripcion}</div>
+          <div class="tubo-sub">${t.codigo_mat||"Sin código"} ${t.diametro_ext?`· Ø${t.diametro_ext}mm`:""} ${t.altura_total?`· ${t.altura_total}mm altura`:""}</div>
+        </div>
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-green" style="font-size:11px" onclick="openModalMovFor(${t.id},'${t.descripcion.replace(/'/g,"\\'")}')">
+            <i class="ti ti-arrows-exchange"></i>Movimiento
+          </button>
+        </div>
+      </div>
+      <div class="tubo-stats">
+        <div class="tubo-stat"><div class="tubo-stat-val" style="color:${color}">${stock}</div><div class="tubo-stat-lbl">Stock actual</div></div>
+        <div class="tubo-stat"><div class="tubo-stat-val">${t.cantidad}</div><div class="tubo-stat-lbl">Stock inicial</div></div>
+        <div class="tubo-stat"><div class="tubo-stat-val" style="color:#4caf8c">+${entradas}</div><div class="tubo-stat-lbl">Entradas</div></div>
+        <div class="tubo-stat"><div class="tubo-stat-val" style="color:#e85a5a">-${salidas}</div><div class="tubo-stat-lbl">Salidas</div></div>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" style="width:${pct}%;background:${pct>80?"#e85a5a":pct>50?"#f5a623":"#4caf8c"}"></div></div>
+      <div style="font-size:10px;color:#5a5e7a;margin-bottom:6px">${pct}% consumido</div>
+      ${movsT.length?`<div class="movs-list"><div style="font-size:10px;color:#5a5e7a;margin-bottom:6px">ÚLTIMOS MOVIMIENTOS</div>${movsHtml}</div>`:""}
+    </div>`;
+  }).join("");
 }
 
-function clearCache(){
-  if(!confirm("¿Borrar el catálogo guardado? Tendrás que volver a cargarlo.")) return;
-  localStorage.removeItem("ctseals_catalog");
-  localStorage.removeItem("ctseals_stock");
-  productos=[];filtered=[];stockMap={};
-  document.getElementById("uploadZone").style.display="block";
-  document.getElementById("dashContent").style.display="none";
-  toast("Caché borrado","ok");
+async function verTubosMaterial(cod,desc){
+  goTo("tubos");
 }
 
-// ── EXPORTAR EXCEL ────────────────────────────────────────────────────────
+function openModalTubo(){
+  document.getElementById("t_cod").value="";
+  document.getElementById("t_desc").value="";
+  document.getElementById("t_de").value="";
+  document.getElementById("t_altura").value="";
+  document.getElementById("t_cantidad").value="";
+  document.getElementById("modalTuboTitle").textContent="Registrar tubo";
+  document.getElementById("modalTubo").style.display="flex";
+}
+
+function openModalTuboFor(cod,desc){
+  document.getElementById("t_cod").value=cod;
+  document.getElementById("t_desc").value=desc;
+  // Intentar extraer DE de la descripción
+  const med=parseMedidas(desc);
+  if(med.de) document.getElementById("t_de").value=med.de;
+  if(med.lon) document.getElementById("t_altura").value=med.lon;
+  document.getElementById("t_cantidad").value="";
+  document.getElementById("modalTuboTitle").textContent="Agregar tubos — "+cod;
+  document.getElementById("modalTubo").style.display="flex";
+}
+
+function closeModal(){ document.getElementById("modalTubo").style.display="none"; }
+
+async function saveTubo(){
+  const desc=document.getElementById("t_desc").value.trim();
+  const cant=parseInt(document.getElementById("t_cantidad").value)||0;
+  if(!desc){toast("La descripción es obligatoria","err");return;}
+  if(cant<0){toast("La cantidad no puede ser negativa","err");return;}
+  const obj={
+    codigo_mat:document.getElementById("t_cod").value.trim()||null,
+    descripcion:desc,
+    diametro_ext:parseFloat(document.getElementById("t_de").value)||null,
+    altura_total:parseFloat(document.getElementById("t_altura").value)||null,
+    cantidad:cant,
+  };
+  const {error}=await sb.from("tubos").insert(obj);
+  if(error){toast("Error: "+error.message,"err");return;}
+  closeModal();
+  toast("✓ Tubo registrado correctamente","ok");
+  if(document.getElementById("page-tubos").classList.contains("active")) loadTubos();
+  else renderTable();
+}
+
+function openModalMovFor(tuboId,desc){
+  document.getElementById("mov_tubo_id").value=tuboId;
+  document.getElementById("mov_tipo").value="salida";
+  document.getElementById("mov_cantidad").value="";
+  document.getElementById("mov_altura").value="";
+  document.getElementById("mov_nota").value="";
+  document.getElementById("modalMovTitle").innerHTML=`<i class="ti ti-arrows-exchange" style="color:#D32F2F"></i>Movimiento — ${desc}`;
+  document.getElementById("modalMov").style.display="flex";
+}
+
+function closeModalMov(){ document.getElementById("modalMov").style.display="none"; }
+
+async function saveMovimiento(){
+  const tuboId=parseInt(document.getElementById("mov_tubo_id").value);
+  const tipo=document.getElementById("mov_tipo").value;
+  const cant=parseInt(document.getElementById("mov_cantidad").value)||0;
+  if(!cant||cant<=0){toast("Ingresa una cantidad válida","err");return;}
+  const obj={
+    tubo_id:tuboId,tipo,cantidad:cant,
+    altura_usada:parseFloat(document.getElementById("mov_altura").value)||null,
+    nota:document.getElementById("mov_nota").value.trim()||null,
+  };
+  const {error}=await sb.from("movimientos").insert(obj);
+  if(error){toast("Error: "+error.message,"err");return;}
+  closeModalMov();
+  toast(`✓ Movimiento registrado (${tipo}: ${cant} tubo${cant>1?"s":""})`, "ok");
+  loadTubos();
+}
+
+// ── EXPORTAR ──────────────────────────────────────────────────────────────
 function exportExcel(){
-  const hdr=["Código","Descripción","Familia","Des. Familia","Subfamilia","Des. Subfamilia","DI (mm)","DE (mm)","Longitud (mm)","Stock"];
-  const rows=filtered.map(p=>[
-    p.cod,p.desc,p.fam,FAMS[p.fam]?.name||p.fam,p.subfam,SUBFAMS[p.subfam]||p.subfam,
-    p.di??'',p.de??'',p.lon??'',p.stock??''
-  ]);
+  if(!filtered.length){toast("No hay datos para exportar","err");return;}
+  const hdr=["Código","Descripción","Familia","Des.Familia","Subfamilia","Des.Subfamilia","Dureza","DI (mm)","DE (mm)","Longitud (mm)"];
+  const rows=filtered.map(p=>[p.cod,p.descripcion,p.familia,p.des_familia,p.subfamilia,p.des_subfam,p.dureza,p.di??'',p.de??'',p.longitud??'']);
   const wb=XLSX.utils.book_new();
   const ws=XLSX.utils.aoa_to_sheet([hdr,...rows]);
-  ws["!cols"]=[{wch:14},{wch:45},{wch:6},{wch:18},{wch:10},{wch:28},{wch:9},{wch:9},{wch:11},{wch:8}];
+  ws["!cols"]=[{wch:14},{wch:45},{wch:6},{wch:18},{wch:10},{wch:28},{wch:12},{wch:9},{wch:9},{wch:11}];
   XLSX.utils.book_append_sheet(wb,"Catálogo CT Seals",ws);
-  const fecha=new Date().toISOString().slice(0,10);
-  XLSX.writeFile(wb,`CT_Seals_Catalogo_${fecha}.xlsx`);
-  toast("Excel exportado correctamente","ok");
+  XLSX.writeFile(wb,`CT_Seals_Catalogo_${new Date().toISOString().slice(0,10)}.xlsx`);
+  toast("Excel exportado","ok");
 }
 
 // ── TOAST ─────────────────────────────────────────────────────────────────
-function toast(msg,type){
+function toast(msg,type="ok"){
   const t=document.getElementById("toast");
   t.textContent=msg;t.className="toast "+type+" show";
-  clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove("show"),3500);
+  clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove("show"),4000);
 }
-
-// ── INIT ──────────────────────────────────────────────────────────────────
-buildSelects();
-updateSubfam();
-buildKPIs();
-buildBars();
-buildDonut();
-renderTable();
 </script>
 </body>
 </html>
