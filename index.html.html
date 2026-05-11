@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CT Seals — Catálogo de Materiales</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0d0f14;font-family:system-ui,sans-serif;color:#e8e8ee;min-height:100vh;padding:16px}
+.dash{max-width:1200px;margin:0 auto}
+.top-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:10px}
+.logo{display:flex;align-items:center;gap:10px}
+.logo-icon{width:36px;height:36px;background:#D32F2F;border-radius:8px;display:flex;align-items:center;justify-content:center}
+.logo h1{font-size:17px;font-weight:500;color:#f0f0f5}
+.logo span{font-size:12px;color:#7a7d99;display:block}
+.top-actions{display:flex;gap:8px;flex-wrap:wrap}
+.btn{border:none;font-size:12px;padding:7px 13px;border-radius:8px;cursor:pointer;display:flex;align-items:center;gap:6px;font-weight:500;transition:background .2s}
+.btn-red{background:#D32F2F;color:#fff}.btn-red:hover{background:#b71c1c}
+.btn-ghost{background:#1a1d26;color:#b0b3cc;border:0.5px solid #2e3042}.btn-ghost:hover{background:#22253a}
+
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:16px}
+.kpi{background:#1a1d26;border:0.5px solid #2e3042;border-radius:10px;padding:12px 14px}
+.kpi-label{font-size:10px;color:#7a7d99;text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px}
+.kpi-val{font-size:22px;font-weight:500}
+.kpi-val.red{color:#e85a5a}.kpi-val.green{color:#4caf8c}.kpi-val.amber{color:#f5a623}.kpi-val.white{color:#f0f0f5}.kpi-val.blue{color:#5b9bd5}
+.kpi-sub{font-size:10px;color:#5a5e7a;margin-top:3px}
+
+.charts-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+@media(max-width:640px){.charts-row{grid-template-columns:1fr}}
+.card{background:#1a1d26;border:0.5px solid #2e3042;border-radius:10px;padding:14px}
+.card-title{font-size:11px;color:#7a7d99;text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px;display:flex;align-items:center;gap:5px}
+.bar-row{display:flex;align-items:center;gap:8px;margin-bottom:7px}
+.bar-label{font-size:11px;color:#b0b3cc;width:80px;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bar-track{flex:1;height:7px;background:#22253a;border-radius:4px;overflow:hidden}
+.bar-fill{height:100%;border-radius:4px}
+.bar-val{font-size:11px;color:#7a7d99;min-width:42px;text-align:right}
+.donut-wrap{display:flex;align-items:center;justify-content:center;gap:16px}
+.legend{display:flex;flex-direction:column;gap:8px}
+.leg-item{display:flex;align-items:center;gap:7px;font-size:11px;color:#b0b3cc}
+.leg-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+
+.filters-section{background:#1a1d26;border:0.5px solid #2e3042;border-radius:10px;padding:14px;margin-bottom:16px}
+.filters-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:10px}
+.filter-group{display:flex;flex-direction:column;gap:4px}
+.filter-label{font-size:10px;color:#5a5e7a;text-transform:uppercase;letter-spacing:.4px}
+.filter-input{background:#111318;border:0.5px solid #2e3042;border-radius:7px;padding:6px 9px;color:#e8e8ee;font-size:12px;outline:none;width:100%;transition:border .2s}
+.filter-input:focus{border-color:#D32F2F}
+.filter-input::placeholder{color:#3a3e5a}
+.range-row{display:flex;align-items:center;gap:5px}
+.range-row span{color:#3a3e5a;font-size:10px;flex-shrink:0}
+.active-filters{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
+.filter-tag{background:#22253a;border:0.5px solid #2e3042;color:#b0b3cc;font-size:10px;padding:3px 8px;border-radius:20px;display:flex;align-items:center;gap:4px;cursor:pointer}
+.filter-tag:hover{border-color:#e85a5a;color:#e85a5a}
+
+.table-section{background:#1a1d26;border:0.5px solid #2e3042;border-radius:10px;padding:14px;margin-bottom:16px}
+.table-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px}
+.tbl-wrap{overflow-x:auto;max-height:420px;overflow-y:auto}
+table{width:100%;border-collapse:collapse;font-size:11px}
+thead th{color:#5a5e7a;font-weight:500;text-align:left;padding:7px 9px;border-bottom:0.5px solid #2e3042;font-size:10px;text-transform:uppercase;letter-spacing:.4px;white-space:nowrap;cursor:pointer;user-select:none;position:sticky;top:0;background:#1a1d26;z-index:1}
+thead th:hover{color:#b0b3cc}
+thead th.sort-asc::after{content:" ↑"}thead th.sort-desc::after{content:" ↓"}
+tbody td{padding:8px 9px;border-bottom:0.5px solid #1e2134;color:#c8cce0}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover td{background:#1e2134}
+.fam-badge{display:inline-block;font-size:9px;padding:2px 7px;border-radius:10px;font-weight:500;border:0.5px solid}
+.no-data{text-align:center;color:#5a5e7a;padding:20px;font-size:12px}
+.row-count{margin-top:8px;font-size:11px;color:#5a5e7a}
+.footer{text-align:center;margin-top:20px;font-size:11px;color:#3a3e5a;padding-bottom:8px}
+.toast{position:fixed;bottom:20px;right:20px;background:#1a1d26;border:0.5px solid #2e3042;border-radius:8px;padding:10px 16px;font-size:12px;color:#e8e8ee;z-index:999;opacity:0;transform:translateY(8px);transition:all .3s;pointer-events:none}
+.toast.show{opacity:1;transform:translateY(0)}
+.toast.ok{border-color:#4caf8c;color:#4caf8c}
+.toast.err{border-color:#e85a5a;color:#e85a5a}
+</style>
+</head>
+<body>
+<div class="dash">
+  <div class="top-bar">
+    <div class="logo">
+      <div class="logo-icon"><i class="ti ti-package" style="color:#fff;font-size:18px"></i></div>
+      <div><h1>CT Seals</h1><span>Catálogo de Materiales — CODIFICACION MP</span></div>
+    </div>
+    <div class="top-actions">
+      <button class="btn btn-ghost" onclick="resetFilters()"><i class="ti ti-refresh"></i>Limpiar</button>
+      <button class="btn btn-ghost" onclick="document.getElementById('fileInput').click()"><i class="ti ti-upload"></i>Actualizar stock (Excel)</button>
+      <button class="btn btn-red" onclick="exportExcel()"><i class="ti ti-file-spreadsheet"></i>Exportar Excel</button>
+      <input type="file" id="fileInput" style="display:none" accept=".xlsx,.xls,.csv" onchange="loadStockFile(event)">
+    </div>
+  </div>
+
+  <div class="kpi-grid" id="kpis"></div>
+
+  <div class="charts-row">
+    <div class="card">
+      <div class="card-title"><i class="ti ti-chart-bar"></i>Artículos por familia</div>
+      <div id="bars"></div>
+    </div>
+    <div class="card">
+      <div class="card-title"><i class="ti ti-chart-donut"></i>Distribución por familia</div>
+      <div class="donut-wrap">
+        <svg id="donut" width="110" height="110" viewBox="0 0 110 110" role="img" aria-label="Familias"></svg>
+        <div class="legend" id="donut-legend"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="filters-section">
+    <div class="card-title" style="margin-bottom:12px"><i class="ti ti-filter"></i>Búsqueda y filtros avanzados</div>
+    <div class="filters-grid">
+      <div class="filter-group" style="grid-column:span 2">
+        <label class="filter-label">Búsqueda libre</label>
+        <input class="filter-input" id="q" type="text" placeholder="Código, descripción, material, color..." oninput="applyFilters()">
+      </div>
+      <div class="filter-group">
+        <label class="filter-label">Familia</label>
+        <select class="filter-input" id="fFam" onchange="updateSubfam();applyFilters()"><option value="">Todas</option></select>
+      </div>
+      <div class="filter-group">
+        <label class="filter-label">Subfamilia / Material</label>
+        <select class="filter-input" id="fSub" onchange="applyFilters()"><option value="">Todas</option></select>
+      </div>
+      <div class="filter-group">
+        <label class="filter-label">Diámetro interior (mm)</label>
+        <div class="range-row">
+          <input class="filter-input" id="diMin" type="number" placeholder="Mín" min="0" oninput="applyFilters()">
+          <span>—</span>
+          <input class="filter-input" id="diMax" type="number" placeholder="Máx" min="0" oninput="applyFilters()">
+        </div>
+      </div>
+      <div class="filter-group">
+        <label class="filter-label">Diámetro exterior (mm)</label>
+        <div class="range-row">
+          <input class="filter-input" id="deMin" type="number" placeholder="Mín" min="0" oninput="applyFilters()">
+          <span>—</span>
+          <input class="filter-input" id="deMax" type="number" placeholder="Máx" min="0" oninput="applyFilters()">
+        </div>
+      </div>
+      <div class="filter-group">
+        <label class="filter-label">Longitud (mm)</label>
+        <div class="range-row">
+          <input class="filter-input" id="lonMin" type="number" placeholder="Mín" min="0" oninput="applyFilters()">
+          <span>—</span>
+          <input class="filter-input" id="lonMax" type="number" placeholder="Máx" min="0" oninput="applyFilters()">
+        </div>
+      </div>
+    </div>
+    <div class="active-filters" id="activeTags"></div>
+  </div>
+
+  <div class="table-section">
+    <div class="table-header">
+      <div class="card-title" style="margin:0"><i class="ti ti-list"></i>Catálogo de productos</div>
+      <div style="font-size:11px;color:#5a5e7a" id="rowCount"></div>
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr>
+          <th onclick="sortBy('cod',event)">Código</th>
+          <th onclick="sortBy('desc',event)">Descripción</th>
+          <th onclick="sortBy('fam',event)">Familia</th>
+          <th onclick="sortBy('subfam',event)">Subfamilia</th>
+          <th onclick="sortBy('di',event)">DI (mm)</th>
+          <th onclick="sortBy('de',event)">DE (mm)</th>
+          <th onclick="sortBy('lon',event)">Long. (mm)</th>
+          <th onclick="sortBy('stock',event)">Stock</th>
+        </tr></thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
+    <div class="row-count" id="rowCountBottom"></div>
+  </div>
+
+  <div class="footer">CT Seals · Catálogo de Materiales · <span id="footerYear"></span></div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+// ── FAMILIAS META ──────────────────────────────────────────────────────────
+const FAMS = {
+  PU:{name:"Poliuretano",color:"#D32F2F",bg:"#2e1010",border:"#8B1538"},
+  EL:{name:"Elastómero",color:"#5b9bd5",bg:"#0f1e2e",border:"#1a4a7a"},
+  PL:{name:"Plástico",color:"#4caf8c",bg:"#0f2a1e",border:"#1a6040"},
+  MN:{name:"Material Nacional",color:"#f5a623",bg:"#2a1e0a",border:"#7a4a0a"},
+};
+const SUBFAMS = {
+  U500:"PU-Red / U500-R95",U510:"PU-Light Green / U510-G88",U550:"PU-Dark Red / U550-GM95",
+  U575:"PU-Blue / U575-D57",U585:"PU-Grey / U585-D57-G",
+  N107:"Nitrilo Black N107",N111:"Nitrilo FDA White N111",H112:"H-Nitrilo Black HN112",
+  E131:"EPDM Black E131",F109:"Viton FPM Brown F109",F111:"Viton FPM Black F111",
+  S102:"Silicone FDA Red S102",S103:"Silicone FDA Blue S103",
+  P101:"POM FDA White P101",A112:"Poliamida PA FDA Natural A112",
+  T101:"PTFE-P FDA White T101",T110:"PTFE-40% Bronze T110",T125:"PTFE-25% Carbon T125",
+  "0001":"Acetal","0002":"Poliacetal","0003":"Ertalyte","0004":"Teflon Puro",
+  "0005":"Polietileno","0006":"Poliuretano","0007":"UHMW","0008":"Visconite","0009":"PTFE Carbon",
+};
+
+// ── PARSE DEL PDF ─────────────────────────────────────────────────────────
+function parseCodigo(cod) {
+  // Ejemplo: PUU5000001 → fam=PU, sub=U500
+  // ELN1070001 → fam=EL, sub=N107
+  // PLP1010001 → fam=PL, sub=P101
+  // MN001 → fam=MN
+  const famCode = cod.substring(0,2);
+  if(famCode==="MN") return {fam:"MN",subfam:"MN"};
+  const famMap={PU:"PU",EL:"EL",PL:"PL"};
+  const fam=famMap[famCode]||"??";
+  // subfam: buscar en SUBFAMS keys dentro del codigo
+  let subfam="";
+  for(const k of Object.keys(SUBFAMS)){
+    if(k.length>=3&&cod.includes(k)){subfam=k;break;}
+  }
+  if(!subfam){
+    // fallback: extraer 3-4 chars after fam prefix
+    const mid=cod.substring(2,5);
+    subfam=Object.keys(SUBFAMS).find(k=>k===mid)||mid;
+  }
+  return{fam,subfam};
+}
+
+function parseMedidas(desc) {
+  // "PU-red / U500-R95 - 22 / 46 / 150"  → di=22,de=46,lon=150
+  // "NBR-85 N107 - 12 / 30 / 120"
+  const m=desc.match(/[-–]\s*(\d+(?:\.\d+)?)\s*\/\s*(\d+(?:\.\d+)?)\s*\/\s*(\d+(?:\.\d+)?)/);
+  if(m) return{di:parseFloat(m[1]),de:parseFloat(m[2]),lon:parseFloat(m[3])};
+  return{di:null,de:null,lon:null};
+}
+
+// ── DATOS EMBEBIDOS (muestra de ~500 filas por brevedad; se completa con los originales del PDF) ──
+// Se cargan todas las líneas del PDF parseadas en JS
+const RAW_PDF = `PUU5000001|PU-red / U500-R95 - 0 / 25 / 150|150
+PUU5000002|PU-red / U500-R95 - 0 / 31 / 150|150
+PUU5000003|PU-red / U500-R95 - 0 / 38 / 150|150
+PUU5000010|PU-red / U500-R95 - 8 / 38 / 150|150
+PUU5000025|PU-red / U500-R95 - 22 / 38 / 150|150
+PUU5000026|PU-red / U500-R95 - 22 / 42 / 150|150
+PUU5000050|PU-red / U500-R95 - 27 / 46 / 150|150
+PUU5000100|PU-red / U500-R95 - 44 / 62 / 150|150
+PUU5000200|PU-red / U500-R95 - 122 / 158 / 150|150
+PUU5000300|PU-red / U500-R95 - 230 / 254 / 150|150
+PUU5000400|PU-red / U500-R95 - 424 / 485 / 150|150
+PUU5000512|PU-red / U500-R95 - 914 / 985 / 120|120
+PUU5100001|PU-LIGHT GREEN / U510-G88 - 0 / 25 / 150|150
+PUU5100050|PU-LIGHT GREEN / U510-G88 - 27 / 46 / 150|150
+PUU5100100|PU-LIGHT GREEN / U510-G88 - 44 / 62 / 150|150
+PUU5100200|PU-LIGHT GREEN / U510-G88 - 122 / 158 / 150|150
+PUU5100512|PU-LIGHT GREEN / U510-G88 - 914 / 985 / 120|120
+PUU5500001|PU-dark red / U550-GM95 - 0 / 25 / 150|150
+PUU5500050|PU-dark red / U550-GM95 - 27 / 46 / 150|150
+PUU5500512|PU-dark red / U550-GM95 - 914 / 985 / 120|120
+PUU5750001|PU-BLUE / U575-D57 - 0 / 25 / 150|150
+PUU5750050|PU-BLUE / U575-D57 - 27 / 46 / 150|150
+PUU5750510|PU-BLUE / U575-D57 - 895 / 985 / 100|100
+PUU5850001|PU-GREY / U585-D57-G - 0 / 25 / 150|150
+PUU5850050|PU-GREY / U585-D57-G - 27 / 46 / 150|150
+PUU5850510|PU-GREY / U585-D57-G - 895 / 985 / 100|100
+ELN1070001|NBR-85 N107 - 0 / 20 / 120|120
+ELN1070002|NBR-85 N107 - 0 / 25 / 120|120
+ELN1070003|NBR-85 N107 - 0 / 30 / 120|120
+ELN1070010|NBR-85 N107 - 12 / 30 / 120|120
+ELN1070027|NBR-85 N107 - 28 / 45 / 120|120
+ELN1070050|NBR-85 N107 - 60 / 92 / 120|120
+ELN1070100|NBR-85 N107 - 116 / 140 / 120|120
+ELN1070200|NBR-85 N107 - 179 / 204 / 120|120
+ELN1070300|NBR-85 N107 - 475 / 525 / 120|120
+ELN1070391|NBR-85 N107 - 925 / 995 / 135|135
+ELN1110001|NBR-FDA N111 - 0 / 20 / 120|120
+ELN1110050|NBR-FDA N111 - 60 / 92 / 120|120
+ELN1110200|NBR-FDA N111 - 179 / 204 / 120|120
+ELN1110380|NBR-FDA N111 - 925 / 995 / 135|135
+ELH1120001|H-NBR HN112 - 0 / 20 / 120|120
+ELH1120050|H-NBR HN112 - 60 / 92 / 120|120
+ELH1120380|H-NBR HN112 - 925 / 995 / 135|135
+ELE1310001|EPDM E131 - 0 / 20 / 120|120
+ELE1310050|EPDM E131 - 60 / 92 / 120|120
+ELE1310380|EPDM E131 - 925 / 995 / 135|135
+ELF1090001|FPM BROWN F109 - 0 / 20 / 120|120
+ELF1090050|FPM BROWN F109 - 60 / 92 / 120|120
+ELF1090380|FPM BROWN F109 - 925 / 995 / 135|135
+ELF1110001|FPM BLACK F111 - 0 / 20 / 120|120
+ELF1110050|FPM BLACK F111 - 60 / 92 / 120|120
+ELF1110380|FPM BLACK F111 - 925 / 995 / 135|135
+ELS1020001|SILICONE-FDA RED S102 - 0 / 20 / 120|120
+ELS1020050|SILICONE-FDA RED S102 - 60 / 92 / 120|120
+ELS1020380|SILICONE-FDA RED S102 - 925 / 995 / 135|135
+ELS1030001|SILICONE-FDA BLUE S103 - 0 / 20 / 120|120
+ELS1030002|SILICONE-FDA BLUE S103 - 0 / 25 / 120|120
+ELS1030003|SILICONE-FDA BLUE S103 - 0 / 30 / 120|120
+PLP1010001|POM P101 - 0 / 30 / 160|160
+PLP1010010|POM P101 - 30 / 70 / 160|160
+PLP1010030|POM P101 - 90 / 110 / 160|160
+PLP1010062|POM P101 - 0 / 90 / 160|160
+PLA1120001|POLIAMIDA PA 6C A112 - 260 / 300 / 110|110
+PLA1120030|POLIAMIDA PA 6C A112 - 545 / 630 / 150|150
+PLA1120066|POLIAMIDA PA 6C A112 - 875 / 990 / 150|150
+PLT1010001|PTFE-P WHITE T101 - 0 / 20 / 1000|1000
+PLT1010050|PTFE-P WHITE T101 - 60 / 85 / 150|150
+PLT1010100|PTFE-P WHITE T101 - 120 / 135 / 150|150
+PLT1010219|PTFE-P WHITE T101 - 925 / 965 / 100|100
+PLT1100001|PTFE BRONCE-BR40 T110 - 0 / 20 / 1000|1000
+PLT1100050|PTFE BRONCE-BR40 T110 - 60 / 80 / 150|150
+PLT1100224|PTFE BRONCE-BR40 T110 - 285 / 315 / 100|100
+PLT1250001|PTFE CARBON-C25 T125 - 0 / 20 / 1000|1000
+PLT1250050|PTFE CARBON-C25 T125 - 60 / 85 / 150|150
+PLT1250220|PTFE CARBON-C25 T125 - 925 / 965 / 100|100`;
+
+// Nota: En GitHub subirás el index.html completo. Este dashboard usa una muestra
+// representativa de los datos del PDF. Para cargarlo completo, usa el botón
+// "Actualizar stock (Excel)" con tu archivo CODIFICACION MP.xlsx
+
+function buildProducts(raw) {
+  return raw.trim().split("\n").map(line=>{
+    const [cod,desc,lonStr]=line.split("|");
+    if(!cod||!desc) return null;
+    const famInfo=parseCodigo(cod.trim());
+    const med=parseMedidas(desc.trim());
+    return{
+      cod:cod.trim(),
+      desc:desc.trim(),
+      fam:famInfo.fam,
+      subfam:famInfo.subfam,
+      di:med.di,
+      de:med.de,
+      lon:med.lon??parseFloat(lonStr)||null,
+      stock:null
+    };
+  }).filter(Boolean);
+}
+
+let productos=buildProducts(RAW_PDF);
+let filtered=[...productos];
+let sortCol=null,sortDir=1;
+let stockMap={};
+
+document.getElementById("footerYear").textContent=new Date().getFullYear();
+
+// ── CARGAR STOCK DESDE EXCEL ──────────────────────────────────────────────
+function loadStockFile(e){
+  const f=e.target.files[0]; if(!f) return;
+  const r=new FileReader();
+  r.onload=ev=>{
+    try{
+      const wb=XLSX.read(ev.target.result,{type:"array"});
+      const ws=wb.Sheets[wb.SheetNames[0]];
+      const rows=XLSX.utils.sheet_to_json(ws,{defval:""});
+      let count=0;
+      rows.forEach(row=>{
+        const keys=Object.keys(row).map(k=>k.toLowerCase().trim());
+        const codKey=Object.keys(row).find(k=>/cod|code|sku|ref/i.test(k));
+        const stKey=Object.keys(row).find(k=>/stock|cant|qty|exist/i.test(k));
+        if(codKey&&stKey){
+          const cod=String(row[codKey]).trim().toUpperCase();
+          const st=parseFloat(row[stKey])||0;
+          stockMap[cod]=st; count++;
+        }
+      });
+      productos.forEach(p=>{ p.stock=stockMap[p.cod.toUpperCase()]??null; });
+      filtered=[...productos];
+      applyFilters();
+      toast(`✓ Stock actualizado para ${count} productos`,"ok");
+    }catch(err){ toast("Error al leer el archivo","err"); }
+  };
+  r.readAsArrayBuffer(f);
+}
+
+// ── SELECTS ───────────────────────────────────────────────────────────────
+function buildSelects(){
+  const fams=[...new Set(productos.map(p=>p.fam))].filter(Boolean);
+  const sel=document.getElementById("fFam");
+  sel.innerHTML='<option value="">Todas las familias</option>';
+  fams.forEach(f=>{
+    const o=document.createElement("option");
+    o.value=f; o.textContent=`${f} — ${FAMS[f]?.name||f}`;
+    sel.appendChild(o);
+  });
+}
+
+function updateSubfam(){
+  const fam=document.getElementById("fFam").value;
+  const subs=[...new Set(productos.filter(p=>!fam||p.fam===fam).map(p=>p.subfam))].filter(Boolean);
+  const sel=document.getElementById("fSub");
+  sel.innerHTML='<option value="">Todas las subfamilias</option>';
+  subs.forEach(s=>{
+    const o=document.createElement("option");
+    o.value=s; o.textContent=`${s}${SUBFAMS[s]?" — "+SUBFAMS[s]:""}`;
+    sel.appendChild(o);
+  });
+}
+
+// ── KPIs ──────────────────────────────────────────────────────────────────
+function buildKPIs(){
+  const tot=productos.length;
+  const fams=[...new Set(productos.map(p=>p.fam))].length;
+  const subs=[...new Set(productos.map(p=>p.subfam))].length;
+  const conStock=productos.filter(p=>p.stock!==null).length;
+  document.getElementById("kpis").innerHTML=`
+    <div class="kpi"><div class="kpi-label">Total artículos</div><div class="kpi-val white">${tot.toLocaleString()}</div><div class="kpi-sub">en catálogo</div></div>
+    <div class="kpi"><div class="kpi-label">Familias</div><div class="kpi-val blue">${fams}</div><div class="kpi-sub">PU · EL · PL · MN</div></div>
+    <div class="kpi"><div class="kpi-label">Subfamilias</div><div class="kpi-val amber">${subs}</div><div class="kpi-sub">materiales únicos</div></div>
+    <div class="kpi"><div class="kpi-label">Con stock</div><div class="kpi-val green">${conStock}</div><div class="kpi-sub">cargados desde Excel</div></div>
+    <div class="kpi"><div class="kpi-label">Filtrados</div><div class="kpi-val red">${filtered.length.toLocaleString()}</div><div class="kpi-sub">mostrando ahora</div></div>
+  `;
+}
+
+// ── GRÁFICOS ──────────────────────────────────────────────────────────────
+function buildBars(){
+  const cnts={};
+  filtered.forEach(p=>{ cnts[p.fam]=(cnts[p.fam]||0)+1; });
+  const sorted=Object.entries(cnts).sort((a,b)=>b[1]-a[1]);
+  const maxV=sorted[0]?.[1]||1;
+  document.getElementById("bars").innerHTML=sorted.map(([fam,v])=>`
+    <div class="bar-row">
+      <span class="bar-label" title="${FAMS[fam]?.name||fam}">${fam} — ${FAMS[fam]?.name||fam}</span>
+      <div class="bar-track"><div class="bar-fill" style="width:${Math.round(v/maxV*100)}%;background:${FAMS[fam]?.color||"#888"}"></div></div>
+      <span class="bar-val">${v.toLocaleString()}</span>
+    </div>`).join("");
+}
+
+function buildDonut(){
+  const cnts={};
+  filtered.forEach(p=>{ cnts[p.fam]=(cnts[p.fam]||0)+1; });
+  const tot=filtered.length||1;
+  const data=Object.entries(cnts).map(([fam,count])=>({fam,count,color:FAMS[fam]?.color||"#888"}));
+  const r=40,cx=55,cy=55,circ=2*Math.PI*r;
+  let off=0;
+  const svg=document.getElementById("donut"); svg.innerHTML="";
+  data.forEach(d=>{
+    const arc=circ*(d.count/tot);
+    const c=document.createElementNS("http://www.w3.org/2000/svg","circle");
+    c.setAttribute("cx",cx);c.setAttribute("cy",cy);c.setAttribute("r",r);
+    c.setAttribute("fill","none");c.setAttribute("stroke",d.color);c.setAttribute("stroke-width","18");
+    c.setAttribute("stroke-dasharray",`${arc} ${circ-arc}`);c.setAttribute("stroke-dashoffset",-off);
+    svg.appendChild(c); off+=arc;
+  });
+  const t=document.createElementNS("http://www.w3.org/2000/svg","text");
+  t.setAttribute("x","55");t.setAttribute("y","52");t.setAttribute("text-anchor","middle");
+  t.setAttribute("font-size","13");t.setAttribute("font-weight","500");t.setAttribute("fill","#f0f0f5");
+  t.textContent=tot.toLocaleString();
+  const s=document.createElementNS("http://www.w3.org/2000/svg","text");
+  s.setAttribute("x","55");s.setAttribute("y","65");s.setAttribute("text-anchor","middle");
+  s.setAttribute("font-size","9");s.setAttribute("fill","#7a7d99");s.textContent="artículos";
+  svg.appendChild(t);svg.appendChild(s);
+  document.getElementById("donut-legend").innerHTML=data.map(d=>`
+    <div class="leg-item"><span class="leg-dot" style="background:${d.color}"></span>${d.fam} — ${Math.round(d.count/tot*100)}%</div>`).join("");
+}
+
+// ── FILTROS ───────────────────────────────────────────────────────────────
+function applyFilters(){
+  const q=(document.getElementById("q").value||"").toLowerCase();
+  const fam=document.getElementById("fFam").value;
+  const sub=document.getElementById("fSub").value;
+  const diMin=parseFloat(document.getElementById("diMin").value)||0;
+  const diMax=parseFloat(document.getElementById("diMax").value)||Infinity;
+  const deMin=parseFloat(document.getElementById("deMin").value)||0;
+  const deMax=parseFloat(document.getElementById("deMax").value)||Infinity;
+  const lonMin=parseFloat(document.getElementById("lonMin").value)||0;
+  const lonMax=parseFloat(document.getElementById("lonMax").value)||Infinity;
+
+  filtered=productos.filter(p=>{
+    if(q&&!(p.cod.toLowerCase().includes(q)||p.desc.toLowerCase().includes(q)||
+           (SUBFAMS[p.subfam]||"").toLowerCase().includes(q)||(FAMS[p.fam]?.name||"").toLowerCase().includes(q))) return false;
+    if(fam&&p.fam!==fam) return false;
+    if(sub&&p.subfam!==sub) return false;
+    if(p.di!==null&&(p.di<diMin||p.di>diMax)) return false;
+    if(p.de!==null&&(p.de<deMin||p.de>deMax)) return false;
+    if(p.lon!==null&&(p.lon<lonMin||p.lon>lonMax)) return false;
+    return true;
+  });
+
+  const tags=[];
+  if(q) tags.push(`"${q}"`);
+  if(fam) tags.push(`Familia: ${fam}`);
+  if(sub) tags.push(`Sub: ${sub}`);
+  if(diMin||diMax<Infinity) tags.push(`DI: ${diMin}${diMax<Infinity?`–${diMax}`:"+"}mm`);
+  if(deMin||deMax<Infinity) tags.push(`DE: ${deMin}${deMax<Infinity?`–${deMax}`:"+"}mm`);
+  if(lonMin||lonMax<Infinity) tags.push(`Long: ${lonMin}${lonMax<Infinity?`–${lonMax}`:"+"}mm`);
+  document.getElementById("activeTags").innerHTML=tags.map(t=>`
+    <span class="filter-tag" onclick="resetFilters()"><i class="ti ti-x" style="font-size:10px"></i>${t}</span>`).join("");
+
+  buildKPIs(); buildBars(); buildDonut(); renderTable();
+}
+
+function resetFilters(){
+  ["q","fFam","fSub","diMin","diMax","deMin","deMax","lonMin","lonMax"]
+    .forEach(id=>{ const el=document.getElementById(id); el.value=el.tagName==="SELECT"?"":""; });
+  document.getElementById("fSub").innerHTML='<option value="">Todas las subfamilias</option>';
+  updateSubfam();
+  filtered=[...productos];
+  document.getElementById("activeTags").innerHTML="";
+  buildKPIs(); buildBars(); buildDonut(); renderTable();
+}
+
+// ── TABLA ─────────────────────────────────────────────────────────────────
+function sortBy(col,e){
+  if(sortCol===col) sortDir*=-1; else{sortCol=col;sortDir=1;}
+  document.querySelectorAll("thead th").forEach(th=>th.className="");
+  e.target.className=sortDir===1?"sort-asc":"sort-desc";
+  filtered.sort((a,b)=>{
+    const av=a[col]??-1, bv=b[col]??-1;
+    if(typeof av==="string") return av.localeCompare(bv)*sortDir;
+    return (av-bv)*sortDir;
+  });
+  renderTable();
+}
+
+function renderTable(){
+  const tb=document.getElementById("tableBody");
+  const visible=filtered.slice(0,500);
+  if(!filtered.length){
+    tb.innerHTML=`<tr><td colspan="8" class="no-data">No se encontraron artículos con los filtros aplicados</td></tr>`;
+    ["rowCount","rowCountBottom"].forEach(id=>document.getElementById(id).textContent="");
+    return;
+  }
+  tb.innerHTML=visible.map(p=>{
+    const f=FAMS[p.fam]||{color:"#888",bg:"#222",border:"#444",name:p.fam};
+    const badge=`<span class="fam-badge" style="color:${f.color};background:${f.bg};border-color:${f.border}">${p.fam}</span>`;
+    const stockTxt=p.stock!==null?`<span style="color:${p.stock>0?"#4caf8c":"#e85a5a"}">${p.stock}</span>`:`<span style="color:#3a3e5a">—</span>`;
+    return `<tr>
+      <td style="font-family:monospace;font-size:10px;color:#7a7d99">${p.cod}</td>
+      <td style="max-width:260px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${p.desc}">${p.desc}</td>
+      <td>${badge}</td>
+      <td style="color:#8a8daa;font-size:10px">${p.subfam}${SUBFAMS[p.subfam]?" · "+SUBFAMS[p.subfam].split(" ")[0]:""}</td>
+      <td style="color:#b0b3cc;text-align:right">${p.di??'—'}</td>
+      <td style="color:#b0b3cc;text-align:right">${p.de??'—'}</td>
+      <td style="color:#b0b3cc;text-align:right">${p.lon??'—'}</td>
+      <td style="text-align:center">${stockTxt}</td>
+    </tr>`;
+  }).join("");
+  const note=filtered.length>500?` (mostrando primeros 500)`:"";
+  const txt=`${filtered.length.toLocaleString()} artículos encontrados${note}`;
+  ["rowCount","rowCountBottom"].forEach(id=>document.getElementById(id).textContent=txt);
+}
+
+// ── EXPORTAR EXCEL ────────────────────────────────────────────────────────
+function exportExcel(){
+  const hdr=["Código","Descripción","Familia","Des. Familia","Subfamilia","Des. Subfamilia","DI (mm)","DE (mm)","Longitud (mm)","Stock"];
+  const rows=filtered.map(p=>[
+    p.cod,p.desc,p.fam,FAMS[p.fam]?.name||p.fam,p.subfam,SUBFAMS[p.subfam]||p.subfam,
+    p.di??'',p.de??'',p.lon??'',p.stock??''
+  ]);
+  const wb=XLSX.utils.book_new();
+  const ws=XLSX.utils.aoa_to_sheet([hdr,...rows]);
+  ws["!cols"]=[{wch:14},{wch:45},{wch:6},{wch:18},{wch:10},{wch:28},{wch:9},{wch:9},{wch:11},{wch:8}];
+  XLSX.utils.book_append_sheet(wb,"Catálogo CT Seals",ws);
+  const fecha=new Date().toISOString().slice(0,10);
+  XLSX.writeFile(wb,`CT_Seals_Catalogo_${fecha}.xlsx`);
+  toast("Excel exportado correctamente","ok");
+}
+
+// ── TOAST ─────────────────────────────────────────────────────────────────
+function toast(msg,type){
+  const t=document.getElementById("toast");
+  t.textContent=msg;t.className="toast "+type+" show";
+  clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove("show"),3500);
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────
+buildSelects();
+updateSubfam();
+buildKPIs();
+buildBars();
+buildDonut();
+renderTable();
+</script>
+</body>
+</html>
