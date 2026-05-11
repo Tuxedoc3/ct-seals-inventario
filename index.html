@@ -82,7 +82,7 @@ tbody tr:hover td{background:#1e2134}
       <div><h1>CT Seals</h1><span>Catálogo de Materiales — CODIFICACION MP</span></div>
     </div>
     <div class="top-actions">
-      <button class="btn btn-ghost" onclick="resetFilters()"><i class="ti ti-refresh"></i>Limpiar</button>
+      <button class="btn btn-ghost" onclick="clearCache()"><i class="ti ti-trash"></i>Limpiar caché</button>
       <button class="btn btn-ghost" onclick="document.getElementById('fileInput').click()"><i class="ti ti-upload"></i>Cargar CODIFICACION MP.xlsx</button>
       <button class="btn btn-ghost" onclick="document.getElementById('stockInput').click()"><i class="ti ti-stack"></i>Actualizar stock</button>
       <button class="btn btn-red" onclick="exportExcel()"><i class="ti ti-file-spreadsheet"></i>Exportar Excel</button>
@@ -91,6 +91,19 @@ tbody tr:hover td{background:#1e2134}
     </div>
   </div>
 
+  <!-- ZONA CARGA INICIAL -->
+  <div id="uploadZone" style="background:#1a1d26;border:1.5px dashed #2e3042;border-radius:14px;padding:40px 20px;text-align:center;margin-bottom:20px">
+    <div style="font-size:40px;color:#D32F2F;margin-bottom:12px"><i class="ti ti-file-spreadsheet"></i></div>
+    <div style="font-size:16px;font-weight:500;color:#f0f0f5;margin-bottom:8px">Cargar catálogo de materiales</div>
+    <div style="font-size:13px;color:#7a7d99;margin-bottom:20px">Sube tu archivo <strong style="color:#D32F2F">CODIFICACION MP.xlsx</strong> para comenzar</div>
+    <button class="btn btn-red" style="margin:0 auto" onclick="document.getElementById('fileInput').click()">
+      <i class="ti ti-upload"></i>Seleccionar archivo Excel
+    </button>
+    <div style="font-size:11px;color:#3a3e5a;margin-top:14px">El catálogo se guardará automáticamente en tu navegador</div>
+  </div>
+
+  <!-- DASHBOARD (oculto hasta cargar) -->
+  <div id="dashContent" style="display:none">
   <div class="kpi-grid" id="kpis"></div>
 
   <div class="charts-row">
@@ -112,7 +125,7 @@ tbody tr:hover td{background:#1e2134}
     <div class="filters-grid">
       <div class="filter-group" style="grid-column:span 2">
         <label class="filter-label">Búsqueda libre</label>
-        <input class="filter-input" id="q" type="text" placeholder="Código, descripción, material, color..." oninput="applyFilters()">
+        <input class="filter-input" id="q" type="text" placeholder="Código, descripción, material, color..." oninput="debounceFilter()">
       </div>
       <div class="filter-group">
         <label class="filter-label">Familia</label>
@@ -170,9 +183,13 @@ tbody tr:hover td{background:#1e2134}
         <tbody id="tableBody"></tbody>
       </table>
     </div>
-    <div class="row-count" id="rowCountBottom"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-top:10px;flex-wrap:wrap;gap:8px">
+      <div class="row-count" id="rowCountBottom"></div>
+      <div id="pagination" style="display:flex;gap:6px;align-items:center"></div>
+    </div>
   </div>
 
+  </div><!-- /dashContent -->
   <div class="footer">CT Seals · Catálogo de Materiales · <span id="footerYear"></span></div>
 </div>
 <div class="toast" id="toast"></div>
@@ -228,113 +245,45 @@ function parseMedidas(desc) {
   return{di:null,de:null,lon:null};
 }
 
-// ── DATOS EMBEBIDOS (muestra de ~500 filas por brevedad; se completa con los originales del PDF) ──
-// Se cargan todas las líneas del PDF parseadas en JS
-const RAW_PDF = `PUU5000001|PU-red / U500-R95 - 0 / 25 / 150|150
-PUU5000002|PU-red / U500-R95 - 0 / 31 / 150|150
-PUU5000003|PU-red / U500-R95 - 0 / 38 / 150|150
-PUU5000010|PU-red / U500-R95 - 8 / 38 / 150|150
-PUU5000025|PU-red / U500-R95 - 22 / 38 / 150|150
-PUU5000026|PU-red / U500-R95 - 22 / 42 / 150|150
-PUU5000050|PU-red / U500-R95 - 27 / 46 / 150|150
-PUU5000100|PU-red / U500-R95 - 44 / 62 / 150|150
-PUU5000200|PU-red / U500-R95 - 122 / 158 / 150|150
-PUU5000300|PU-red / U500-R95 - 230 / 254 / 150|150
-PUU5000400|PU-red / U500-R95 - 424 / 485 / 150|150
-PUU5000512|PU-red / U500-R95 - 914 / 985 / 120|120
-PUU5100001|PU-LIGHT GREEN / U510-G88 - 0 / 25 / 150|150
-PUU5100050|PU-LIGHT GREEN / U510-G88 - 27 / 46 / 150|150
-PUU5100100|PU-LIGHT GREEN / U510-G88 - 44 / 62 / 150|150
-PUU5100200|PU-LIGHT GREEN / U510-G88 - 122 / 158 / 150|150
-PUU5100512|PU-LIGHT GREEN / U510-G88 - 914 / 985 / 120|120
-PUU5500001|PU-dark red / U550-GM95 - 0 / 25 / 150|150
-PUU5500050|PU-dark red / U550-GM95 - 27 / 46 / 150|150
-PUU5500512|PU-dark red / U550-GM95 - 914 / 985 / 120|120
-PUU5750001|PU-BLUE / U575-D57 - 0 / 25 / 150|150
-PUU5750050|PU-BLUE / U575-D57 - 27 / 46 / 150|150
-PUU5750510|PU-BLUE / U575-D57 - 895 / 985 / 100|100
-PUU5850001|PU-GREY / U585-D57-G - 0 / 25 / 150|150
-PUU5850050|PU-GREY / U585-D57-G - 27 / 46 / 150|150
-PUU5850510|PU-GREY / U585-D57-G - 895 / 985 / 100|100
-ELN1070001|NBR-85 N107 - 0 / 20 / 120|120
-ELN1070002|NBR-85 N107 - 0 / 25 / 120|120
-ELN1070003|NBR-85 N107 - 0 / 30 / 120|120
-ELN1070010|NBR-85 N107 - 12 / 30 / 120|120
-ELN1070027|NBR-85 N107 - 28 / 45 / 120|120
-ELN1070050|NBR-85 N107 - 60 / 92 / 120|120
-ELN1070100|NBR-85 N107 - 116 / 140 / 120|120
-ELN1070200|NBR-85 N107 - 179 / 204 / 120|120
-ELN1070300|NBR-85 N107 - 475 / 525 / 120|120
-ELN1070391|NBR-85 N107 - 925 / 995 / 135|135
-ELN1110001|NBR-FDA N111 - 0 / 20 / 120|120
-ELN1110050|NBR-FDA N111 - 60 / 92 / 120|120
-ELN1110200|NBR-FDA N111 - 179 / 204 / 120|120
-ELN1110380|NBR-FDA N111 - 925 / 995 / 135|135
-ELH1120001|H-NBR HN112 - 0 / 20 / 120|120
-ELH1120050|H-NBR HN112 - 60 / 92 / 120|120
-ELH1120380|H-NBR HN112 - 925 / 995 / 135|135
-ELE1310001|EPDM E131 - 0 / 20 / 120|120
-ELE1310050|EPDM E131 - 60 / 92 / 120|120
-ELE1310380|EPDM E131 - 925 / 995 / 135|135
-ELF1090001|FPM BROWN F109 - 0 / 20 / 120|120
-ELF1090050|FPM BROWN F109 - 60 / 92 / 120|120
-ELF1090380|FPM BROWN F109 - 925 / 995 / 135|135
-ELF1110001|FPM BLACK F111 - 0 / 20 / 120|120
-ELF1110050|FPM BLACK F111 - 60 / 92 / 120|120
-ELF1110380|FPM BLACK F111 - 925 / 995 / 135|135
-ELS1020001|SILICONE-FDA RED S102 - 0 / 20 / 120|120
-ELS1020050|SILICONE-FDA RED S102 - 60 / 92 / 120|120
-ELS1020380|SILICONE-FDA RED S102 - 925 / 995 / 135|135
-ELS1030001|SILICONE-FDA BLUE S103 - 0 / 20 / 120|120
-ELS1030002|SILICONE-FDA BLUE S103 - 0 / 25 / 120|120
-ELS1030003|SILICONE-FDA BLUE S103 - 0 / 30 / 120|120
-PLP1010001|POM P101 - 0 / 30 / 160|160
-PLP1010010|POM P101 - 30 / 70 / 160|160
-PLP1010030|POM P101 - 90 / 110 / 160|160
-PLP1010062|POM P101 - 0 / 90 / 160|160
-PLA1120001|POLIAMIDA PA 6C A112 - 260 / 300 / 110|110
-PLA1120030|POLIAMIDA PA 6C A112 - 545 / 630 / 150|150
-PLA1120066|POLIAMIDA PA 6C A112 - 875 / 990 / 150|150
-PLT1010001|PTFE-P WHITE T101 - 0 / 20 / 1000|1000
-PLT1010050|PTFE-P WHITE T101 - 60 / 85 / 150|150
-PLT1010100|PTFE-P WHITE T101 - 120 / 135 / 150|150
-PLT1010219|PTFE-P WHITE T101 - 925 / 965 / 100|100
-PLT1100001|PTFE BRONCE-BR40 T110 - 0 / 20 / 1000|1000
-PLT1100050|PTFE BRONCE-BR40 T110 - 60 / 80 / 150|150
-PLT1100224|PTFE BRONCE-BR40 T110 - 285 / 315 / 100|100
-PLT1250001|PTFE CARBON-C25 T125 - 0 / 20 / 1000|1000
-PLT1250050|PTFE CARBON-C25 T125 - 60 / 85 / 150|150
-PLT1250220|PTFE CARBON-C25 T125 - 925 / 965 / 100|100`;
-
-// Nota: En GitHub subirás el index.html completo. Este dashboard usa una muestra
-// representativa de los datos del PDF. Para cargarlo completo, usa el botón
-// "Actualizar stock (Excel)" con tu archivo CODIFICACION MP.xlsx
-
-function buildProducts(raw) {
-  return raw.trim().split("\n").map(line=>{
-    const [cod,desc,lonStr]=line.split("|");
-    if(!cod||!desc) return null;
-    const famInfo=parseCodigo(cod.trim());
-    const med=parseMedidas(desc.trim());
-    return{
-      cod:cod.trim(),
-      desc:desc.trim(),
-      fam:famInfo.fam,
-      subfam:famInfo.subfam,
-      di:med.di,
-      de:med.de,
-      lon:med.lon??parseFloat(lonStr)||null,
-      stock:null
-    };
-  }).filter(Boolean);
-}
-
-let productos=buildProducts(RAW_PDF);
-let filtered=[...productos];
+let productos=[];
+let filtered=[];
 let sortCol=null,sortDir=1;
 let stockMap={};
+let currentPage=1;
+const PAGE_SIZE=100;
+
+// ── PERSISTENCIA LOCAL ────────────────────────────────────────────────────
+function saveLocal(){
+  try{ localStorage.setItem("ctseals_catalog",JSON.stringify(productos));
+       localStorage.setItem("ctseals_stock",JSON.stringify(stockMap)); }catch(e){}
+}
+function loadLocal(){
+  try{
+    const cat=localStorage.getItem("ctseals_catalog");
+    const st=localStorage.getItem("ctseals_stock");
+    if(cat){ productos=JSON.parse(cat); filtered=[...productos]; }
+    if(st){ stockMap=JSON.parse(st);
+      productos.forEach(p=>{p.stock=stockMap[p.cod.toUpperCase()]??null;}); }
+    return productos.length>0;
+  }catch(e){ return false; }
+}
+
+// ── HELPER PARSER ROBUSTO ─────────────────────────────────────────────────
+function findCol(headers, aliases){
+  return headers.findIndex(h=>aliases.some(a=>h.includes(a)));
+}
 
 document.getElementById("footerYear").textContent=new Date().getFullYear();
+
+// Intentar cargar desde localStorage al iniciar
+const hasSaved=loadLocal();
+if(hasSaved){
+  buildSelects();updateSubfam();
+  buildKPIs();buildBars();buildDonut();renderTable();
+  document.getElementById("uploadZone").style.display="none";
+  document.getElementById("dashContent").style.display="block";
+  toast(`✓ Catálogo restaurado: ${productos.length.toLocaleString()} artículos`,"ok");
+}
 
 // ── CARGAR CATÁLOGO DESDE CODIFICACION MP.xlsx ────────────────────────────
 function loadCatalogFile(e){
@@ -360,16 +309,15 @@ function loadCatalogFile(e){
 
       // Leer hoja MATERIALES
       const matSheet=wb.Sheets["MATERIALES"]||wb.Sheets[wb.SheetNames[1]]||wb.Sheets[wb.SheetNames[0]];
-      // sheet_to_json con header:1 para manejar fila vacía
       const rawRows=XLSX.utils.sheet_to_json(matSheet,{header:1,defval:""});
 
-      // Buscar fila de encabezados (contiene CODIGO)
+      // Buscar fila de encabezados
       let headerIdx=rawRows.findIndex(r=>r.some(c=>String(c).toUpperCase().includes("CODIGO")));
       if(headerIdx<0) headerIdx=0;
       const headers=rawRows[headerIdx].map(h=>String(h).toUpperCase().trim());
-      const iCod=headers.findIndex(h=>h.includes("CODIGO")||h.includes("CODE")||h.includes("COD"));
-      const iDesc=headers.findIndex(h=>h.includes("DESC"));
-      const iLon=headers.findIndex(h=>h.includes("LONG"));
+      const iCod=findCol(headers,["CODIGO","CÓDIGO","CODE","COD","SKU","REF"]);
+      const iDesc=findCol(headers,["DESCRIPCION","DESCRIPCIÓN","DESC","NOMBRE","NAME"]);
+      const iLon=findCol(headers,["LONGITUD","LONG","LENGTH","LON"]);
 
       const nuevos=[];
       for(let i=headerIdx+1;i<rawRows.length;i++){
@@ -380,16 +328,15 @@ function loadCatalogFile(e){
         const lon=parseFloat(row[iLon])||null;
         const famInfo=parseCodigo(cod);
         const med=parseMedidas(desc);
-        // Enriquecer con datos de hoja FAMILIA
         const subData=famMap[famInfo.subfam]||{};
         nuevos.push({
-          cod,desc,
+          cod, desc,
           fam:famInfo.fam||subData.fam||"??",
           subfam:famInfo.subfam,
           desFam:subData.desFam||FAMS[famInfo.fam]?.name||"",
           descSub:subData.desc||SUBFAMS[famInfo.subfam]||"",
           dureza:subData.dureza||"",
-          di:med.di,de:med.de,
+          di:med.di, de:med.de,
           lon:med.lon??lon,
           stock:stockMap[cod.toUpperCase()]??null
         });
@@ -398,10 +345,13 @@ function loadCatalogFile(e){
       if(!nuevos.length){ toast("No se encontraron productos en el archivo","err"); return; }
       productos=nuevos;
       filtered=[...productos];
+      saveLocal();
       buildSelects();updateSubfam();
+      document.getElementById("uploadZone").style.display="none";
+      document.getElementById("dashContent").style.display="block";
       applyFilters();
       toast(`✓ Catálogo cargado: ${nuevos.length.toLocaleString()} artículos`,"ok");
-    }catch(err){ console.error(err); toast("Error al leer el archivo: "+err.message,"err"); }
+    }catch(err){ console.error(err); toast("Error: "+err.message,"err"); }
   };
   r.readAsArrayBuffer(f);
 }
@@ -427,6 +377,7 @@ function loadStockFile(e){
       });
       productos.forEach(p=>{ p.stock=stockMap[p.cod.toUpperCase()]??null; });
       filtered=[...productos];
+      saveLocal();
       applyFilters();
       toast(`✓ Stock actualizado: ${count} productos`,"ok");
     }catch(err){ toast("Error al leer el stock","err"); }
@@ -515,6 +466,10 @@ function buildDonut(){
     <div class="leg-item"><span class="leg-dot" style="background:${d.color}"></span>${d.fam} — ${Math.round(d.count/tot*100)}%</div>`).join("");
 }
 
+// ── DEBOUNCE BÚSQUEDA ─────────────────────────────────────────────────────
+let _debounce;
+function debounceFilter(){ clearTimeout(_debounce); _debounce=setTimeout(applyFilters,220); }
+
 // ── FILTROS ───────────────────────────────────────────────────────────────
 function applyFilters(){
   const q=(document.getElementById("q").value||"").toLowerCase();
@@ -548,7 +503,9 @@ function applyFilters(){
   document.getElementById("activeTags").innerHTML=tags.map(t=>`
     <span class="filter-tag" onclick="resetFilters()"><i class="ti ti-x" style="font-size:10px"></i>${t}</span>`).join("");
 
-  buildKPIs(); buildBars(); buildDonut(); renderTable();
+  buildKPIs(); buildBars(); buildDonut();
+  currentPage=1;
+  renderTable();
 }
 
 function resetFilters(){
@@ -558,6 +515,7 @@ function resetFilters(){
   updateSubfam();
   filtered=[...productos];
   document.getElementById("activeTags").innerHTML="";
+  currentPage=1;
   buildKPIs(); buildBars(); buildDonut(); renderTable();
 }
 
@@ -576,12 +534,18 @@ function sortBy(col,e){
 
 function renderTable(){
   const tb=document.getElementById("tableBody");
-  const visible=filtered.slice(0,500);
   if(!filtered.length){
     tb.innerHTML=`<tr><td colspan="8" class="no-data">No se encontraron artículos con los filtros aplicados</td></tr>`;
     ["rowCount","rowCountBottom"].forEach(id=>document.getElementById(id).textContent="");
+    document.getElementById("pagination").innerHTML="";
     return;
   }
+
+  const totalPages=Math.ceil(filtered.length/PAGE_SIZE);
+  if(currentPage>totalPages) currentPage=1;
+  const start=(currentPage-1)*PAGE_SIZE;
+  const visible=filtered.slice(start,start+PAGE_SIZE);
+
   tb.innerHTML=visible.map(p=>{
     const f=FAMS[p.fam]||{color:"#888",bg:"#222",border:"#444",name:p.fam};
     const badge=`<span class="fam-badge" style="color:${f.color};background:${f.bg};border-color:${f.border}">${p.fam}</span>`;
@@ -590,16 +554,48 @@ function renderTable(){
       <td style="font-family:monospace;font-size:10px;color:#7a7d99">${p.cod}</td>
       <td style="max-width:260px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${p.desc}">${p.desc}</td>
       <td>${badge}</td>
-      <td style="color:#8a8daa;font-size:10px">${p.subfam}${SUBFAMS[p.subfam]?" · "+SUBFAMS[p.subfam].split(" ")[0]:""}</td>
+      <td style="color:#8a8daa;font-size:10px">${p.subfam}${p.descSub?" · "+p.descSub.split(" ")[0]:""}</td>
       <td style="color:#b0b3cc;text-align:right">${p.di??'—'}</td>
       <td style="color:#b0b3cc;text-align:right">${p.de??'—'}</td>
       <td style="color:#b0b3cc;text-align:right">${p.lon??'—'}</td>
       <td style="text-align:center">${stockTxt}</td>
     </tr>`;
   }).join("");
-  const note=filtered.length>500?` (mostrando primeros 500)`:"";
-  const txt=`${filtered.length.toLocaleString()} artículos encontrados${note}`;
+
+  const txt=`Mostrando ${start+1}–${Math.min(start+PAGE_SIZE,filtered.length)} de ${filtered.length.toLocaleString()} artículos`;
   ["rowCount","rowCountBottom"].forEach(id=>document.getElementById(id).textContent=txt);
+
+  // Paginación
+  const pag=document.getElementById("pagination");
+  pag.innerHTML="";
+  const btnStyle="border:0.5px solid #2e3042;background:#111318;color:#b0b3cc;border-radius:6px;padding:4px 10px;cursor:pointer;font-size:11px";
+  const btnActStyle="border:0.5px solid #D32F2F;background:#D32F2F;color:#fff;border-radius:6px;padding:4px 10px;cursor:pointer;font-size:11px";
+
+  const addBtn=(label,page,active=false,disabled=false)=>{
+    const b=document.createElement("button");
+    b.textContent=label; b.style.cssText=active?btnActStyle:btnStyle;
+    if(disabled) b.style.opacity="0.3";
+    else b.onclick=()=>{ currentPage=page; renderTable(); document.querySelector(".tbl-wrap").scrollTop=0; };
+    pag.appendChild(b);
+  };
+
+  addBtn("←",currentPage-1,false,currentPage===1);
+  // Mostrar máx 5 páginas
+  const range=2;
+  for(let p=Math.max(1,currentPage-range);p<=Math.min(totalPages,currentPage+range);p++){
+    addBtn(p,p,p===currentPage);
+  }
+  addBtn("→",currentPage+1,false,currentPage===totalPages);
+}
+
+function clearCache(){
+  if(!confirm("¿Borrar el catálogo guardado? Tendrás que volver a cargarlo.")) return;
+  localStorage.removeItem("ctseals_catalog");
+  localStorage.removeItem("ctseals_stock");
+  productos=[];filtered=[];stockMap={};
+  document.getElementById("uploadZone").style.display="block";
+  document.getElementById("dashContent").style.display="none";
+  toast("Caché borrado","ok");
 }
 
 // ── EXPORTAR EXCEL ────────────────────────────────────────────────────────
