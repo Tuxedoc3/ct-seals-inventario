@@ -391,16 +391,39 @@ document.getElementById("footerYear");
   await loadCatalogo();
 })();
 
-// ── CARGAR CATÁLOGO DESDE SUPABASE ────────────────────────────────────────
+// ── CARGAR CATÁLOGO DESDE SUPABASE (paginado, sin límite) ─────────────────
 async function loadCatalogo(){
-  const {data,error}=await sb.from("catalogo").select("*").order("cod");
-  if(error||!data?.length){
-    // Mostrar página de carga si no hay datos
+  toast("Cargando catálogo...","info");
+  let todos=[];
+  let desde=0;
+  const LOTE=1000;
+
+  while(true){
+    const {data,error}=await sb.from("catalogo")
+      .select("*")
+      .order("cod")
+      .range(desde, desde+LOTE-1);
+
+    if(error){
+      toast("Error al cargar: "+error.message,"err");
+      return;
+    }
+
+    if(!data||data.length===0) break;
+    todos=todos.concat(data);
+
+    // Si trajo menos de LOTE, ya terminamos
+    if(data.length<LOTE) break;
+    desde+=LOTE;
+  }
+
+  if(!todos.length){
     goTo("carga");
     toast("Sube tu CODIFICACION MP.xlsx para comenzar","info");
     return;
   }
-  productos=data.map(p=>({...p,
+
+  productos=todos.map(p=>({...p,
     searchText:(p.cod+" "+p.descripcion+" "+(p.subfamilia||"")+" "+(p.familia||"")).toLowerCase()
   }));
   filtered=[...productos];
