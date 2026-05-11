@@ -83,9 +83,11 @@ tbody tr:hover td{background:#1e2134}
     </div>
     <div class="top-actions">
       <button class="btn btn-ghost" onclick="resetFilters()"><i class="ti ti-refresh"></i>Limpiar</button>
-      <button class="btn btn-ghost" onclick="document.getElementById('fileInput').click()"><i class="ti ti-upload"></i>Actualizar stock (Excel)</button>
+      <button class="btn btn-ghost" onclick="document.getElementById('fileInput').click()"><i class="ti ti-upload"></i>Cargar CODIFICACION MP.xlsx</button>
+      <button class="btn btn-ghost" onclick="document.getElementById('stockInput').click()"><i class="ti ti-stack"></i>Actualizar stock</button>
       <button class="btn btn-red" onclick="exportExcel()"><i class="ti ti-file-spreadsheet"></i>Exportar Excel</button>
-      <input type="file" id="fileInput" style="display:none" accept=".xlsx,.xls,.csv" onchange="loadStockFile(event)">
+      <input type="file" id="fileInput" style="display:none" accept=".xlsx,.xls" onchange="loadCatalogFile(event)">
+      <input type="file" id="stockInput" style="display:none" accept=".xlsx,.xls,.csv" onchange="loadStockFile(event)">
     </div>
   </div>
 
@@ -334,7 +336,77 @@ let stockMap={};
 
 document.getElementById("footerYear").textContent=new Date().getFullYear();
 
-// ── CARGAR STOCK DESDE EXCEL ──────────────────────────────────────────────
+// ── CARGAR CATÁLOGO DESDE CODIFICACION MP.xlsx ────────────────────────────
+function loadCatalogFile(e){
+  const f=e.target.files[0]; if(!f) return;
+  const r=new FileReader();
+  r.onload=ev=>{
+    try{
+      const wb=XLSX.read(ev.target.result,{type:"array"});
+
+      // Leer hoja FAMILIA
+      const famSheet=wb.Sheets["FAMILIA"]||wb.Sheets[wb.SheetNames[0]];
+      const famRows=XLSX.utils.sheet_to_json(famSheet,{defval:""});
+      const famMap={};
+      famRows.forEach(row=>{
+        const sub=String(row["SUB FAMILIA"]||row["SUB_FAMILIA"]||"").trim();
+        if(sub) famMap[sub]={
+          fam:String(row["FAMILIA"]||"").trim(),
+          desFam:String(row["DES_FAM"]||"").trim(),
+          desc:String(row["DESCRIPCION"]||"").trim(),
+          dureza:String(row["DUREZA"]||"").trim(),
+        };
+      });
+
+      // Leer hoja MATERIALES
+      const matSheet=wb.Sheets["MATERIALES"]||wb.Sheets[wb.SheetNames[1]]||wb.Sheets[wb.SheetNames[0]];
+      // sheet_to_json con header:1 para manejar fila vacía
+      const rawRows=XLSX.utils.sheet_to_json(matSheet,{header:1,defval:""});
+
+      // Buscar fila de encabezados (contiene CODIGO)
+      let headerIdx=rawRows.findIndex(r=>r.some(c=>String(c).toUpperCase().includes("CODIGO")));
+      if(headerIdx<0) headerIdx=0;
+      const headers=rawRows[headerIdx].map(h=>String(h).toUpperCase().trim());
+      const iCod=headers.findIndex(h=>h.includes("CODIGO")||h.includes("CODE")||h.includes("COD"));
+      const iDesc=headers.findIndex(h=>h.includes("DESC"));
+      const iLon=headers.findIndex(h=>h.includes("LONG"));
+
+      const nuevos=[];
+      for(let i=headerIdx+1;i<rawRows.length;i++){
+        const row=rawRows[i];
+        const cod=String(row[iCod]||"").trim();
+        if(!cod) continue;
+        const desc=String(iDesc>=0?row[iDesc]:"").trim();
+        const lon=parseFloat(row[iLon])||null;
+        const famInfo=parseCodigo(cod);
+        const med=parseMedidas(desc);
+        // Enriquecer con datos de hoja FAMILIA
+        const subData=famMap[famInfo.subfam]||{};
+        nuevos.push({
+          cod,desc,
+          fam:famInfo.fam||subData.fam||"??",
+          subfam:famInfo.subfam,
+          desFam:subData.desFam||FAMS[famInfo.fam]?.name||"",
+          descSub:subData.desc||SUBFAMS[famInfo.subfam]||"",
+          dureza:subData.dureza||"",
+          di:med.di,de:med.de,
+          lon:med.lon??lon,
+          stock:stockMap[cod.toUpperCase()]??null
+        });
+      }
+
+      if(!nuevos.length){ toast("No se encontraron productos en el archivo","err"); return; }
+      productos=nuevos;
+      filtered=[...productos];
+      buildSelects();updateSubfam();
+      applyFilters();
+      toast(`✓ Catálogo cargado: ${nuevos.length.toLocaleString()} artículos`,"ok");
+    }catch(err){ console.error(err); toast("Error al leer el archivo: "+err.message,"err"); }
+  };
+  r.readAsArrayBuffer(f);
+}
+
+// ── CARGAR STOCK ──────────────────────────────────────────────────────────
 function loadStockFile(e){
   const f=e.target.files[0]; if(!f) return;
   const r=new FileReader();
@@ -345,7 +417,6 @@ function loadStockFile(e){
       const rows=XLSX.utils.sheet_to_json(ws,{defval:""});
       let count=0;
       rows.forEach(row=>{
-        const keys=Object.keys(row).map(k=>k.toLowerCase().trim());
         const codKey=Object.keys(row).find(k=>/cod|code|sku|ref/i.test(k));
         const stKey=Object.keys(row).find(k=>/stock|cant|qty|exist/i.test(k));
         if(codKey&&stKey){
@@ -357,8 +428,8 @@ function loadStockFile(e){
       productos.forEach(p=>{ p.stock=stockMap[p.cod.toUpperCase()]??null; });
       filtered=[...productos];
       applyFilters();
-      toast(`✓ Stock actualizado para ${count} productos`,"ok");
-    }catch(err){ toast("Error al leer el archivo","err"); }
+      toast(`✓ Stock actualizado: ${count} productos`,"ok");
+    }catch(err){ toast("Error al leer el stock","err"); }
   };
   r.readAsArrayBuffer(f);
 }
