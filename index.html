@@ -714,107 +714,12 @@ const ROL_COLOR={
   if(error){dot.classList.add("off");lbl.textContent="Sin conexión";}
   else{dot.classList.remove("off");lbl.textContent="Conectado";}
 
-  // Asegurar tablas
-  await ensureTables();
-
   // Cargar config
   await loadConfig();
 
   // Cargar usuarios para login
   await loadLoginUsers();
 })();
-
-// ══ TABLAS ══════════════════════════════════════════════════════════════════
-async function ensureTables(){
-  // Crear tabla perfiles si no existe
-  await sb.rpc('exec_sql',{sql:`
-    CREATE TABLE IF NOT EXISTS perfiles (
-      id bigserial PRIMARY KEY,
-      nombre text NOT NULL,
-      rol text DEFAULT 'vendedor',
-      activo boolean DEFAULT true,
-      ver_precios boolean DEFAULT true,
-      ultimo_acceso timestamptz,
-      created_at timestamptz DEFAULT now()
-    );
-    ALTER TABLE perfiles ENABLE ROW LEVEL SECURITY;
-  `}).catch(()=>{});
-
-  // Crear tabla tubo_instancias si no existe
-  await sb.rpc('exec_sql',{sql:`
-    CREATE TABLE IF NOT EXISTS tubo_instancias (
-      id bigserial PRIMARY KEY,
-      tubo_id bigint REFERENCES tubos(id),
-      altura_usada numeric DEFAULT 0,
-      estado text DEFAULT 'disponible',
-      created_at timestamptz DEFAULT now()
-    );
-    ALTER TABLE tubo_instancias ENABLE ROW LEVEL SECURITY;
-  `}).catch(()=>{});
-
-  // Crear tabla configuracion
-  await sb.rpc('exec_sql',{sql:`
-    CREATE TABLE IF NOT EXISTS configuracion (
-      id bigserial PRIMARY KEY,
-      clave text UNIQUE NOT NULL,
-      valor text,
-      descripcion text
-    );
-    INSERT INTO configuracion (clave,valor,descripcion) VALUES
-      ('tipo_cambio_eur_pen','3.80','Tipo de cambio EUR a Soles'),
-      ('stock_minimo_default','2','Stock mínimo de tubos por defecto')
-    ON CONFLICT (clave) DO NOTHING;
-    ALTER TABLE configuracion ENABLE ROW LEVEL SECURITY;
-  `}).catch(()=>{});
-
-  // Crear tabla solicitudes
-  await sb.rpc('exec_sql',{sql:`
-    CREATE TABLE IF NOT EXISTS solicitudes (
-      id bigserial PRIMARY KEY,
-      codigo_mat text,
-      descripcion_mat text,
-      cliente text,
-      mm_solicitados numeric,
-      fecha_uso_estimada date,
-      comentario text,
-      estado text DEFAULT 'pendiente',
-      motivo_rechazo text,
-      creado_por bigint REFERENCES perfiles(id),
-      aprobado_por bigint REFERENCES perfiles(id),
-      tubo_instancia_id bigint,
-      created_at timestamptz DEFAULT now(),
-      updated_at timestamptz DEFAULT now()
-    );
-    ALTER TABLE solicitudes ENABLE ROW LEVEL SECURITY;
-  `}).catch(()=>{});
-
-  // Agregar políticas permisivas para todas las tablas nuevas
-  const tables=['perfiles','tubo_instancias','configuracion','solicitudes'];
-  for(const t of tables){
-    await sb.rpc('exec_sql',{sql:`
-      DROP POLICY IF EXISTS "open_${t}" ON ${t};
-      CREATE POLICY "open_${t}" ON ${t} FOR ALL USING (true) WITH CHECK (true);
-    `}).catch(()=>{});
-  }
-
-  // Agregar columnas faltantes a catalogo y movimientos
-  await sb.rpc('exec_sql',{sql:`
-    ALTER TABLE catalogo ADD COLUMN IF NOT EXISTS precio numeric;
-    ALTER TABLE catalogo ADD COLUMN IF NOT EXISTS moneda text DEFAULT 'EUR';
-    ALTER TABLE catalogo ADD COLUMN IF NOT EXISTS proveedor text;
-    ALTER TABLE catalogo ADD COLUMN IF NOT EXISTS notas text;
-    ALTER TABLE movimientos ADD COLUMN IF NOT EXISTS usuario_id bigint;
-    ALTER TABLE movimientos ADD COLUMN IF NOT EXISTS op_numero text;
-    ALTER TABLE movimientos ADD COLUMN IF NOT EXISTS tubo_instancia_id bigint;
-  `}).catch(()=>{});
-
-  // Limpiar columnas obsoletas de tubos
-  await sb.rpc('exec_sql',{sql:`
-    ALTER TABLE tubos DROP COLUMN IF EXISTS diametro_ext;
-    ALTER TABLE tubos DROP COLUMN IF EXISTS cantidad;
-    ALTER TABLE tubos DROP COLUMN IF EXISTS altura_usada_total;
-  `}).catch(()=>{});
-}
 
 // ══ CONFIG ══════════════════════════════════════════════════════════════════
 async function loadConfig(){
