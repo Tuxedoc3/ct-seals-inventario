@@ -1,0 +1,1831 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CT Seals — ERP Inventario</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0d0f14;font-family:system-ui,sans-serif;color:#e8e8ee;min-height:100vh}
+
+/* ── LOGIN ── */
+#loginScreen{position:fixed;inset:0;background:#0d0f14;z-index:999;display:flex;align-items:center;justify-content:center;padding:20px}
+.login-box{width:100%;max-width:420px}
+.login-logo{display:flex;align-items:center;gap:12px;margin-bottom:32px;justify-content:center}
+.login-logo-icon{width:44px;height:44px;background:#D32F2F;border-radius:10px;display:flex;align-items:center;justify-content:center}
+.login-logo-icon i{color:#fff;font-size:22px}
+.login-title{font-size:22px;font-weight:700;color:#f0f0f5}
+.login-sub{font-size:12px;color:#5a5e7a;margin-top:2px}
+.login-label{font-size:11px;color:#7a7d99;text-transform:uppercase;letter-spacing:.5px;margin-bottom:14px;display:block}
+.user-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.user-card{background:#1a1d26;border:1px solid #2e3042;border-radius:12px;padding:14px;cursor:pointer;transition:all .2s;text-align:center}
+.user-card:hover{border-color:#D32F2F;background:#1e1020}
+.user-card:active{transform:scale(.97)}
+.user-avatar{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:#fff;margin:0 auto 8px}
+.user-name{font-size:13px;font-weight:500;color:#f0f0f5}
+.user-rol{font-size:10px;color:#7a7d99;margin-top:2px;text-transform:capitalize}
+.login-footer{text-align:center;margin-top:20px;font-size:11px;color:#3a3e5a}
+
+/* ── LAYOUT ── */
+.layout{display:flex;min-height:100vh}
+.sidebar{width:220px;background:#111318;border-right:.5px solid #2e3042;display:flex;flex-direction:column;flex-shrink:0;position:sticky;top:0;height:100vh}
+.sidebar-logo{padding:16px;border-bottom:.5px solid #2e3042;display:flex;align-items:center;gap:10px}
+.sidebar-logo .icon{width:32px;height:32px;background:#D32F2F;border-radius:7px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.sidebar-logo h1{font-size:14px;font-weight:600;color:#f0f0f5}
+.sidebar-logo span{font-size:10px;color:#7a7d99;display:block}
+.sidebar-nav{padding:10px 8px;flex:1;overflow-y:auto}
+.nav-section{font-size:9px;color:#3a3e5a;text-transform:uppercase;letter-spacing:.8px;padding:10px 8px 5px}
+.nav-item{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:8px;cursor:pointer;font-size:12px;color:#7a7d99;transition:all .15s;margin-bottom:2px;position:relative}
+.nav-item:hover{background:#1a1d26;color:#c8cce0}
+.nav-item.active{background:#1e0a0a;color:#D32F2F;font-weight:500}
+.nav-item i{font-size:16px;flex-shrink:0}
+.nav-badge{background:#D32F2F;color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:10px;margin-left:auto}
+.sidebar-user{padding:10px 12px;border-top:.5px solid #2e3042}
+.user-info{display:flex;align-items:center;gap:8px;padding:8px;border-radius:8px;background:#1a1d26;cursor:pointer}
+.user-info:hover{background:#22253a}
+.user-avatar-sm{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;flex-shrink:0}
+.user-info-text{flex:1;min-width:0}
+.user-info-name{font-size:12px;font-weight:500;color:#f0f0f5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.user-info-rol{font-size:10px;color:#7a7d99;text-transform:capitalize}
+.sync-badge{display:flex;align-items:center;gap:6px;font-size:10px;color:#5a5e7a;padding:5px 8px;margin-top:6px}
+.sync-dot{width:6px;height:6px;border-radius:50%;background:#4caf8c;flex-shrink:0}
+.sync-dot.off{background:#e85a5a}
+
+/* ── MAIN ── */
+.main{flex:1;padding:20px;overflow-x:hidden;min-width:0}
+.page{display:none}
+.page.active{display:block}
+.page-title{font-size:17px;font-weight:500;color:#f0f0f5;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+
+/* ── KPIs ── */
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:16px}
+.kpi{background:#1a1d26;border:.5px solid #2e3042;border-radius:10px;padding:12px 14px}
+.kpi-label{font-size:10px;color:#7a7d99;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+.kpi-val{font-size:20px;font-weight:500}
+.kpi-val.red{color:#e85a5a}.kpi-val.green{color:#4caf8c}.kpi-val.amber{color:#f5a623}.kpi-val.white{color:#f0f0f5}.kpi-val.blue{color:#5b9bd5}
+.kpi-sub{font-size:10px;color:#5a5e7a;margin-top:2px}
+
+/* ── BOTONES ── */
+.btn{border:none;font-size:12px;padding:7px 13px;border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;font-weight:500;transition:all .2s}
+.btn-red{background:#D32F2F;color:#fff}.btn-red:hover{background:#b71c1c}
+.btn-ghost{background:#1a1d26;color:#b0b3cc;border:.5px solid #2e3042}.btn-ghost:hover{background:#22253a}
+.btn-green{background:#1a3a2a;color:#4caf8c;border:.5px solid #2a5a3a}.btn-green:hover{background:#22503a}
+.btn-amber{background:#3a2e10;color:#f5a623;border:.5px solid #7a5a10}.btn-amber:hover{background:#4a3e18}
+.btn-blue{background:#0f1e2e;color:#5b9bd5;border:.5px solid #1a4a7a}.btn-blue:hover{background:#162a3e}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+
+/* ── CARDS ── */
+.card{background:#1a1d26;border:.5px solid #2e3042;border-radius:10px;padding:14px;margin-bottom:12px}
+.card-title{font-size:10px;color:#7a7d99;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;display:flex;align-items:center;gap:5px}
+
+/* ── FILTROS ── */
+.filters-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:10px}
+.filter-group{display:flex;flex-direction:column;gap:4px}
+.filter-label{font-size:10px;color:#5a5e7a;text-transform:uppercase;letter-spacing:.4px}
+.fi{background:#111318;border:.5px solid #2e3042;border-radius:7px;padding:6px 9px;color:#e8e8ee;font-size:12px;outline:none;width:100%;transition:border .2s}
+.fi:focus{border-color:#D32F2F}
+.fi::placeholder{color:#3a3e5a}
+.active-tags{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px}
+.tag{background:#22253a;border:.5px solid #2e3042;color:#b0b3cc;font-size:10px;padding:3px 8px;border-radius:20px;display:flex;align-items:center;gap:4px;cursor:pointer}
+.tag:hover{border-color:#e85a5a;color:#e85a5a}
+
+/* ── TABLA ── */
+.tbl-wrap{overflow-x:auto;max-height:440px;overflow-y:auto}
+table{width:100%;border-collapse:collapse;font-size:11px}
+thead th{color:#5a5e7a;font-weight:500;text-align:left;padding:7px 9px;border-bottom:.5px solid #2e3042;font-size:10px;text-transform:uppercase;letter-spacing:.4px;white-space:nowrap;cursor:pointer;user-select:none;position:sticky;top:0;background:#1a1d26;z-index:1}
+thead th:hover{color:#b0b3cc}
+thead th.asc::after{content:" ↑"}thead th.desc::after{content:" ↓"}
+tbody td{padding:7px 9px;border-bottom:.5px solid #1e2134;color:#c8cce0;vertical-align:middle}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover td{background:#1e2134}
+.fam-badge{display:inline-block;font-size:9px;padding:2px 7px;border-radius:10px;font-weight:500;border:.5px solid}
+.pill{display:inline-block;font-size:10px;padding:2px 8px;border-radius:20px;font-weight:500}
+.pill-ok{background:#1a3a2a;color:#4caf8c}
+.pill-low{background:#3a2e10;color:#f5a623}
+.pill-out{background:#2e1a1a;color:#e85a5a}
+.pill-pend{background:#1a1e2e;color:#5b9bd5}
+.tbl-footer{display:flex;align-items:center;justify-content:space-between;margin-top:8px;flex-wrap:wrap;gap:8px}
+.row-info{font-size:11px;color:#5a5e7a}
+.pag{display:flex;gap:5px}
+.pag-btn{background:#111318;border:.5px solid #2e3042;color:#b0b3cc;border-radius:6px;padding:4px 9px;cursor:pointer;font-size:11px}
+.pag-btn.active{background:#D32F2F;border-color:#D32F2F;color:#fff}
+.pag-btn:disabled{opacity:.3;cursor:default}
+.no-data{text-align:center;color:#5a5e7a;padding:24px;font-size:12px}
+
+/* ── TUBOS ── */
+.tubo-card{background:#1a1d26;border:.5px solid #2e3042;border-radius:10px;padding:14px;margin-bottom:10px}
+.tubo-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px}
+.tubo-title{font-size:13px;font-weight:500;color:#f0f0f5}
+.tubo-sub{font-size:11px;color:#7a7d99;margin-top:2px}
+.tubo-stats{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:10px}
+.tubo-stat{text-align:center}
+.tubo-stat-val{font-size:16px;font-weight:500}
+.tubo-stat-lbl{font-size:10px;color:#5a5e7a}
+.instancias-grid{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.inst-bloque{border-radius:8px;padding:8px 6px;text-align:center;cursor:pointer;transition:all .2s;min-width:52px;position:relative;border:1.5px solid transparent;overflow:hidden}
+.inst-bloque:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,.3)}
+.inst-bloque.completo{background:#1a3a2a;border-color:#4caf8c55}
+.inst-bloque.en-uso{background:#22253a;border-color:#f5a62366}
+.inst-bloque.agotado{background:#2e1a1a;border-color:#e85a5a44;opacity:.6}
+.inst-bloque.seleccionado{border-color:#D32F2F!important;box-shadow:0 0 0 2px #D32F2F44}
+.inst-fill{position:absolute;bottom:0;left:0;width:100%;transition:height .4s;opacity:.15}
+.inst-mm{position:relative;font-size:11px;font-weight:600}
+.inst-label{position:relative;font-size:9px;opacity:.7}
+.movs-list{border-top:.5px solid #2e3042;padding-top:10px;margin-top:8px}
+.mov-item{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:.5px solid #1e2134;font-size:11px}
+.mov-item:last-child{border-bottom:none}
+.mov-icon{width:24px;height:24px;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0}
+.mov-in{background:#1a3a2a;color:#4caf8c}
+.mov-out{background:#2e1a1a;color:#e85a5a}
+
+/* ── MODAL ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:200;display:flex;align-items:center;justify-content:center;padding:16px}
+.modal{background:#111318;border:.5px solid #2e3042;border-radius:14px;padding:20px;width:100%;max-width:480px;max-height:92vh;overflow-y:auto}
+.modal-title{font-size:14px;font-weight:500;color:#f0f0f5;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.form-group{margin-bottom:11px}
+.form-label{font-size:11px;color:#7a7d99;display:block;margin-bottom:4px}
+.form-input{background:#1a1d26;border:.5px solid #2e3042;border-radius:8px;padding:7px 10px;color:#e8e8ee;font-size:12px;outline:none;width:100%;transition:border .2s}
+.form-input:focus{border-color:#D32F2F}
+.form-input[readonly]{opacity:.5;cursor:not-allowed}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.form-row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.modal-footer{display:flex;gap:8px;justify-content:flex-end;margin-top:14px;border-top:.5px solid #2e3042;padding-top:12px}
+.form-hint{font-size:10px;color:#5a5e7a;margin-top:3px}
+.mm-disponibles{background:#1a3a2a;border:.5px solid #2a5a3a;border-radius:8px;padding:8px 12px;margin-bottom:10px;font-size:12px;color:#4caf8c;display:flex;align-items:center;gap:6px}
+.mm-disponibles.warn{background:#3a2e10;border-color:#7a5a10;color:#f5a623}
+.mm-disponibles.danger{background:#2e1a1a;border-color:#7a2a2a;color:#e85a5a}
+
+/* ── SOLICITUDES ── */
+.sol-card{background:#1a1d26;border:.5px solid #2e3042;border-radius:10px;padding:14px;margin-bottom:8px}
+.sol-header{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:8px}
+.sol-estado{display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:600;padding:3px 9px;border-radius:20px}
+.sol-pend{background:#1a1e2e;color:#5b9bd5;border:.5px solid #1a4a7a}
+.sol-aprobada{background:#1a3a2a;color:#4caf8c;border:.5px solid #2a5a3a}
+.sol-rechazada{background:#2e1a1a;color:#e85a5a;border:.5px solid #7a2a2a}
+.sol-consumida{background:#22253a;color:#7a7d99;border:.5px solid #3a3e5a}
+.sol-cancelada{background:#1e2030;color:#5a5e7a;border:.5px solid #2e3042}
+
+/* ── USUARIOS ── */
+.user-row{display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:.5px solid #1e2134}
+.user-row:last-child{border-bottom:none}
+.user-row:hover{background:#1e2134}
+.rol-badge{font-size:10px;padding:2px 8px;border-radius:20px;font-weight:500}
+
+/* ── UPLOAD ── */
+.upload-zone{background:#1a1d26;border:1.5px dashed #2e3042;border-radius:12px;padding:32px 20px;text-align:center;cursor:pointer}
+.upload-zone:hover{border-color:#D32F2F}
+
+/* ── DASHBOARD ── */
+.alert-item{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;margin-bottom:6px;font-size:12px}
+.alert-crit{background:#2e1a1a;border:.5px solid #e85a5a33;color:#e85a5a}
+.alert-warn{background:#3a2e10;border:.5px solid #f5a62333;color:#f5a623}
+.alert-info{background:#0f1e2e;border:.5px solid #5b9bd533;color:#5b9bd5}
+
+/* ── CONFIG ── */
+.config-row{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:.5px solid #1e2134;gap:16px}
+.config-row:last-child{border-bottom:none}
+.config-label{font-size:13px;color:#c8cce0;font-weight:500}
+.config-desc{font-size:11px;color:#5a5e7a;margin-top:2px}
+.config-val{font-size:13px;color:#f0f0f5;font-weight:500;text-align:right}
+
+/* ── TOGGLE ── */
+.toggle{width:36px;height:20px;background:#2e3042;border-radius:20px;cursor:pointer;position:relative;transition:background .2s;flex-shrink:0}
+.toggle.on{background:#4caf8c}
+.toggle::after{content:'';position:absolute;top:3px;left:3px;width:14px;height:14px;background:#fff;border-radius:50%;transition:left .2s}
+.toggle.on::after{left:19px}
+
+/* ── MODAL CONSUMO SELECTOR ── */
+.inst-selector{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0}
+.inst-opt{border-radius:8px;padding:10px 8px;text-align:center;cursor:pointer;transition:all .2s;min-width:60px;border:1.5px solid transparent;position:relative;overflow:hidden}
+.inst-opt.completo{background:#1a3a2a;border-color:#4caf8c44}
+.inst-opt.en-uso{background:#22253a;border-color:#f5a62344}
+.inst-opt.agotado{background:#2e1a1a;border-color:#e85a5a22;opacity:.4;cursor:not-allowed}
+.inst-opt.selected{border-color:#D32F2F;box-shadow:0 0 0 2px #D32F2F33}
+.inst-opt-mm{font-size:12px;font-weight:600}
+.inst-opt-lbl{font-size:9px;opacity:.6;margin-top:2px}
+
+/* ── TOAST ── */
+.toast{position:fixed;bottom:20px;right:20px;background:#1a1d26;border:.5px solid #2e3042;border-radius:8px;padding:10px 16px;font-size:12px;color:#e8e8ee;z-index:999;opacity:0;transform:translateY(8px);transition:all .3s;pointer-events:none;max-width:300px}
+.toast.show{opacity:1;transform:translateY(0)}
+.toast.ok{border-color:#4caf8c;color:#4caf8c}
+.toast.err{border-color:#e85a5a;color:#e85a5a}
+.toast.info{border-color:#5b9bd5;color:#5b9bd5}
+
+/* ── LOADING ── */
+.loading{display:flex;align-items:center;justify-content:center;padding:40px;color:#5a5e7a;font-size:13px;gap:8px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spinner{width:16px;height:16px;border:2px solid #2e3042;border-top-color:#D32F2F;border-radius:50%;animation:spin .7s linear infinite}
+
+/* ── SEPARADOR ── */
+.divider{height:.5px;background:#2e3042;margin:12px 0}
+
+@media(max-width:640px){.sidebar{display:none}.main{padding:10px}}
+</style>
+</head>
+<body>
+
+<!-- ══ LOGIN ══════════════════════════════════════════════════════════════ -->
+<div id="loginScreen">
+  <div class="login-box">
+    <div class="login-logo">
+      <div class="login-logo-icon"><i class="ti ti-package"></i></div>
+      <div>
+        <div class="login-title">CT Inventory</div>
+        <div class="login-sub">Sistema de gestión de inventario</div>
+      </div>
+    </div>
+    <span class="login-label">¿Quién eres?</span>
+    <div class="user-grid" id="userGrid">
+      <div class="loading"><div class="spinner"></div>Cargando...</div>
+    </div>
+    <div class="login-footer">CT Seals · ERP Inventario</div>
+  </div>
+</div>
+
+<!-- ══ APP ════════════════════════════════════════════════════════════════ -->
+<div class="layout" id="app" style="display:none">
+
+  <!-- SIDEBAR -->
+  <nav class="sidebar">
+    <div class="sidebar-logo">
+      <div class="icon"><i class="ti ti-package" style="color:#fff;font-size:16px"></i></div>
+      <div><h1>CT Seals</h1><span>ERP Inventario</span></div>
+    </div>
+    <div class="sidebar-nav">
+      <div class="nav-section">Principal</div>
+      <div class="nav-item active" onclick="goTo('dashboard')" id="nav-dashboard"><i class="ti ti-layout-dashboard"></i>Dashboard</div>
+      <div class="nav-item" onclick="goTo('catalogo')" id="nav-catalogo"><i class="ti ti-books"></i>Catálogo</div>
+      <div class="nav-item" onclick="goTo('tubos')" id="nav-tubos"><i class="ti ti-cylinder"></i>Tubos</div>
+      <div class="nav-item" onclick="goTo('solicitudes')" id="nav-solicitudes"><i class="ti ti-arrows-transfer-up"></i>Solicitudes<span class="nav-badge" id="badgeSolicitudes" style="display:none">0</span></div>
+      <div class="nav-section">Datos</div>
+      <div class="nav-item" onclick="goTo('carga')" id="nav-carga"><i class="ti ti-upload"></i>Cargar Excel</div>
+      <div class="nav-section admin-only" id="sectionAdmin">Administración</div>
+      <div class="nav-item admin-only" onclick="goTo('usuarios')" id="nav-usuarios"><i class="ti ti-users"></i>Usuarios</div>
+      <div class="nav-item admin-only" onclick="goTo('config')" id="nav-config"><i class="ti ti-settings"></i>Configuración</div>
+    </div>
+    <div class="sidebar-user">
+      <div class="user-info" onclick="logout()">
+        <div class="user-avatar-sm" id="sidebarAvatar"></div>
+        <div class="user-info-text">
+          <div class="user-info-name" id="sidebarNombre"></div>
+          <div class="user-info-rol" id="sidebarRol"></div>
+        </div>
+        <i class="ti ti-logout" style="font-size:14px;color:#5a5e7a"></i>
+      </div>
+      <div class="sync-badge">
+        <div class="sync-dot" id="syncDot"></div>
+        <span id="syncLabel">Conectando...</span>
+      </div>
+    </div>
+  </nav>
+
+  <!-- MAIN -->
+  <main class="main">
+
+    <!-- DASHBOARD -->
+    <div class="page" id="page-dashboard">
+      <div class="page-title"><i class="ti ti-layout-dashboard" style="color:#D32F2F"></i>Dashboard</div>
+      <div class="kpi-grid" id="dashKpis"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;flex-wrap:wrap">
+        <div class="card">
+          <div class="card-title"><i class="ti ti-bell"></i>Alertas activas</div>
+          <div id="dashAlertas"><div class="loading"><div class="spinner"></div></div></div>
+        </div>
+        <div class="card">
+          <div class="card-title"><i class="ti ti-clock"></i>Actividad reciente</div>
+          <div id="dashActividad"><div class="loading"><div class="spinner"></div></div></div>
+        </div>
+      </div>
+      <div class="card" id="dashSolicitudesCard" style="display:none">
+        <div class="card-title"><i class="ti ti-arrows-transfer-up"></i>Solicitudes pendientes</div>
+        <div id="dashSolicitudesPend"></div>
+      </div>
+    </div>
+
+    <!-- CATÁLOGO -->
+    <div class="page" id="page-catalogo">
+      <div class="page-title"><i class="ti ti-books" style="color:#D32F2F"></i>Catálogo de Materiales</div>
+      <div class="kpi-grid" id="kpis"></div>
+      <div class="card">
+        <div class="card-title"><i class="ti ti-filter"></i>Búsqueda y filtros</div>
+        <div class="filters-grid">
+          <div class="filter-group" style="grid-column:span 2">
+            <label class="filter-label">Búsqueda general</label>
+            <input class="fi" id="q" type="text" placeholder="Código, descripción, material..." oninput="debounceFilter()">
+          </div>
+          <div class="filter-group">
+            <label class="filter-label">Familia</label>
+            <select class="fi" id="fFam" onchange="updateSubfam();applyFilters()"><option value="">Todas las familias</option></select>
+          </div>
+          <div class="filter-group">
+            <label class="filter-label">Subfamilia</label>
+            <select class="fi" id="fSub" onchange="applyFilters()"><option value="">Todas</option></select>
+          </div>
+          <div class="filter-group">
+            <label class="filter-label">DI (mm)</label>
+            <input class="fi" id="fDI" type="number" placeholder="Diámetro interior" oninput="applyFilters()">
+          </div>
+          <div class="filter-group">
+            <label class="filter-label">DE (mm)</label>
+            <input class="fi" id="fDE" type="number" placeholder="Diámetro exterior" oninput="applyFilters()">
+          </div>
+          <div class="filter-group">
+            <label class="filter-label">Longitud (mm)</label>
+            <input class="fi" id="fLon" type="number" placeholder="Longitud" oninput="applyFilters()">
+          </div>
+        </div>
+        <div class="active-tags" id="activeTags"></div>
+        <div class="btn-row">
+          <button class="btn btn-ghost" onclick="resetFilters()"><i class="ti ti-refresh"></i>Limpiar</button>
+          <button class="btn btn-red" onclick="exportExcel()"><i class="ti ti-file-spreadsheet"></i>Exportar Excel</button>
+          <button class="btn btn-green" onclick="openModalMaterial()"><i class="ti ti-plus"></i>Agregar material</button>
+        </div>
+      </div>
+      <div class="card" style="padding-bottom:8px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <div class="card-title" style="margin:0"><i class="ti ti-list"></i>Productos</div>
+          <div class="row-info" id="rowCount"></div>
+        </div>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr>
+              <th onclick="sortBy('cod',event)">Código</th>
+              <th onclick="sortBy('descripcion',event)">Descripción</th>
+              <th onclick="sortBy('familia',event)">Familia</th>
+              <th onclick="sortBy('subfamilia',event)">Subfamilia</th>
+              <th onclick="sortBy('di',event)">DI</th>
+              <th onclick="sortBy('de',event)">DE</th>
+              <th onclick="sortBy('longitud',event)">Long.</th>
+              <th>Precio</th>
+              <th>Tubos</th>
+            </tr></thead>
+            <tbody id="tableBody"></tbody>
+          </table>
+        </div>
+        <div class="tbl-footer">
+          <div class="row-info" id="rowCountBottom"></div>
+          <div class="pag" id="pagination"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TUBOS -->
+    <div class="page" id="page-tubos">
+      <div class="page-title"><i class="ti ti-cylinder" style="color:#D32F2F"></i>Tubos de Material</div>
+      <div class="btn-row">
+        <button class="btn btn-red" onclick="openModalTubo()"><i class="ti ti-plus"></i>Registrar entrada</button>
+        <button class="btn btn-ghost" onclick="loadTubos()"><i class="ti ti-refresh"></i>Actualizar</button>
+      </div>
+      <div id="tubos-list"><div class="loading"><div class="spinner"></div>Cargando tubos...</div></div>
+    </div>
+
+    <!-- SOLICITUDES -->
+    <div class="page" id="page-solicitudes">
+      <div class="page-title"><i class="ti ti-arrows-transfer-up" style="color:#D32F2F"></i>Solicitudes de Separado</div>
+      <div class="btn-row">
+        <button class="btn btn-red" id="btnNuevaSol" onclick="openModalSolicitud()"><i class="ti ti-plus"></i>Nueva solicitud</button>
+        <select class="fi" id="filtroEstadoSol" onchange="loadSolicitudes()" style="width:auto;padding:7px 12px">
+          <option value="">Todos los estados</option>
+          <option value="pendiente">🟡 Pendiente</option>
+          <option value="aprobada">🟢 Aprobada</option>
+          <option value="rechazada">🔴 Rechazada</option>
+          <option value="consumida">⚪ Consumida</option>
+          <option value="cancelada">⬛ Cancelada</option>
+        </select>
+      </div>
+      <div id="solicitudes-list"><div class="loading"><div class="spinner"></div>Cargando...</div></div>
+    </div>
+
+    <!-- CARGA -->
+    <div class="page" id="page-carga">
+      <div class="page-title"><i class="ti ti-upload" style="color:#D32F2F"></i>Cargar datos</div>
+      <div class="card">
+        <div class="card-title"><i class="ti ti-file-spreadsheet"></i>Catálogo de materiales</div>
+        <div class="upload-zone" onclick="document.getElementById('fileInput').click()">
+          <div style="font-size:32px;color:#D32F2F;margin-bottom:8px"><i class="ti ti-file-spreadsheet"></i></div>
+          <div style="font-size:13px;font-weight:500;color:#f0f0f5;margin-bottom:4px">Cargar CODIFICACION MP.xlsx</div>
+          <div style="font-size:11px;color:#7a7d99;margin-bottom:12px">El catálogo se sincronizará en todos los dispositivos</div>
+          <button class="btn btn-red" onclick="event.stopPropagation();document.getElementById('fileInput').click()">
+            <i class="ti ti-upload"></i>Seleccionar archivo
+          </button>
+          <input type="file" id="fileInput" style="display:none" accept=".xlsx,.xls" onchange="loadCatalogFile(event)">
+        </div>
+      </div>
+    </div>
+
+    <!-- USUARIOS -->
+    <div class="page" id="page-usuarios">
+      <div class="page-title"><i class="ti ti-users" style="color:#D32F2F"></i>Usuarios</div>
+      <div class="btn-row">
+        <button class="btn btn-red" onclick="openModalUsuario()"><i class="ti ti-plus"></i>Nuevo usuario</button>
+        <button class="btn btn-ghost" onclick="loadUsuarios()"><i class="ti ti-refresh"></i>Actualizar</button>
+      </div>
+      <div class="card" style="padding:0">
+        <div id="usuarios-list"><div class="loading"><div class="spinner"></div>Cargando...</div></div>
+      </div>
+    </div>
+
+    <!-- CONFIG -->
+    <div class="page" id="page-config">
+      <div class="page-title"><i class="ti ti-settings" style="color:#D32F2F"></i>Configuración</div>
+      <div class="card">
+        <div class="card-title"><i class="ti ti-currency-euro"></i>Tipo de cambio</div>
+        <div class="config-row">
+          <div>
+            <div class="config-label">EUR → S/ (Sol peruano)</div>
+            <div class="config-desc">Se usa para mostrar precios en soles</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <input class="form-input" id="cfgTipoCambio" type="number" step="0.01" style="width:90px;text-align:right">
+            <button class="btn btn-green" onclick="saveConfig('tipo_cambio_eur_pen',document.getElementById('cfgTipoCambio').value)"><i class="ti ti-check"></i></button>
+          </div>
+        </div>
+        <div class="config-row">
+          <div>
+            <div class="config-label">Stock mínimo de tubos (por defecto)</div>
+            <div class="config-desc">Alerta cuando queden menos tubos que este número</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <input class="form-input" id="cfgStockMin" type="number" min="1" style="width:90px;text-align:right">
+            <button class="btn btn-green" onclick="saveConfig('stock_minimo_default',document.getElementById('cfgStockMin').value)"><i class="ti ti-check"></i></button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ══ MODALES ════════════════════════════════════════════════════════════ -->
+
+<!-- Modal: nuevo tubo / entrada -->
+<div class="modal-overlay" id="modalTubo" style="display:none" onclick="if(event.target===this)closeModal('modalTubo')">
+  <div class="modal">
+    <div class="modal-title"><i class="ti ti-cylinder" style="color:#D32F2F"></i><span id="modalTuboTitle">Registrar entrada de tubos</span></div>
+    <div class="form-group">
+      <label class="form-label">Código de material</label>
+      <input class="form-input" id="t_cod" placeholder="Ej: PUU5000001" list="codSuggestions" oninput="onCodTuboInput()">
+      <datalist id="codSuggestions"></datalist>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Descripción *</label>
+      <input class="form-input" id="t_desc" placeholder="Ej: PU RED Ø150mm — Tubo madre">
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Altura del tubo (mm) *</label>
+        <input class="form-input" id="t_altura" type="number" placeholder="3000">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Cantidad de tubos *</label>
+        <input class="form-input" id="t_cantidad" type="number" placeholder="5" min="1">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modalTubo')">Cancelar</button>
+      <button class="btn btn-red" onclick="saveTubo()"><i class="ti ti-check"></i>Registrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: consumo (selección de instancia) -->
+<div class="modal-overlay" id="modalConsumo" style="display:none" onclick="if(event.target===this)closeModal('modalConsumo')">
+  <div class="modal">
+    <div class="modal-title"><i class="ti ti-scissors" style="color:#D32F2F"></i><span id="modalConsumoTitle">Registrar consumo</span></div>
+    <div class="form-group">
+      <label class="form-label">Selecciona el tubo a consumir</label>
+      <div class="inst-selector" id="instSelector"></div>
+    </div>
+    <div id="mmDisp" class="mm-disponibles" style="display:none"><i class="ti ti-ruler"></i><span id="mmDispText"></span></div>
+    <div class="form-group">
+      <label class="form-label">mm a consumir *</label>
+      <input class="form-input" id="cons_mm" type="number" placeholder="Ej: 150" oninput="onConsMMInput()">
+      <div class="form-hint" id="consHint"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">N° OP / Pedido</label>
+        <input class="form-input" id="cons_op" placeholder="OP-001 (opcional)">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Comentario</label>
+        <input class="form-input" id="cons_nota" placeholder="Observación">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modalConsumo')">Cancelar</button>
+      <button class="btn btn-red" onclick="saveConsumo()"><i class="ti ti-check"></i>Registrar consumo</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: agregar material manual -->
+<div class="modal-overlay" id="modalMaterial" style="display:none" onclick="if(event.target===this)closeModal('modalMaterial')">
+  <div class="modal" style="max-width:540px">
+    <div class="modal-title"><i class="ti ti-package" style="color:#D32F2F"></i>Agregar material manualmente</div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Código interno *</label>
+        <input class="form-input" id="m_cod" placeholder="Ej: MN-001">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Familia</label>
+        <select class="form-input" id="m_familia">
+          <option value="PU">PU — Poliuretano</option>
+          <option value="EL">EL — Elastómero</option>
+          <option value="PL">PL — Plástico</option>
+          <option value="MN" selected>MN — Mat. Nacional</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Descripción *</label>
+      <input class="form-input" id="m_desc" placeholder="Descripción completa del material">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Subfamilia / Código material</label>
+      <input class="form-input" id="m_subfam" placeholder="Ej: PTFE, NBR, PU-95A">
+    </div>
+    <div class="form-row-3">
+      <div class="form-group">
+        <label class="form-label">DI (mm)</label>
+        <input class="form-input" id="m_di" type="number" placeholder="—">
+      </div>
+      <div class="form-group">
+        <label class="form-label">DE (mm)</label>
+        <input class="form-input" id="m_de" type="number" placeholder="—">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Longitud (mm)</label>
+        <input class="form-input" id="m_lon" type="number" placeholder="—">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Precio unitario</label>
+        <input class="form-input" id="m_precio" type="number" step="0.01" placeholder="0.00">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Moneda</label>
+        <select class="form-input" id="m_moneda">
+          <option value="EUR">EUR €</option>
+          <option value="PEN">S/ Soles</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Proveedor</label>
+        <input class="form-input" id="m_proveedor" placeholder="Nombre del proveedor">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Dureza</label>
+        <input class="form-input" id="m_dureza" placeholder="Ej: Shore A 95">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Notas</label>
+      <input class="form-input" id="m_notas" placeholder="Observaciones opcionales">
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modalMaterial')">Cancelar</button>
+      <button class="btn btn-red" onclick="saveMaterial()"><i class="ti ti-check"></i>Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: solicitud de separado -->
+<div class="modal-overlay" id="modalSolicitud" style="display:none" onclick="if(event.target===this)closeModal('modalSolicitud')">
+  <div class="modal">
+    <div class="modal-title"><i class="ti ti-arrows-transfer-up" style="color:#D32F2F"></i>Nueva solicitud de separado</div>
+    <div class="form-group">
+      <label class="form-label">Material *</label>
+      <input class="form-input" id="sol_mat" placeholder="Buscar por código o descripción..." oninput="buscarMaterialSol()" autocomplete="off">
+      <div id="sol_mat_results" style="background:#111318;border:.5px solid #2e3042;border-radius:8px;margin-top:4px;display:none;max-height:160px;overflow-y:auto"></div>
+      <input type="hidden" id="sol_cod">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Cliente *</label>
+      <input class="form-input" id="sol_cliente" placeholder="Nombre del cliente">
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">mm a separar *</label>
+        <input class="form-input" id="sol_mm" type="number" placeholder="150">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Fecha estimada de uso</label>
+        <input class="form-input" id="sol_fecha" type="date">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Comentario</label>
+      <input class="form-input" id="sol_comentario" placeholder="Observaciones opcionales">
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modalSolicitud')">Cancelar</button>
+      <button class="btn btn-red" onclick="saveSolicitud()"><i class="ti ti-send"></i>Enviar solicitud</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: aprobar/rechazar solicitud -->
+<div class="modal-overlay" id="modalGestionSol" style="display:none" onclick="if(event.target===this)closeModal('modalGestionSol')">
+  <div class="modal">
+    <div class="modal-title" id="modalGestionSolTitle"><i class="ti ti-check" style="color:#4caf8c"></i>Gestionar solicitud</div>
+    <div id="gestionSolInfo" style="background:#1a1d26;border-radius:8px;padding:12px;margin-bottom:12px;font-size:12px;color:#b0b3cc"></div>
+    <div class="form-group" id="gestionMotivoGroup" style="display:none">
+      <label class="form-label">Motivo de rechazo *</label>
+      <input class="form-input" id="gestionMotivo" placeholder="Explica el motivo">
+    </div>
+    <input type="hidden" id="gestionSolId">
+    <input type="hidden" id="gestionAccion">
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modalGestionSol')">Cancelar</button>
+      <button class="btn btn-red" id="btnConfirmarGestion" onclick="confirmarGestion()"><i class="ti ti-check"></i>Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: nuevo usuario -->
+<div class="modal-overlay" id="modalUsuario" style="display:none" onclick="if(event.target===this)closeModal('modalUsuario')">
+  <div class="modal">
+    <div class="modal-title"><i class="ti ti-user-plus" style="color:#D32F2F"></i>Nuevo usuario</div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Nombre completo *</label>
+        <input class="form-input" id="u_nombre" placeholder="Juan Pérez">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Rol *</label>
+        <select class="form-input" id="u_rol">
+          <option value="admin">Admin</option>
+          <option value="gerente">Gerente</option>
+          <option value="supervisor">Supervisor</option>
+          <option value="almacen">Almacén</option>
+          <option value="produccion">Producción</option>
+          <option value="vendedor" selected>Vendedor</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modalUsuario')">Cancelar</button>
+      <button class="btn btn-red" onclick="saveUsuario()"><i class="ti ti-check"></i>Crear usuario</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ══ SUPABASE ════════════════════════════════════════════════════════════════
+const SUPA_URL="https://rjstzefjyxehusmeeqyz.supabase.co";
+const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJqc3R6ZWZqeXhlaHVzbWVlcXl6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg0NTYzMzcsImV4cCI6MjA5NDAzMjMzN30.4Bu9V-eqpfF3ooh2MXycdd89v7H0oXWIcYgSujDOSvI";
+const sb=supabase.createClient(SUPA_URL,SUPA_KEY);
+
+// ══ ESTADO GLOBAL ════════════════════════════════════════════════════════════
+let currentUser=null;
+let productos=[],filtered=[],sortCol=null,sortDir=1,currentPage=1;
+const PAGE=100;
+let _deb;
+let configCache={tipo_cambio_eur_pen:3.8,stock_minimo_default:2};
+
+const FAMS={
+  PU:{name:"Poliuretano",color:"#D32F2F",bg:"#2e1010",border:"#8B1538"},
+  EL:{name:"Elastómero",color:"#5b9bd5",bg:"#0f1e2e",border:"#1a4a7a"},
+  PL:{name:"Plástico",color:"#4caf8c",bg:"#0f2a1e",border:"#1a6040"},
+  MN:{name:"Mat. Nacional",color:"#f5a623",bg:"#2a1e0a",border:"#7a4a0a"},
+};
+
+const ROL_COLOR={
+  admin:"#D32F2F",gerente:"#5b9bd5",supervisor:"#f5a623",
+  almacen:"#4caf8c",produccion:"#a78bfa",vendedor:"#fb923c"
+};
+
+// ══ INIT ════════════════════════════════════════════════════════════════════
+(async()=>{
+  // Test conexión
+  const {error}=await sb.from("catalogo").select("id",{count:"exact",head:true});
+  const dot=document.getElementById("syncDot");
+  const lbl=document.getElementById("syncLabel");
+  if(error){dot.classList.add("off");lbl.textContent="Sin conexión";}
+  else{dot.classList.remove("off");lbl.textContent="Conectado";}
+
+  // Asegurar tablas
+  await ensureTables();
+
+  // Cargar config
+  await loadConfig();
+
+  // Cargar usuarios para login
+  await loadLoginUsers();
+})();
+
+// ══ TABLAS ══════════════════════════════════════════════════════════════════
+async function ensureTables(){
+  // Crear tabla perfiles si no existe
+  await sb.rpc('exec_sql',{sql:`
+    CREATE TABLE IF NOT EXISTS perfiles (
+      id bigserial PRIMARY KEY,
+      nombre text NOT NULL,
+      rol text DEFAULT 'vendedor',
+      activo boolean DEFAULT true,
+      ver_precios boolean DEFAULT true,
+      ultimo_acceso timestamptz,
+      created_at timestamptz DEFAULT now()
+    );
+    ALTER TABLE perfiles ENABLE ROW LEVEL SECURITY;
+  `}).catch(()=>{});
+
+  // Crear tabla tubo_instancias si no existe
+  await sb.rpc('exec_sql',{sql:`
+    CREATE TABLE IF NOT EXISTS tubo_instancias (
+      id bigserial PRIMARY KEY,
+      tubo_id bigint REFERENCES tubos(id),
+      altura_usada numeric DEFAULT 0,
+      estado text DEFAULT 'disponible',
+      created_at timestamptz DEFAULT now()
+    );
+    ALTER TABLE tubo_instancias ENABLE ROW LEVEL SECURITY;
+  `}).catch(()=>{});
+
+  // Crear tabla configuracion
+  await sb.rpc('exec_sql',{sql:`
+    CREATE TABLE IF NOT EXISTS configuracion (
+      id bigserial PRIMARY KEY,
+      clave text UNIQUE NOT NULL,
+      valor text,
+      descripcion text
+    );
+    INSERT INTO configuracion (clave,valor,descripcion) VALUES
+      ('tipo_cambio_eur_pen','3.80','Tipo de cambio EUR a Soles'),
+      ('stock_minimo_default','2','Stock mínimo de tubos por defecto')
+    ON CONFLICT (clave) DO NOTHING;
+    ALTER TABLE configuracion ENABLE ROW LEVEL SECURITY;
+  `}).catch(()=>{});
+
+  // Crear tabla solicitudes
+  await sb.rpc('exec_sql',{sql:`
+    CREATE TABLE IF NOT EXISTS solicitudes (
+      id bigserial PRIMARY KEY,
+      codigo_mat text,
+      descripcion_mat text,
+      cliente text,
+      mm_solicitados numeric,
+      fecha_uso_estimada date,
+      comentario text,
+      estado text DEFAULT 'pendiente',
+      motivo_rechazo text,
+      creado_por bigint REFERENCES perfiles(id),
+      aprobado_por bigint REFERENCES perfiles(id),
+      tubo_instancia_id bigint,
+      created_at timestamptz DEFAULT now(),
+      updated_at timestamptz DEFAULT now()
+    );
+    ALTER TABLE solicitudes ENABLE ROW LEVEL SECURITY;
+  `}).catch(()=>{});
+
+  // Agregar políticas permisivas para todas las tablas nuevas
+  const tables=['perfiles','tubo_instancias','configuracion','solicitudes'];
+  for(const t of tables){
+    await sb.rpc('exec_sql',{sql:`
+      DROP POLICY IF EXISTS "open_${t}" ON ${t};
+      CREATE POLICY "open_${t}" ON ${t} FOR ALL USING (true) WITH CHECK (true);
+    `}).catch(()=>{});
+  }
+
+  // Agregar columnas faltantes a catalogo y movimientos
+  await sb.rpc('exec_sql',{sql:`
+    ALTER TABLE catalogo ADD COLUMN IF NOT EXISTS precio numeric;
+    ALTER TABLE catalogo ADD COLUMN IF NOT EXISTS moneda text DEFAULT 'EUR';
+    ALTER TABLE catalogo ADD COLUMN IF NOT EXISTS proveedor text;
+    ALTER TABLE catalogo ADD COLUMN IF NOT EXISTS notas text;
+    ALTER TABLE movimientos ADD COLUMN IF NOT EXISTS usuario_id bigint;
+    ALTER TABLE movimientos ADD COLUMN IF NOT EXISTS op_numero text;
+    ALTER TABLE movimientos ADD COLUMN IF NOT EXISTS tubo_instancia_id bigint;
+  `}).catch(()=>{});
+
+  // Limpiar columnas obsoletas de tubos
+  await sb.rpc('exec_sql',{sql:`
+    ALTER TABLE tubos DROP COLUMN IF EXISTS diametro_ext;
+    ALTER TABLE tubos DROP COLUMN IF EXISTS cantidad;
+    ALTER TABLE tubos DROP COLUMN IF EXISTS altura_usada_total;
+  `}).catch(()=>{});
+}
+
+// ══ CONFIG ══════════════════════════════════════════════════════════════════
+async function loadConfig(){
+  const {data}=await sb.from("configuracion").select("*");
+  if(data) data.forEach(r=>{
+    configCache[r.clave]=parseFloat(r.valor)||r.valor;
+  });
+}
+
+async function saveConfig(clave,valor){
+  if(!valor){toast("Ingresa un valor válido","err");return;}
+  const {error}=await sb.from("configuracion").upsert({clave,valor:String(valor)},{onConflict:"clave"});
+  if(error){toast("Error: "+error.message,"err");return;}
+  configCache[clave]=parseFloat(valor)||valor;
+  toast("✓ Configuración guardada","ok");
+}
+
+// ══ LOGIN ════════════════════════════════════════════════════════════════════
+async function loadLoginUsers(){
+  const {data,error}=await sb.from("perfiles").select("*").eq("activo",true).order("nombre");
+  const grid=document.getElementById("userGrid");
+
+  // Si no hay usuarios, crear uno por defecto
+  if(!data||data.length===0){
+    const {data:nuevo}=await sb.from("perfiles").insert({
+      nombre:"Administrador",rol:"admin",activo:true,ver_precios:true
+    }).select().single();
+    if(nuevo){
+      renderLoginUsers([nuevo]);
+    }else{
+      grid.innerHTML=`<div style="grid-column:span 2;text-align:center;color:#e85a5a;font-size:12px">Error al cargar usuarios</div>`;
+    }
+    return;
+  }
+  renderLoginUsers(data);
+}
+
+function renderLoginUsers(users){
+  const grid=document.getElementById("userGrid");
+  grid.innerHTML=users.map(u=>{
+    const color=ROL_COLOR[u.rol]||"#888";
+    const initials=u.nombre.split(" ").map(w=>w[0]).join("").substring(0,2).toUpperCase();
+    return `<div class="user-card" onclick="loginAs(${u.id})">
+      <div class="user-avatar" style="background:${color}">${initials}</div>
+      <div class="user-name">${u.nombre}</div>
+      <div class="user-rol">${u.rol}</div>
+    </div>`;
+  }).join("");
+}
+
+async function loginAs(userId){
+  const {data,error}=await sb.from("perfiles").select("*").eq("id",userId).single();
+  if(error||!data){toast("Error al iniciar sesión","err");return;}
+
+  currentUser=data;
+  localStorage.setItem("ctseals_user",JSON.stringify(data));
+
+  // Actualizar ultimo acceso
+  await sb.from("perfiles").update({ultimo_acceso:new Date().toISOString()}).eq("id",userId);
+
+  initApp();
+}
+
+function logout(){
+  currentUser=null;
+  localStorage.removeItem("ctseals_user");
+  document.getElementById("app").style.display="none";
+  document.getElementById("loginScreen").style.display="flex";
+  loadLoginUsers();
+}
+
+// ══ APP INIT ════════════════════════════════════════════════════════════════
+async function initApp(){
+  document.getElementById("loginScreen").style.display="none";
+  document.getElementById("app").style.display="flex";
+
+  // Sidebar usuario
+  const color=ROL_COLOR[currentUser.rol]||"#888";
+  const initials=currentUser.nombre.split(" ").map(w=>w[0]).join("").substring(0,2).toUpperCase();
+  document.getElementById("sidebarAvatar").style.background=color;
+  document.getElementById("sidebarAvatar").textContent=initials;
+  document.getElementById("sidebarNombre").textContent=currentUser.nombre;
+  document.getElementById("sidebarRol").textContent=currentUser.rol;
+
+  // Mostrar/ocultar admin
+  const isAdmin=["admin","gerente","supervisor"].includes(currentUser.rol);
+  document.querySelectorAll(".admin-only").forEach(el=>el.style.display=isAdmin?"":"none");
+
+  // Ocultar botón nueva solicitud si es admin/almacen
+  const canRequest=["vendedor","produccion","supervisor","admin","gerente","almacen"].includes(currentUser.rol);
+  document.getElementById("btnNuevaSol").style.display=canRequest?"":"none";
+
+  await loadConfig();
+  if(document.getElementById("cfgTipoCambio")) document.getElementById("cfgTipoCambio").value=configCache.tipo_cambio_eur_pen||3.8;
+  if(document.getElementById("cfgStockMin")) document.getElementById("cfgStockMin").value=configCache.stock_minimo_default||2;
+
+  await loadCatalogo();
+  goTo("dashboard");
+  await loadDashboard();
+  await checkBadges();
+}
+
+// ══ NAVEGACIÓN ══════════════════════════════════════════════════════════════
+function goTo(page){
+  document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
+  document.querySelectorAll(".nav-item").forEach(n=>n.classList.remove("active"));
+  document.getElementById("page-"+page).classList.add("active");
+  const navEl=document.getElementById("nav-"+page);
+  if(navEl) navEl.classList.add("active");
+
+  if(page==="tubos") loadTubos();
+  if(page==="solicitudes") loadSolicitudes();
+  if(page==="usuarios") loadUsuarios();
+  if(page==="dashboard") loadDashboard();
+  if(page==="config"){
+    document.getElementById("cfgTipoCambio").value=configCache.tipo_cambio_eur_pen||3.8;
+    document.getElementById("cfgStockMin").value=configCache.stock_minimo_default||2;
+  }
+}
+
+// ══ DASHBOARD ════════════════════════════════════════════════════════════════
+async function loadDashboard(){
+  // KPIs
+  const {count:totalMat}=await sb.from("catalogo").select("*",{count:"exact",head:true});
+  const {data:instData}=await sb.from("tubo_instancias").select("estado");
+  const totalTubos=instData?.length||0;
+  const tubosDisp=instData?.filter(i=>i.estado!=="agotado").length||0;
+  const {count:solPend}=await sb.from("solicitudes").select("*",{count:"exact",head:true}).eq("estado","pendiente");
+
+  document.getElementById("dashKpis").innerHTML=`
+    <div class="kpi"><div class="kpi-label">Materiales</div><div class="kpi-val white">${(totalMat||0).toLocaleString()}</div><div class="kpi-sub">en catálogo</div></div>
+    <div class="kpi"><div class="kpi-label">Tubos disponibles</div><div class="kpi-val green">${tubosDisp}</div><div class="kpi-sub">de ${totalTubos} totales</div></div>
+    <div class="kpi"><div class="kpi-label">Solicitudes pend.</div><div class="kpi-val ${solPend>0?"amber":"green"}">${solPend||0}</div><div class="kpi-sub">pendientes de aprobación</div></div>
+    <div class="kpi"><div class="kpi-label">Tipo de cambio</div><div class="kpi-val blue">S/ ${configCache.tipo_cambio_eur_pen||"—"}</div><div class="kpi-sub">por 1 EUR</div></div>
+  `;
+
+  // Alertas
+  const alertas=[];
+  const agotados=instData?.filter(i=>i.estado==="agotado").length||0;
+  if(agotados>0) alertas.push({tipo:"crit",msg:`${agotados} tubo${agotados>1?"s":""} agotado${agotados>1?"s":""}`});
+  if(solPend>0) alertas.push({tipo:"warn",msg:`${solPend} solicitud${solPend>1?"es":""} pendiente${solPend>1?"s":""} de aprobación`});
+  if(tubosDisp<=(configCache.stock_minimo_default||2)&&totalTubos>0) alertas.push({tipo:"warn",msg:`Stock crítico: solo ${tubosDisp} tubos disponibles`});
+
+  document.getElementById("dashAlertas").innerHTML=alertas.length
+    ? alertas.map(a=>`<div class="alert-item alert-${a.tipo}"><i class="ti ti-alert-circle"></i>${a.msg}</div>`).join("")
+    : `<div style="color:#5a5e7a;font-size:12px;padding:10px">Sin alertas activas ✓</div>`;
+
+  // Actividad reciente (últimos movimientos)
+  const {data:movs}=await sb.from("movimientos").select("*").order("fecha",{ascending:false}).limit(6);
+  document.getElementById("dashActividad").innerHTML=movs?.length
+    ? movs.map(m=>`<div class="mov-item">
+        <div class="mov-icon ${m.tipo==="entrada"?"mov-in":"mov-out"}"><i class="ti ti-arrow-${m.tipo==="entrada"?"down":"up"}"></i></div>
+        <div style="flex:1;font-size:11px">${m.tipo==="entrada"?`+entrada`:m.altura_usada?`−${m.altura_usada}mm`:"-"} ${m.op_numero?`· ${m.op_numero}`:""}</div>
+        <span style="color:#3a3e5a;font-size:10px">${new Date(m.fecha).toLocaleDateString("es-PE")}</span>
+      </div>`).join("")
+    : `<div style="color:#5a5e7a;font-size:12px;padding:10px">Sin movimientos recientes</div>`;
+
+  // Solicitudes pendientes para admin/almacen
+  if(["admin","almacen","supervisor","gerente"].includes(currentUser.rol)&&solPend>0){
+    document.getElementById("dashSolicitudesCard").style.display="block";
+    const {data:sols}=await sb.from("solicitudes").select("*").eq("estado","pendiente").order("created_at",{ascending:false}).limit(5);
+    document.getElementById("dashSolicitudesPend").innerHTML=sols?.map(s=>renderSolCard(s,true)).join("")||"";
+  }else{
+    document.getElementById("dashSolicitudesCard").style.display="none";
+  }
+}
+
+async function checkBadges(){
+  const {count}=await sb.from("solicitudes").select("*",{count:"exact",head:true}).eq("estado","pendiente");
+  const badge=document.getElementById("badgeSolicitudes");
+  if(count>0){badge.textContent=count;badge.style.display="inline-flex";}
+  else badge.style.display="none";
+}
+
+// ══ CATÁLOGO ════════════════════════════════════════════════════════════════
+async function loadCatalogo(){
+  toast("Cargando catálogo...","info");
+  let todos=[];let desde=0;const LOTE=1000;
+  while(true){
+    const {data,error}=await sb.from("catalogo").select("*").order("cod").range(desde,desde+LOTE-1);
+    if(error){toast("Error: "+error.message,"err");return;}
+    if(!data||data.length===0) break;
+    todos=todos.concat(data);
+    if(data.length<LOTE) break;
+    desde+=LOTE;
+  }
+  if(!todos.length){goTo("carga");toast("Sube tu CODIFICACION MP.xlsx para comenzar","info");return;}
+  productos=todos.map(p=>({...p,searchText:(p.cod+" "+p.descripcion+" "+(p.subfamilia||"")+" "+(p.familia||"")).toLowerCase()}));
+  filtered=[...productos];
+  buildSelects();buildKPIs();renderTable();
+  toast(`✓ ${productos.length.toLocaleString()} materiales cargados`,"ok");
+}
+
+function buildKPIs(){
+  const tot=productos.length;
+  const fams=[...new Set(productos.map(p=>p.familia))].length;
+  const subs=[...new Set(productos.map(p=>p.subfamilia))].length;
+  document.getElementById("kpis").innerHTML=`
+    <div class="kpi"><div class="kpi-label">Total materiales</div><div class="kpi-val white">${tot.toLocaleString()}</div><div class="kpi-sub">en catálogo</div></div>
+    <div class="kpi"><div class="kpi-label">Familias</div><div class="kpi-val blue">${fams}</div><div class="kpi-sub">PU · EL · PL · MN</div></div>
+    <div class="kpi"><div class="kpi-label">Subfamilias</div><div class="kpi-val amber">${subs}</div><div class="kpi-sub">tipos únicos</div></div>
+    <div class="kpi"><div class="kpi-label">Filtrados</div><div class="kpi-val red">${filtered.length.toLocaleString()}</div><div class="kpi-sub">mostrando ahora</div></div>
+  `;
+}
+
+function buildSelects(){
+  const fams=[...new Set(productos.map(p=>p.familia))].filter(Boolean);
+  const sel=document.getElementById("fFam");
+  sel.innerHTML='<option value="">Todas las familias</option>';
+  fams.forEach(f=>{const o=document.createElement("option");o.value=f;o.textContent=`${f} — ${FAMS[f]?.name||f}`;sel.appendChild(o);});
+  updateSubfam();
+  const dl=document.getElementById("codSuggestions");
+  if(dl) dl.innerHTML=productos.slice(0,200).map(p=>`<option value="${p.cod}">${p.cod} — ${p.descripcion}</option>`).join("");
+}
+
+function updateSubfam(){
+  const fam=document.getElementById("fFam").value;
+  const subs=[...new Set(productos.filter(p=>!fam||p.familia===fam).map(p=>p.subfamilia))].filter(Boolean);
+  const sel=document.getElementById("fSub");
+  sel.innerHTML='<option value="">Todas</option>';
+  subs.forEach(s=>{const o=document.createElement("option");o.value=s;o.textContent=s;sel.appendChild(o);});
+}
+
+function debounceFilter(){clearTimeout(_deb);_deb=setTimeout(applyFilters,220);}
+
+function applyFilters(){
+  const q=(document.getElementById("q").value||"").toLowerCase();
+  const fam=document.getElementById("fFam").value;
+  const sub=document.getElementById("fSub").value;
+  const fDI=parseFloat(document.getElementById("fDI").value)||null;
+  const fDE=parseFloat(document.getElementById("fDE").value)||null;
+  const fLon=parseFloat(document.getElementById("fLon").value)||null;
+  const TOL=5; // tolerancia ±5mm
+
+  filtered=productos.filter(p=>{
+    if(q&&!p.searchText.includes(q)) return false;
+    if(fam&&p.familia!==fam) return false;
+    if(sub&&p.subfamilia!==sub) return false;
+    if(fDI!==null&&p.di!==null&&Math.abs(p.di-fDI)>TOL) return false;
+    if(fDE!==null&&p.de!==null&&Math.abs(p.de-fDE)>TOL) return false;
+    if(fLon!==null&&p.longitud!==null&&Math.abs(p.longitud-fLon)>TOL) return false;
+    return true;
+  });
+
+  const tags=[];
+  if(q) tags.push(`"${q}"`);
+  if(fam) tags.push(`Familia: ${fam}`);
+  if(sub) tags.push(`Sub: ${sub}`);
+  if(fDI) tags.push(`DI: ${fDI}mm`);
+  if(fDE) tags.push(`DE: ${fDE}mm`);
+  if(fLon) tags.push(`L: ${fLon}mm`);
+  document.getElementById("activeTags").innerHTML=tags.map(t=>`<span class="tag" onclick="resetFilters()"><i class="ti ti-x" style="font-size:10px"></i>${t}</span>`).join("");
+
+  currentPage=1;buildKPIs();renderTable();
+}
+
+function resetFilters(){
+  ["q","fFam","fSub","fDI","fDE","fLon"].forEach(id=>{document.getElementById(id).value="";});
+  updateSubfam();filtered=[...productos];
+  document.getElementById("activeTags").innerHTML="";
+  currentPage=1;buildKPIs();renderTable();
+}
+
+function sortBy(col,e){
+  if(sortCol===col) sortDir*=-1; else{sortCol=col;sortDir=1;}
+  document.querySelectorAll("thead th").forEach(th=>th.className="");
+  e.target.className=sortDir===1?"asc":"desc";
+  filtered.sort((a,b)=>{
+    const av=a[col]??-1,bv=b[col]??-1;
+    if(typeof av==="string") return av.localeCompare(bv)*sortDir;
+    return(av-bv)*sortDir;
+  });
+  renderTable();
+}
+
+async function renderTable(){
+  const tb=document.getElementById("tableBody");
+  if(!filtered.length){
+    tb.innerHTML=`<tr><td colspan="9" class="no-data">No se encontraron materiales</td></tr>`;
+    ["rowCount","rowCountBottom"].forEach(id=>document.getElementById(id).textContent="");
+    document.getElementById("pagination").innerHTML="";
+    return;
+  }
+  const tot=Math.ceil(filtered.length/PAGE);
+  if(currentPage>tot) currentPage=1;
+  const start=(currentPage-1)*PAGE;
+  const visible=filtered.slice(start,start+PAGE);
+
+  // Tubos por código
+  const cods=visible.map(p=>p.cod);
+  let tubosCnt={};
+  try{
+    const {data:tubosData}=await sb.from("tubos").select("codigo_mat,id").in("codigo_mat",cods);
+    if(tubosData){
+      const tuboIds=tubosData.map(t=>t.id);
+      const {data:instData}=await sb.from("tubo_instancias").select("tubo_id,estado").in("tubo_id",tuboIds);
+      tubosData.forEach(t=>{
+        const insts=(instData||[]).filter(i=>i.tubo_id===t.id&&i.estado!=="agotado");
+        tubosCnt[t.codigo_mat]=(tubosCnt[t.codigo_mat]||0)+insts.length;
+      });
+    }
+  }catch(e){}
+
+  const tc=configCache.tipo_cambio_eur_pen||3.8;
+
+  tb.innerHTML=visible.map(p=>{
+    const f=FAMS[p.familia]||{color:"#888",bg:"#222",border:"#444"};
+    const badge=`<span class="fam-badge" style="color:${f.color};background:${f.bg};border-color:${f.border}">${p.familia||"?"}</span>`;
+    const cnt=tubosCnt[p.cod]||0;
+    const tuboBtn=cnt>0
+      ?`<button class="btn btn-green" style="padding:3px 8px;font-size:10px" onclick="goTo('tubos')"><i class="ti ti-cylinder"></i>${cnt}</button>`
+      :`<button class="btn btn-ghost" style="padding:3px 8px;font-size:10px" onclick="openModalTuboFor('${p.cod}','${p.descripcion?.replace(/'/g,"\\'")||""}')"><i class="ti ti-plus"></i></button>`;
+
+    let precioHtml="—";
+    if(p.precio){
+      const mon=p.moneda||"EUR";
+      const sym=mon==="EUR"?"€":"S/";
+      precioHtml=`<span style="font-size:11px">${sym}${parseFloat(p.precio).toFixed(2)}</span>`;
+      if(mon==="EUR" && currentUser?.ver_precios){
+        precioHtml+=`<br><span style="font-size:9px;color:#5a5e7a">S/${(p.precio*tc).toFixed(2)}</span>`;
+      }
+    }
+
+    return `<tr>
+      <td style="font-family:monospace;font-size:10px;color:#7a7d99">${p.cod}</td>
+      <td style="max-width:220px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.descripcion||""}</td>
+      <td>${badge}</td>
+      <td style="color:#7a7d99;font-size:10px">${p.subfamilia||""}</td>
+      <td style="color:#7a7d99">${p.di??""}</td>
+      <td style="color:#7a7d99">${p.de??""}</td>
+      <td style="color:#7a7d99">${p.longitud??""}</td>
+      <td>${precioHtml}</td>
+      <td>${tuboBtn}</td>
+    </tr>`;
+  }).join("");
+
+  const txt=`${start+1}–${Math.min(start+PAGE,filtered.length)} de ${filtered.length.toLocaleString()}`;
+  ["rowCount","rowCountBottom"].forEach(id=>document.getElementById(id).textContent=txt);
+
+  const pag=document.getElementById("pagination");pag.innerHTML="";
+  const addBtn=(lbl,pg,active,disabled)=>{
+    const b=document.createElement("button");
+    b.className="pag-btn"+(active?" active":"");
+    b.disabled=disabled;b.textContent=lbl;
+    if(!disabled) b.onclick=()=>{currentPage=pg;renderTable();document.querySelector(".tbl-wrap").scrollTop=0;};
+    pag.appendChild(b);
+  };
+  addBtn("←",currentPage-1,false,currentPage===1);
+  for(let p=Math.max(1,currentPage-2);p<=Math.min(tot,currentPage+2);p++) addBtn(p,p,p===currentPage,false);
+  addBtn("→",currentPage+1,false,currentPage===tot);
+}
+
+// ══ MATERIAL MANUAL ═══════════════════════════════════════════════════════
+function openModalMaterial(){
+  ["m_cod","m_desc","m_subfam","m_di","m_de","m_lon","m_precio","m_proveedor","m_dureza","m_notas"].forEach(id=>document.getElementById(id).value="");
+  document.getElementById("m_familia").value="MN";
+  document.getElementById("m_moneda").value="EUR";
+  document.getElementById("modalMaterial").style.display="flex";
+}
+
+async function saveMaterial(){
+  const cod=document.getElementById("m_cod").value.trim();
+  const desc=document.getElementById("m_desc").value.trim();
+  if(!cod){toast("El código es obligatorio","err");return;}
+  if(!desc){toast("La descripción es obligatoria","err");return;}
+
+  const fam=document.getElementById("m_familia").value;
+  const obj={
+    cod,descripcion:desc,
+    familia:fam,des_familia:FAMS[fam]?.name||fam,
+    subfamilia:document.getElementById("m_subfam").value.trim()||null,
+    di:parseFloat(document.getElementById("m_di").value)||null,
+    de:parseFloat(document.getElementById("m_de").value)||null,
+    longitud:parseFloat(document.getElementById("m_lon").value)||null,
+    precio:parseFloat(document.getElementById("m_precio").value)||null,
+    moneda:document.getElementById("m_moneda").value,
+    proveedor:document.getElementById("m_proveedor").value.trim()||null,
+    dureza:document.getElementById("m_dureza").value.trim()||null,
+    notas:document.getElementById("m_notas").value.trim()||null,
+  };
+
+  const {error}=await sb.from("catalogo").upsert(obj,{onConflict:"cod"});
+  if(error){toast("Error: "+error.message,"err");return;}
+  closeModal("modalMaterial");
+  toast("✓ Material guardado","ok");
+  await loadCatalogo();
+}
+
+// ══ TUBOS ════════════════════════════════════════════════════════════════════
+async function loadTubos(){
+  document.getElementById("tubos-list").innerHTML=`<div class="loading"><div class="spinner"></div>Cargando tubos...</div>`;
+
+  const {data:tubos,error}=await sb.from("tubos").select("*").order("descripcion");
+  if(error){document.getElementById("tubos-list").innerHTML=`<div class="no-data">Error al cargar</div>`;return;}
+
+  if(!tubos?.length){
+    document.getElementById("tubos-list").innerHTML=`<div class="card" style="text-align:center;padding:30px;color:#5a5e7a">
+      <i class="ti ti-cylinder" style="font-size:32px;display:block;margin-bottom:10px;color:#3a3e5a"></i>
+      No hay tubos registrados.<br>Usa <strong style="color:#D32F2F">Registrar entrada</strong> para comenzar.</div>`;
+    return;
+  }
+
+  const ids=tubos.map(t=>t.id);
+  const {data:instancias}=await sb.from("tubo_instancias").select("*").in("tubo_id",ids);
+  const {data:movs}=await sb.from("movimientos").select("*").in("tubo_instancia_id",(instancias||[]).map(i=>i.id)).order("fecha",{ascending:false}).catch(()=>({data:[]}));
+
+  // Agrupar por tubo (plantilla)
+  const html=tubos.map(t=>{
+    const insts=(instancias||[]).filter(i=>i.tubo_id===t.id);
+    if(!insts.length) return "";
+
+    const altTotal=t.altura_total||0;
+    const disponibles=insts.filter(i=>i.estado!=="agotado");
+    const agotados=insts.filter(i=>i.estado==="agotado");
+    const mmTotalGrupo=altTotal*insts.length;
+    const mmUsadoGrupo=insts.reduce((a,i)=>a+(i.altura_usada||0),0);
+    const mmRestGrupo=Math.max(0,mmTotalGrupo-mmUsadoGrupo);
+    const pct=mmTotalGrupo>0?Math.round(mmUsadoGrupo/mmTotalGrupo*100):0;
+    const colorGrupo=disponibles.length===0?"#e85a5a":pct>75?"#f5a623":"#4caf8c";
+
+    // Bloques por instancia
+    const bloquesHtml=insts.map((inst,idx)=>{
+      const mmRest=Math.max(0,altTotal-(inst.altura_usada||0));
+      const pctFill=altTotal>0?Math.round(mmRest/altTotal*100):0;
+      let clase="completo",textColor="#4caf8c";
+      if(inst.estado==="agotado"){clase="agotado";textColor="#e85a5a";}
+      else if((inst.altura_usada||0)>0){clase="en-uso";textColor="#f5a623";}
+
+      return `<div class="inst-bloque ${clase}" onclick="openConsumo(${t.id},'${t.descripcion?.replace(/'/g,"\\'")||""}',${inst.id})" title="Tubo ${idx+1}: ${mmRest}mm disponibles">
+        <div class="inst-fill" style="height:${pctFill}%;background:${textColor}"></div>
+        <div class="inst-mm" style="color:${textColor}">${mmRest}mm</div>
+        <div class="inst-label" style="color:${textColor}">T${idx+1}</div>
+      </div>`;
+    }).join("");
+
+    // Últimos movimientos del grupo
+    const instIds=insts.map(i=>i.id);
+    const movsGrupo=(movs||[]).filter(m=>instIds.includes(m.tubo_instancia_id)).slice(0,4);
+    const movsHtml=movsGrupo.map(m=>`<div class="mov-item">
+      <div class="mov-icon ${m.tipo==="entrada"?"mov-in":"mov-out"}"><i class="ti ti-arrow-${m.tipo==="entrada"?"down":"up"}"></i></div>
+      <div style="flex:1">${m.tipo==="entrada"?"+entrada":m.altura_usada?`−${m.altura_usada}mm`:"-"} ${m.op_numero?`<span style="color:#5a5e7a">· ${m.op_numero}</span>`:""}</div>
+      <span style="color:#3a3e5a;font-size:10px">${new Date(m.fecha).toLocaleDateString("es-PE")}</span>
+    </div>`).join("");
+
+    return `<div class="tubo-card">
+      <div class="tubo-header">
+        <div>
+          <div class="tubo-title">${t.descripcion}</div>
+          <div class="tubo-sub">${t.codigo_mat||""} ${altTotal?`· ${altTotal}mm por tubo`:""}
+            · <span style="color:#7a7d99">${insts.length} tubo${insts.length>1?"s":""}</span>
+          </div>
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <button class="btn btn-red" style="font-size:11px" onclick="openConsumoGrupo(${t.id},'${t.descripcion?.replace(/'/g,"\\'")||""}')">
+            <i class="ti ti-scissors"></i>Consumir
+          </button>
+          <button class="btn btn-ghost" style="font-size:11px" onclick="openModalTuboFor('${t.codigo_mat||""}','${t.descripcion?.replace(/'/g,"\\'")||""}')">
+            <i class="ti ti-plus"></i>Agregar
+          </button>
+        </div>
+      </div>
+
+      <div class="tubo-stats">
+        <div class="tubo-stat">
+          <div class="tubo-stat-val" style="color:${colorGrupo}">${disponibles.length}</div>
+          <div class="tubo-stat-lbl">Disponibles</div>
+        </div>
+        <div class="tubo-stat">
+          <div class="tubo-stat-val" style="color:#5b9bd5">${mmRestGrupo.toFixed(0)}<span style="font-size:11px">mm</span></div>
+          <div class="tubo-stat-lbl">mm restantes</div>
+        </div>
+        <div class="tubo-stat">
+          <div class="tubo-stat-val" style="color:#e85a5a">${mmUsadoGrupo.toFixed(0)}<span style="font-size:11px">mm</span></div>
+          <div class="tubo-stat-lbl">mm consumidos</div>
+        </div>
+        <div class="tubo-stat">
+          <div class="tubo-stat-val" style="color:#7a7d99">${agotados.length}</div>
+          <div class="tubo-stat-lbl">Agotados</div>
+        </div>
+      </div>
+
+      <div style="font-size:10px;color:#5a5e7a;margin-bottom:6px;text-transform:uppercase;letter-spacing:.4px">Tubos físicos — click para consumir</div>
+      <div class="instancias-grid">${bloquesHtml}</div>
+
+      ${movsGrupo.length?`<div class="movs-list"><div style="font-size:10px;color:#5a5e7a;margin-bottom:5px;text-transform:uppercase;letter-spacing:.3px">Últimos movimientos</div>${movsHtml}</div>`:""}
+    </div>`;
+  }).filter(Boolean).join("");
+
+  document.getElementById("tubos-list").innerHTML=html||`<div class="card" style="text-align:center;padding:30px;color:#5a5e7a">No hay instancias registradas</div>`;
+}
+
+// Modal: registrar entrada de tubos
+function openModalTubo(){
+  ["t_cod","t_desc","t_altura","t_cantidad"].forEach(id=>document.getElementById(id).value="");
+  document.getElementById("modalTuboTitle").textContent="Registrar entrada de tubos";
+  document.getElementById("modalTubo").style.display="flex";
+}
+
+function openModalTuboFor(cod,desc){
+  document.getElementById("t_cod").value=cod;
+  document.getElementById("t_desc").value=desc;
+  document.getElementById("t_altura").value="";
+  document.getElementById("t_cantidad").value="";
+  document.getElementById("modalTuboTitle").textContent="Agregar tubos — "+cod;
+  document.getElementById("modalTubo").style.display="flex";
+}
+
+function onCodTuboInput(){
+  const cod=document.getElementById("t_cod").value;
+  const prod=productos.find(p=>p.cod===cod);
+  if(prod&&!document.getElementById("t_desc").value){
+    document.getElementById("t_desc").value=prod.descripcion||"";
+  }
+}
+
+async function saveTubo(){
+  const desc=document.getElementById("t_desc").value.trim();
+  const altura=parseFloat(document.getElementById("t_altura").value)||null;
+  const cant=parseInt(document.getElementById("t_cantidad").value)||0;
+  if(!desc){toast("La descripción es obligatoria","err");return;}
+  if(!altura){toast("La altura del tubo es obligatoria","err");return;}
+  if(cant<=0){toast("La cantidad debe ser mayor a 0","err");return;}
+
+  const cod=document.getElementById("t_cod").value.trim()||null;
+
+  // Buscar o crear plantilla de tubo
+  let tuboId;
+  const {data:existing}=await sb.from("tubos")
+    .select("id")
+    .eq("descripcion",desc)
+    .eq("altura_total",altura)
+    .maybeSingle();
+
+  if(existing){
+    tuboId=existing.id;
+  }else{
+    const {data:nuevo,error}=await sb.from("tubos").insert({
+      codigo_mat:cod,descripcion:desc,altura_total:altura
+    }).select().single();
+    if(error){toast("Error: "+error.message,"err");return;}
+    tuboId=nuevo.id;
+  }
+
+  // Crear instancias individuales
+  const instancias=Array.from({length:cant},()=>({tubo_id:tuboId,altura_usada:0,estado:"disponible"}));
+  const {error:errInst}=await sb.from("tubo_instancias").insert(instancias);
+  if(errInst){toast("Error al crear instancias: "+errInst.message,"err");return;}
+
+  // Registrar movimiento de entrada
+  await sb.from("movimientos").insert({
+    tubo_id:tuboId,tipo:"entrada",cantidad:cant,
+    usuario_id:currentUser?.id||null,
+    nota:`Entrada de ${cant} tubo${cant>1?"s":""}`
+  });
+
+  closeModal("modalTubo");
+  toast(`✓ ${cant} tubo${cant>1?"s":""} registrado${cant>1?"s":""}  correctamente`,"ok");
+  loadTubos();
+  buildSelects();
+}
+
+// Modal: consumo — selección explícita de tubo
+let consumoTuboId=null;
+let consumoInstId=null;
+let consumoInstancias=[];
+
+async function openConsumoGrupo(tuboId,desc){
+  consumoTuboId=tuboId;
+  consumoInstId=null;
+  document.getElementById("modalConsumoTitle").textContent="Consumir — "+desc;
+  ["cons_mm","cons_op","cons_nota"].forEach(id=>document.getElementById(id).value="");
+  document.getElementById("mmDisp").style.display="none";
+  document.getElementById("consHint").textContent="";
+
+  // Cargar instancias disponibles
+  const {data:insts}=await sb.from("tubo_instancias")
+    .select("*")
+    .eq("tubo_id",tuboId)
+    .neq("estado","agotado")
+    .order("created_at");
+  consumoInstancias=insts||[];
+
+  const {data:tubo}=await sb.from("tubos").select("altura_total").eq("id",tuboId).single();
+  const altTotal=tubo?.altura_total||0;
+
+  const sel=document.getElementById("instSelector");
+  if(!consumoInstancias.length){
+    sel.innerHTML=`<div style="color:#e85a5a;font-size:12px">No hay tubos disponibles</div>`;
+  }else{
+    sel.innerHTML=consumoInstancias.map((inst,idx)=>{
+      const mmRest=Math.max(0,altTotal-(inst.altura_usada||0));
+      let clase="completo",textColor="#4caf8c";
+      if(inst.estado==="agotado"){clase="agotado";textColor="#e85a5a";}
+      else if((inst.altura_usada||0)>0){clase="en-uso";textColor="#f5a623";}
+      return `<div class="inst-opt ${clase}" onclick="selectInstancia(${inst.id},${mmRest})" id="instOpt_${inst.id}">
+        <div class="inst-opt-mm" style="color:${textColor}">${mmRest}mm</div>
+        <div class="inst-opt-lbl" style="color:${textColor}">T${idx+1}</div>
+      </div>`;
+    }).join("");
+  }
+
+  document.getElementById("modalConsumo").style.display="flex";
+}
+
+async function openConsumo(tuboId,desc,instId){
+  await openConsumoGrupo(tuboId,desc);
+  // Pre-seleccionar la instancia
+  const inst=consumoInstancias.find(i=>i.id===instId);
+  if(inst){
+    const {data:tubo}=await sb.from("tubos").select("altura_total").eq("id",tuboId).single();
+    const mmRest=Math.max(0,( tubo?.altura_total||0)-(inst.altura_usada||0));
+    selectInstancia(instId,mmRest);
+  }
+}
+
+function selectInstancia(instId,mmDisp){
+  consumoInstId=instId;
+  document.querySelectorAll(".inst-opt").forEach(el=>el.classList.remove("selected"));
+  const el=document.getElementById("instOpt_"+instId);
+  if(el) el.classList.add("selected");
+
+  const dispEl=document.getElementById("mmDisp");
+  dispEl.style.display="flex";
+  document.getElementById("mmDispText").textContent=`${mmDisp}mm disponibles en este tubo`;
+  dispEl.className="mm-disponibles"+(mmDisp<50?" warn":"");
+  dispEl._mmDisp=mmDisp;
+  onConsMMInput();
+}
+
+function onConsMMInput(){
+  const mm=parseFloat(document.getElementById("cons_mm").value)||0;
+  const dispEl=document.getElementById("mmDisp");
+  const mmDisp=dispEl._mmDisp||0;
+  const hint=document.getElementById("consHint");
+  if(mm>0&&mmDisp>0){
+    if(mm>mmDisp){
+      hint.textContent=`⚠ Supera los ${mmDisp}mm disponibles`;
+      hint.style.color="#e85a5a";
+    }else{
+      hint.textContent=`Quedarán ${(mmDisp-mm).toFixed(0)}mm en este tubo`;
+      hint.style.color="#4caf8c";
+    }
+  }else{hint.textContent="";}
+}
+
+async function saveConsumo(){
+  if(!consumoInstId){toast("Selecciona un tubo","err");return;}
+  const mm=parseFloat(document.getElementById("cons_mm").value)||0;
+  if(mm<=0){toast("Ingresa los mm a consumir","err");return;}
+
+  // Verificar disponibilidad
+  const {data:inst}=await sb.from("tubo_instancias").select("*").eq("id",consumoInstId).single();
+  const {data:tubo}=await sb.from("tubos").select("altura_total").eq("id",consumoTuboId).single();
+  const altTotal=tubo?.altura_total||0;
+  const mmRest=Math.max(0,altTotal-(inst?.altura_usada||0));
+
+  if(mm>mmRest){toast(`No puedes consumir ${mm}mm — solo hay ${mmRest}mm disponibles en este tubo`,"err");return;}
+
+  const nuevaUsada=(inst.altura_usada||0)+mm;
+  const nuevoEstado=nuevaUsada>=altTotal?"agotado":"disponible";
+
+  // Actualizar instancia
+  const {error:errInst}=await sb.from("tubo_instancias").update({
+    altura_usada:nuevaUsada,estado:nuevoEstado
+  }).eq("id",consumoInstId);
+  if(errInst){toast("Error: "+errInst.message,"err");return;}
+
+  // Registrar movimiento
+  await sb.from("movimientos").insert({
+    tubo_id:consumoTuboId,
+    tubo_instancia_id:consumoInstId,
+    tipo:"salida",cantidad:1,
+    altura_usada:mm,
+    op_numero:document.getElementById("cons_op").value.trim()||null,
+    nota:document.getElementById("cons_nota").value.trim()||null,
+    usuario_id:currentUser?.id||null,
+  });
+
+  closeModal("modalConsumo");
+  toast(`✓ ${mm}mm consumidos${nuevoEstado==="agotado"?" · Tubo agotado":""}`,nuevoEstado==="agotado"?"info":"ok");
+  loadTubos();
+  checkBadges();
+}
+
+// ══ SOLICITUDES ══════════════════════════════════════════════════════════════
+async function loadSolicitudes(){
+  document.getElementById("solicitudes-list").innerHTML=`<div class="loading"><div class="spinner"></div>Cargando...</div>`;
+  const estado=document.getElementById("filtroEstadoSol").value;
+
+  let query=sb.from("solicitudes").select("*").order("created_at",{ascending:false});
+  if(estado) query=query.eq("estado",estado);
+
+  // Vendedor solo ve sus solicitudes
+  if(currentUser.rol==="vendedor") query=query.eq("creado_por",currentUser.id);
+
+  const {data,error}=await query;
+  if(error){document.getElementById("solicitudes-list").innerHTML=`<div class="no-data">Error al cargar</div>`;return;}
+  if(!data?.length){document.getElementById("solicitudes-list").innerHTML=`<div class="card" style="text-align:center;padding:30px;color:#5a5e7a">No hay solicitudes</div>`;return;}
+
+  const canManage=["admin","almacen","supervisor","gerente"].includes(currentUser.rol);
+  document.getElementById("solicitudes-list").innerHTML=data.map(s=>renderSolCard(s,canManage)).join("");
+  checkBadges();
+}
+
+function renderSolCard(s,canManage){
+  const estados={
+    pendiente:'<span class="sol-estado sol-pend">🟡 Pendiente</span>',
+    aprobada:'<span class="sol-estado sol-aprobada">🟢 Aprobada</span>',
+    rechazada:'<span class="sol-estado sol-rechazada">🔴 Rechazada</span>',
+    consumida:'<span class="sol-estado sol-consumida">⚪ Consumida</span>',
+    cancelada:'<span class="sol-estado sol-cancelada">⬛ Cancelada</span>',
+  };
+
+  const accionesHtml=canManage&&s.estado==="pendiente"?`
+    <div style="display:flex;gap:6px;margin-top:8px">
+      <button class="btn btn-green" style="font-size:11px" onclick="gestionarSol(${s.id},'aprobar')"><i class="ti ti-check"></i>Aprobar</button>
+      <button class="btn btn-red" style="font-size:11px" onclick="gestionarSol(${s.id},'rechazar')"><i class="ti ti-x"></i>Rechazar</button>
+      ${s.estado==="aprobada"?`<button class="btn btn-amber" style="font-size:11px" onclick="gestionarSol(${s.id},'consumir')"><i class="ti ti-check-all"></i>Consumida</button>`:""}
+    </div>`
+    :canManage&&s.estado==="aprobada"?`
+    <div style="display:flex;gap:6px;margin-top:8px">
+      <button class="btn btn-amber" style="font-size:11px" onclick="gestionarSol(${s.id},'consumir')"><i class="ti ti-check-all"></i>Marcar consumida</button>
+    </div>`:s.estado==="pendiente"&&currentUser.id===s.creado_por?`
+    <div style="margin-top:8px">
+      <button class="btn btn-ghost" style="font-size:11px" onclick="gestionarSol(${s.id},'cancelar')"><i class="ti ti-x"></i>Cancelar</button>
+    </div>`:"";
+
+  return `<div class="sol-card">
+    <div class="sol-header">
+      <div>
+        <div style="font-size:13px;font-weight:500;color:#f0f0f5">${s.descripcion_mat||s.codigo_mat||"Material"}</div>
+        <div style="font-size:11px;color:#7a7d99;margin-top:3px">
+          Cliente: <strong>${s.cliente}</strong> · ${s.mm_solicitados}mm solicitados
+          ${s.fecha_uso_estimada?`· Uso: ${new Date(s.fecha_uso_estimada).toLocaleDateString("es-PE")}`:""}
+        </div>
+        ${s.comentario?`<div style="font-size:11px;color:#5a5e7a;margin-top:2px">${s.comentario}</div>`:""}
+        ${s.motivo_rechazo?`<div style="font-size:11px;color:#e85a5a;margin-top:2px">Motivo: ${s.motivo_rechazo}</div>`:""}
+      </div>
+      <div style="text-align:right">
+        ${estados[s.estado]||""}
+        <div style="font-size:10px;color:#5a5e7a;margin-top:4px">${new Date(s.created_at).toLocaleDateString("es-PE")}</div>
+      </div>
+    </div>
+    ${accionesHtml}
+  </div>`;
+}
+
+function openModalSolicitud(){
+  ["sol_mat","sol_cliente","sol_mm","sol_comentario","sol_cod"].forEach(id=>document.getElementById(id).value="");
+  document.getElementById("sol_fecha").value="";
+  document.getElementById("sol_mat_results").style.display="none";
+  document.getElementById("modalSolicitud").style.display="flex";
+}
+
+let _solDeb;
+function buscarMaterialSol(){
+  clearTimeout(_solDeb);
+  _solDeb=setTimeout(()=>{
+    const q=document.getElementById("sol_mat").value.toLowerCase();
+    if(q.length<2){document.getElementById("sol_mat_results").style.display="none";return;}
+    const res=productos.filter(p=>p.searchText.includes(q)).slice(0,8);
+    const div=document.getElementById("sol_mat_results");
+    if(!res.length){div.style.display="none";return;}
+    div.innerHTML=res.map(p=>`<div onclick="selectMatSol('${p.cod}','${(p.descripcion||"").replace(/'/g,"\\'")}')
+      " style="padding:8px 12px;cursor:pointer;border-bottom:.5px solid #2e3042;font-size:12px" 
+      onmouseover="this.style.background='#22253a'" onmouseout="this.style.background=''">
+      <span style="color:#7a7d99;font-family:monospace;font-size:10px">${p.cod}</span> ${p.descripcion||""}
+    </div>`).join("");
+    div.style.display="block";
+  },200);
+}
+
+function selectMatSol(cod,desc){
+  document.getElementById("sol_cod").value=cod;
+  document.getElementById("sol_mat").value=`${cod} — ${desc}`;
+  document.getElementById("sol_mat_results").style.display="none";
+}
+
+async function saveSolicitud(){
+  const cod=document.getElementById("sol_cod").value;
+  const mat=document.getElementById("sol_mat").value.trim();
+  const cliente=document.getElementById("sol_cliente").value.trim();
+  const mm=parseFloat(document.getElementById("sol_mm").value)||0;
+  if(!mat){toast("Selecciona un material","err");return;}
+  if(!cliente){toast("El cliente es obligatorio","err");return;}
+  if(mm<=0){toast("Ingresa los mm a separar","err");return;}
+
+  const prod=productos.find(p=>p.cod===cod);
+  const obj={
+    codigo_mat:cod||null,
+    descripcion_mat:prod?.descripcion||mat,
+    cliente,mm_solicitados:mm,
+    fecha_uso_estimada:document.getElementById("sol_fecha").value||null,
+    comentario:document.getElementById("sol_comentario").value.trim()||null,
+    estado:"pendiente",
+    creado_por:currentUser.id,
+  };
+
+  const {error}=await sb.from("solicitudes").insert(obj);
+  if(error){toast("Error: "+error.message,"err");return;}
+  closeModal("modalSolicitud");
+  toast("✓ Solicitud enviada","ok");
+  loadSolicitudes();
+  checkBadges();
+}
+
+function gestionarSol(solId,accion){
+  document.getElementById("gestionSolId").value=solId;
+  document.getElementById("gestionAccion").value=accion;
+  const titulos={aprobar:"Aprobar solicitud",rechazar:"Rechazar solicitud",consumir:"Marcar como consumida",cancelar:"Cancelar solicitud"};
+  const iconos={aprobar:"ti-check",rechazar:"ti-x",consumir:"ti-check-all",cancelar:"ti-ban"};
+  const colors={aprobar:"#4caf8c",rechazar:"#e85a5a",consumir:"#f5a623",cancelar:"#7a7d99"};
+  document.getElementById("modalGestionSolTitle").innerHTML=`<i class="ti ${iconos[accion]}" style="color:${colors[accion]}"></i>${titulos[accion]}`;
+  document.getElementById("gestionMotivoGroup").style.display=accion==="rechazar"?"block":"none";
+  document.getElementById("gestionMotivo").value="";
+  document.getElementById("modalGestionSol").style.display="flex";
+}
+
+async function confirmarGestion(){
+  const solId=parseInt(document.getElementById("gestionSolId").value);
+  const accion=document.getElementById("gestionAccion").value;
+  const motivo=document.getElementById("gestionMotivo").value.trim();
+  if(accion==="rechazar"&&!motivo){toast("El motivo es obligatorio","err");return;}
+
+  const estadoMap={aprobar:"aprobada",rechazar:"rechazada",consumir:"consumida",cancelar:"cancelada"};
+  const update={estado:estadoMap[accion],updated_at:new Date().toISOString()};
+  if(accion==="rechazar") update.motivo_rechazo=motivo;
+  if(["aprobar","rechazar","consumir"].includes(accion)) update.aprobado_por=currentUser.id;
+
+  const {error}=await sb.from("solicitudes").update(update).eq("id",solId);
+  if(error){toast("Error: "+error.message,"err");return;}
+  closeModal("modalGestionSol");
+  toast(`✓ Solicitud ${estadoMap[accion]}`,"ok");
+  loadSolicitudes();
+  checkBadges();
+}
+
+// ══ USUARIOS ════════════════════════════════════════════════════════════════
+async function loadUsuarios(){
+  document.getElementById("usuarios-list").innerHTML=`<div class="loading"><div class="spinner"></div>Cargando...</div>`;
+  const {data,error}=await sb.from("perfiles").select("*").order("nombre");
+  if(error){document.getElementById("usuarios-list").innerHTML=`<div class="no-data">Error</div>`;return;}
+
+  const html=data.map(u=>{
+    const color=ROL_COLOR[u.rol]||"#888";
+    const initials=u.nombre.split(" ").map(w=>w[0]).join("").substring(0,2).toUpperCase();
+    const ultimo=u.ultimo_acceso?new Date(u.ultimo_acceso).toLocaleDateString("es-PE"):"Nunca";
+    return `<div class="user-row">
+      <div class="user-avatar-sm" style="background:${color}">${initials}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:500;color:#f0f0f5">${u.nombre}</div>
+        <div style="font-size:10px;color:#5a5e7a">Último acceso: ${ultimo}</div>
+      </div>
+      <span class="rol-badge" style="background:${color}22;color:${color};border:.5px solid ${color}44">${u.rol}</span>
+      <div class="toggle ${u.activo?"on":""}" onclick="toggleUsuario(${u.id},${!u.activo})" title="${u.activo?"Desactivar":"Activar"}"></div>
+      <select class="fi" style="width:auto;padding:4px 8px;font-size:11px" onchange="cambiarRol(${u.id},this.value)">
+        ${["admin","gerente","supervisor","almacen","produccion","vendedor"].map(r=>`<option value="${r}" ${r===u.rol?"selected":""}>${r}</option>`).join("")}
+      </select>
+    </div>`;
+  }).join("");
+  document.getElementById("usuarios-list").innerHTML=html||`<div class="no-data">No hay usuarios</div>`;
+}
+
+function openModalUsuario(){
+  document.getElementById("u_nombre").value="";
+  document.getElementById("u_rol").value="vendedor";
+  document.getElementById("modalUsuario").style.display="flex";
+}
+
+async function saveUsuario(){
+  const nombre=document.getElementById("u_nombre").value.trim();
+  const rol=document.getElementById("u_rol").value;
+  if(!nombre){toast("El nombre es obligatorio","err");return;}
+  const {error}=await sb.from("perfiles").insert({nombre,rol,activo:true,ver_precios:true});
+  if(error){toast("Error: "+error.message,"err");return;}
+  closeModal("modalUsuario");
+  toast("✓ Usuario creado","ok");
+  loadUsuarios();
+  loadLoginUsers();
+}
+
+async function toggleUsuario(id,activo){
+  await sb.from("perfiles").update({activo}).eq("id",id);
+  toast(activo?"Usuario activado":"Usuario desactivado","ok");
+  loadUsuarios();
+  loadLoginUsers();
+}
+
+async function cambiarRol(id,rol){
+  await sb.from("perfiles").update({rol}).eq("id",id);
+  toast(`Rol actualizado: ${rol}`,"ok");
+}
+
+// ══ EXCEL ════════════════════════════════════════════════════════════════════
+function findCol(h,aliases){return h.findIndex(x=>aliases.some(a=>x.includes(a)));}
+
+function parseCodigo(cod){
+  const f2=cod.substring(0,2);
+  const famMap={PU:"PU",EL:"EL",PL:"PL",MN:"MN"};
+  const fam=famMap[f2]||"??";
+  const subs=["U500","U510","U550","U575","U585","N107","N111","H112","E131","F109","F111","S102","S103","P101","A112","T101","T110","T125","0001","0002","0003","0004","0005","0006","0007","0008","0009"];
+  const subfam=subs.find(s=>cod.includes(s))||cod.substring(2,6);
+  return{fam,subfam};
+}
+
+function parseMedidas(desc){
+  const m=desc?.match(/(\d+(?:\.\d+)?)\s*[\/xX*]\s*(\d+(?:\.\d+)?)\s*[\/xX*]\s*(\d+(?:\.\d+)?)/);
+  if(m) return{di:parseFloat(m[1]),de:parseFloat(m[2]),lon:parseFloat(m[3])};
+  const m2=desc?.match(/[-–]\s*(\d+(?:\.\d+)?)\s*[-\/]\s*(\d+(?:\.\d+)?)\s*[-\/]\s*(\d+(?:\.\d+)?)$/);
+  if(m2) return{di:parseFloat(m2[1]),de:parseFloat(m2[2]),lon:parseFloat(m2[3])};
+  return{di:null,de:null,lon:null};
+}
+
+async function loadCatalogFile(e){
+  const f=e.target.files[0];if(!f)return;
+  if(f.size>20*1024*1024){toast("Archivo muy grande (máx 20MB)","err");return;}
+  toast("Leyendo archivo...","info");
+  const r=new FileReader();
+  r.onload=async ev=>{
+    try{
+      const wb=XLSX.read(ev.target.result,{type:"array"});
+      const famSheet=wb.Sheets["FAMILIA"]||wb.Sheets[wb.SheetNames[0]];
+      const famRows=XLSX.utils.sheet_to_json(famSheet,{defval:""});
+      const famMap={};
+      famRows.forEach(row=>{
+        const sub=String(row["SUB FAMILIA"]||row["SUB_FAMILIA"]||"").trim();
+        if(sub) famMap[sub]={
+          fam:String(row["FAMILIA"]||"").trim(),
+          desFam:String(row["DES_FAM"]||"").trim(),
+          desc:String(row["DESCRIPCION"]||"").trim(),
+          dureza:String(row["DUREZA"]||"").trim(),
+        };
+      });
+      const matSheet=wb.Sheets["MATERIALES"]||wb.Sheets[wb.SheetNames[1]]||wb.Sheets[wb.SheetNames[0]];
+      const rawRows=XLSX.utils.sheet_to_json(matSheet,{header:1,defval:""});
+      let hi=rawRows.findIndex(r=>r.some(c=>String(c).toUpperCase().includes("CODIGO")));
+      if(hi<0) hi=0;
+      const headers=rawRows[hi].map(h=>String(h).toUpperCase().trim());
+      const iC=findCol(headers,["CODIGO","CÓDIGO","CODE","COD","SKU"]);
+      const iD=findCol(headers,["DESCRIPCION","DESCRIPCIÓN","DESC","NOMBRE"]);
+      const iL=findCol(headers,["LONGITUD","LONG","LENGTH"]);
+      if(iC<0){toast("No se encontró columna Código","err");return;}
+      const rows=[];
+      for(let i=hi+1;i<rawRows.length;i++){
+        const row=rawRows[i];
+        const cod=String(row[iC]||"").trim();
+        if(!cod) continue;
+        const desc=String(iD>=0?row[iD]:"").trim();
+        const lon=parseFloat(row[iL])||null;
+        const fi=parseCodigo(cod);
+        const med=parseMedidas(desc);
+        const sub=famMap[fi.subfam]||{};
+        rows.push({
+          cod,descripcion:desc,
+          familia:fi.fam||sub.fam||"??",
+          des_familia:sub.desFam||FAMS[fi.fam]?.name||"",
+          subfamilia:fi.subfam,
+          des_subfam:sub.desc||"",
+          dureza:sub.dureza||"",
+          di:med.di,de:med.de,
+          longitud:med.lon??lon,
+        });
+      }
+      if(!rows.length){toast("No se encontraron productos","err");return;}
+      toast(`Subiendo ${rows.length.toLocaleString()} productos...`,"info");
+      for(let i=0;i<rows.length;i+=500){
+        const batch=rows.slice(i,i+500);
+        const {error}=await sb.from("catalogo").upsert(batch,{onConflict:"cod"});
+        if(error){toast("Error al subir: "+error.message,"err");return;}
+      }
+      toast(`✓ ${rows.length.toLocaleString()} productos sincronizados`,"ok");
+      await loadCatalogo();
+      goTo("catalogo");
+    }catch(err){toast("Error: "+err.message,"err");}
+  };
+  r.readAsArrayBuffer(f);
+}
+
+function exportExcel(){
+  if(!filtered.length){toast("No hay datos para exportar","err");return;}
+  const hdr=["Código","Descripción","Familia","Des.Familia","Subfamilia","Des.Subfamilia","Dureza","DI","DE","Longitud","Precio","Moneda","Proveedor"];
+  const rows=filtered.map(p=>[p.cod,p.descripcion,p.familia,p.des_familia,p.subfamilia,p.des_subfam,p.dureza,p.di??'',p.de??'',p.longitud??'',p.precio??'',p.moneda||'',p.proveedor||'']);
+  const wb=XLSX.utils.book_new();
+  const ws=XLSX.utils.aoa_to_sheet([hdr,...rows]);
+  XLSX.utils.book_append_sheet(wb,"Catálogo CT Seals",ws);
+  XLSX.writeFile(wb,`CT_Seals_Catalogo_${new Date().toISOString().slice(0,10)}.xlsx`);
+  toast("Excel exportado","ok");
+}
+
+// ══ HELPERS ══════════════════════════════════════════════════════════════════
+function closeModal(id){document.getElementById(id).style.display="none";}
+
+function toast(msg,type="ok"){
+  const t=document.getElementById("toast");
+  t.textContent=msg;t.className="toast "+type+" show";
+  clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove("show"),4000);
+}
+
+// Restaurar sesión si existía
+const saved=localStorage.getItem("ctseals_user");
+if(saved){
+  try{
+    const u=JSON.parse(saved);
+    currentUser=u;
+    // Verificar que sigue activo
+    sb.from("perfiles").select("*").eq("id",u.id).single().then(({data})=>{
+      if(data&&data.activo){currentUser=data;initApp();}
+      else{localStorage.removeItem("ctseals_user");}
+    });
+  }catch(e){localStorage.removeItem("ctseals_user");}
+}
+</script>
+</body>
+</html>
