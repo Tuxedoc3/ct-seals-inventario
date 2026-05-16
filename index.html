@@ -2213,12 +2213,24 @@ async function loadStockFile(e){
 
       if(!rows.length){toast("El archivo está vacío o sin datos válidos","err");return;}
 
-      let ok=0,err2=0,sinAltura=0;
+      // Pre-cargar códigos existentes en catálogo para evitar fallos de FK
+      const catSet=new Set();
+      for(let from=0;;from+=1000){
+        const {data:cd}=await sb.from("catalogo").select("cod").range(from,from+999);
+        if(!cd?.length) break;
+        cd.forEach(c=>catSet.add(c.cod));
+        if(cd.length<1000) break;
+      }
+
+      let ok=0,err2=0,sinAltura=0,sinCat=0;
       for(const row of rows){
         const desc=String(row["Descripcion"]||row["descripcion"]||row["DESCRIPCION"]||"").trim();
         const altura=parseFloat(row["Altura_mm"]||row["altura_mm"]||row["ALTURA_MM"]||row["Altura"]||0);
         const cant=parseInt(row["Cantidad"]||row["cantidad"]||row["CANTIDAD"]||0);
-        const cod=String(row["Codigo"]||row["codigo"]||row["CODIGO"]||"").trim()||null;
+        const codRaw=String(row["Codigo"]||row["codigo"]||row["CODIGO"]||"").trim();
+        // Si el código no existe en catálogo, guardar tubo con codigo_mat=null (evita FK violation)
+        const cod=codRaw&&catSet.has(codRaw)?codRaw:null;
+        if(codRaw&&!cod) sinCat++;
 
         if(!desc||cant<=0){err2++;continue;}
         if(!altura){sinAltura++;err2++;continue;}
@@ -2242,9 +2254,13 @@ async function loadStockFile(e){
         ok++;
       }
       let msg=`${ok} tipo${ok!==1?"s":""} de tubo cargado${ok!==1?"s":""}`;
-      if(sinAltura>0) msg+=` · ${sinAltura} sin altura (descripción sin "...MM")`;
-      else if(err2>0) msg+=` · ${err2} con errores`;
+      const extras=[];
+      if(sinAltura>0) extras.push(`${sinAltura} sin altura detectable`);
+      if(sinCat>0)    extras.push(`${sinCat} sin código en catálogo (cargados sin FK)`);
+      if(err2>sinAltura) extras.push(`${err2-sinAltura} con otros errores`);
+      if(extras.length) msg+=` · ${extras.join(" · ")}`;
       toast((ok>0?"✓ ":"✗ ")+msg,ok>0?"ok":"err");
+      console.log("[Stock] Resumen:",{ok,err2,sinAltura,sinCat,totalRows:rows.length});
       loadTubos();
     }catch(err){toast("Error: "+err.message,"err");}
   };
