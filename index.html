@@ -970,6 +970,42 @@ tbody tr:hover td{background:#1e2134}
   </div>
 </div>
 
+<!-- MODAL: Editar OP en Gantt -->
+<div class="modal-overlay" id="modalEditarOp" style="display:none" onclick="if(event.target===this)closeModal('modalEditarOp')">
+  <div class="modal">
+    <div class="modal-title"><i class="ti ti-edit" style="color:#D32F2F"></i>Editar OP en línea de tiempo</div>
+    <div id="ed_op_info" style="background:#1a1d26;border-radius:8px;padding:12px;margin-bottom:12px;font-size:12px;color:#b0b3cc"></div>
+    <div class="form-group">
+      <label class="form-label">Estación <span class="req">*</span></label>
+      <select class="form-input" id="ed_op_estacion"></select>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Hora inicio <span class="req">*</span></label>
+        <input class="form-input" id="ed_op_inicio" type="time" step="900">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Hora fin <span class="req">*</span></label>
+        <input class="form-input" id="ed_op_fin" type="time" step="900">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Estado</label>
+      <select class="form-input" id="ed_op_estado">
+        <option value="pendiente">Pendiente</option>
+        <option value="en_proceso">En proceso</option>
+        <option value="completada">Completada</option>
+      </select>
+    </div>
+    <div class="form-hint">Operador y supervisor pueden ajustar tiempos según el flujo real de producción.</div>
+    <input type="hidden" id="ed_op_id">
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modalEditarOp')">Cancelar</button>
+      <button class="btn btn-red" onclick="guardarEditarOp()"><i class="ti ti-check"></i>Guardar cambios</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -2138,17 +2174,54 @@ async function loadStockFile(e){
     try{
       const wb=XLSX.read(ev.target.result,{type:"array"});
       const ws=wb.Sheets[wb.SheetNames[0]];
-      const rows=XLSX.utils.sheet_to_json(ws,{defval:""});
-      if(!rows.length){toast("El archivo está vacío","err");return;}
 
-      let ok=0,err2=0;
+      // Detectar formato: reporte CUSTOM SEALS vs Excel limpio (Codigo/Descripcion/Cantidad)
+      const aoa=XLSX.utils.sheet_to_json(ws,{header:1,defval:""});
+      const firstCell=String(aoa[0]?.[0]||"").trim().toUpperCase();
+      const esReporte=firstCell.includes("CUSTOM SEALS")||firstCell.includes("SALDOS")||(aoa[1]&&String(aoa[1][0]||"").toUpperCase().includes("SALDOS"));
+
+      let rows=[];
+      if(esReporte){
+        // Formato reporte: títulos en filas 1-6, encabezados en fila 7, datos desde fila 9
+        for(let i=8;i<aoa.length;i++){
+          const r=aoa[i]||[];
+          const cod=String(r[0]||"").trim();
+          if(!cod) continue;
+          const codU=cod.toUpperCase();
+          if(codU.startsWith("FAMILIA")||codU.startsWith("SUBFAMILIA")||codU.startsWith("TOTAL")||codU.startsWith("MARCA")) continue;
+          const desc=String(r[2]||"").trim();
+          const saldo=parseFloat(r[8]||0);
+          if(!desc||!saldo||saldo<=0) continue;
+          // Parsear altura/longitud desde la descripción (ej: "...28 X 52 X 120 MM" → 120)
+          let altura=0;
+          const m1=desc.match(/(\d+(?:\.\d+)?)\s*MM\s*$/i);
+          if(m1) altura=parseFloat(m1[1]);
+          if(!altura){
+            const m2=desc.match(/[\/Xx]\s*(\d+(?:\.\d+)?)\s*MM?\s*$/i);
+            if(m2) altura=parseFloat(m2[1]);
+          }
+          if(!altura){
+            const m3=desc.match(/-\s*\d+(?:\.\d+)?\s*[\/Xx]\s*\d+(?:\.\d+)?\s*[\/Xx]\s*(\d+(?:\.\d+)?)/);
+            if(m3) altura=parseFloat(m3[1]);
+          }
+          rows.push({Codigo:cod,Descripcion:desc,Altura_mm:altura,Cantidad:Math.round(saldo)});
+        }
+        toast(`Detectado reporte CUSTOM SEALS — ${rows.length} ítems`,"info");
+      }else{
+        rows=XLSX.utils.sheet_to_json(ws,{defval:""});
+      }
+
+      if(!rows.length){toast("El archivo está vacío o sin datos válidos","err");return;}
+
+      let ok=0,err2=0,sinAltura=0;
       for(const row of rows){
         const desc=String(row["Descripcion"]||row["descripcion"]||row["DESCRIPCION"]||"").trim();
         const altura=parseFloat(row["Altura_mm"]||row["altura_mm"]||row["ALTURA_MM"]||row["Altura"]||0);
         const cant=parseInt(row["Cantidad"]||row["cantidad"]||row["CANTIDAD"]||0);
         const cod=String(row["Codigo"]||row["codigo"]||row["CODIGO"]||"").trim()||null;
 
-        if(!desc||!altura||cant<=0){err2++;continue;}
+        if(!desc||cant<=0){err2++;continue;}
+        if(!altura){sinAltura++;err2++;continue;}
 
         // Buscar o crear plantilla
         let tuboId;
@@ -2168,7 +2241,10 @@ async function loadStockFile(e){
         await sb.from("movimientos").insert({tubo_id:tuboId,tipo:"entrada",cantidad:cant,usuario_id:CU?.id,nota:`Carga masiva: ${cant} tubos`});
         ok++;
       }
-      toast(`✓ ${ok} tipo${ok>1?"s":""} de tubo cargado${ok>1?"s":""}${err2>0?` · ${err2} con errores`:""}`,ok>0?"ok":"err");
+      let msg=`${ok} tipo${ok!==1?"s":""} de tubo cargado${ok!==1?"s":""}`;
+      if(sinAltura>0) msg+=` · ${sinAltura} sin altura (descripción sin "...MM")`;
+      else if(err2>0) msg+=` · ${err2} con errores`;
+      toast((ok>0?"✓ ":"✗ ")+msg,ok>0?"ok":"err");
       loadTubos();
     }catch(err){toast("Error: "+err.message,"err");}
   };
@@ -2223,12 +2299,25 @@ async function loadClientesFile(e){
           const d=new Date(v);
           return isNaN(d.getTime())?null:d.toISOString().slice(0,10);
         };
+        // Limpiar RUC/DNI: solo dígitos
+        const onlyDigits=v=>{const s=String(v||"").replace(/\D/g,"");return s||null;};
+        // Tipo: forzar JUR o NAT
+        const rawTipo=String(get("TIPO")||"NAT").trim().toUpperCase();
+        const tipo=(rawTipo==="JUR"||rawTipo==="NAT")?rawTipo:"NAT";
+        // Estado: forzar activo/inactivo
+        const rawEstado=String(get("ESTADO")||"activo").trim().toLowerCase();
+        const estado=(rawEstado==="activo"||rawEstado==="inactivo")?rawEstado:"activo";
+        // Género: forzar M/F o null
+        const rawGen=String(get("GENERO")||"").trim().toUpperCase();
+        const genero=(rawGen==="M"||rawGen==="F")?rawGen:null;
         return {
           codigo:String(get("CODIGO")||"").trim(),
           nombre:String(get("NOMBRE")||"").trim(),
-          ruc:String(get("RUC")||"").trim()||null,
-          dni:String(get("DNI")||"").trim()||null,
-          tipo:String(get("TIPO")||"NAT").trim(),
+          ruc:onlyDigits(get("RUC")),
+          dni:onlyDigits(get("DNI")),
+          tipo,
+          estado,
+          genero,
           ind_domic:String(get("IND_DOMIC")||"").trim()||null,
           ind_cli:toBool(get("IND_CLI")),
           ind_pro:toBool(get("IND_PRO")),
@@ -2246,7 +2335,6 @@ async function loadClientesFile(e){
           pag_web:String(get("PAG_WEB")||"").trim()||null,
           doc_ident:String(get("DOC_IDENT")||"").trim()||null,
           nrodoc_ident:String(get("NRODOC_IDENT")||"").trim()||null,
-          genero:String(get("GENERO")||"").trim()||null,
           fec_nacim:dateOnly(get("FEC_NACIM")),
           ind_vincul:String(get("IND_VINCUL")||"").trim()||null,
           nombre_nat:String(get("NOMBRE_NAT")||"").trim()||null,
@@ -2256,7 +2344,6 @@ async function loadClientesFile(e){
           des_tipo_actividad:String(get("DES_TIPO_ACTIVIDAD")||"").trim()||null,
           notas:String(get("NOTAS")||"").trim()||null,
           codanterior:String(get("CODANTERIOR")||"").trim()||null,
-          estado:String(get("ESTADO")||"activo").trim().toLowerCase()||"activo",
           fec_act:fec(get("FEC_ACT")),
           user_act:String(get("USER_ACT")||"").trim()||null,
           fec_crea:fec(get("FEC_CREA")),
@@ -2268,15 +2355,21 @@ async function loadClientesFile(e){
 
       // Insertar en lotes de 500 con upsert por codigo
       const CHUNK=500;
-      let ok=0,err2=0;
+      let ok=0,err2=0,firstErr=null;
       for(let i=0;i<clean.length;i+=CHUNK){
         const slice=clean.slice(i,i+CHUNK);
         prog.textContent=`Subiendo ${i+1}–${Math.min(i+CHUNK,clean.length)} de ${clean.length}...`;
         const {error}=await sb.from("clientes").upsert(slice,{onConflict:"codigo"});
-        if(error){err2+=slice.length;console.error(error);}else ok+=slice.length;
+        if(error){
+          err2+=slice.length;
+          console.error(`[Clientes] Lote ${i+1}-${i+slice.length} falló:`,error);
+          console.error("[Clientes] Primera fila del lote fallido:",slice[0]);
+          if(!firstErr) firstErr=error.message;
+        }else ok+=slice.length;
       }
-      prog.textContent=`✓ ${ok} clientes cargados${err2>0?` · ${err2} con errores`:""}`;
-      toast(`✓ ${ok} clientes cargados${err2>0?` · ${err2} con errores`:""}`,ok>0?"ok":"err");
+      const msg=`${ok} clientes cargados${err2>0?` · ${err2} con errores`:""}`;
+      prog.innerHTML=`${ok>0?"✓":"✗"} ${msg}${firstErr?`<br><span style="color:#e85a5a">Error: ${firstErr}</span><br><span style="color:#7a7d99">Abre F12 → Console para ver el detalle de cada lote fallido</span>`:""}`;
+      toast(msg,ok>0?"ok":"err");
       e.target.value="";
     }catch(err){toast("Error: "+err.message,"err");prog.style.display="none";}
   };
@@ -2595,20 +2688,16 @@ const GANTT_COLORS=["#D32F2F","#5b9bd5","#4caf8c","#f5a623","#a78bfa","#fb923c",
 function ganttDemoData(){
   return {
     estaciones:[
-      {id:1,nombre:"Torno 1"},
-      {id:2,nombre:"Torno 2"},
-      {id:3,nombre:"Fresadora"},
-      {id:4,nombre:"Acabado"},
+      {id:1,nombre:"Sede Custom",sub:"CNC"},
+      {id:2,nombre:"Sede Mecaniza",sub:"CNC"},
     ],
     ops:[
       {id:"OP-2026-0381",estacion:1,cliente:"MAQPOWER",inicio:7.5,fin:10,perfiles:"38× P51",mat:"EPDM E131",estado:"en_proceso",vendedor:"Carla R."},
       {id:"OP-2026-0382",estacion:1,cliente:"MINERA ALPINA",inicio:10.5,fin:13,perfiles:"12× WR01, 8× RS02",mat:"PU U500",estado:"pendiente",vendedor:"Luis V."},
+      {id:"OP-2026-0383",estacion:1,cliente:"INDUSCO",inicio:13.5,fin:16,perfiles:"Kit 4× O-rings + 2× P52",mat:"Mixto",estado:"pendiente",vendedor:"Diego P."},
       {id:"OP-2026-0379",estacion:2,cliente:"HYDRAULIC SAC",inicio:8,fin:11.5,perfiles:"24× PS04",mat:"NBR N107",estado:"en_proceso",vendedor:"Carla R."},
-      {id:"OP-2026-0383",estacion:2,cliente:"MAQPOWER",inicio:12,fin:14,perfiles:"6× FL03",mat:"FPM F109",estado:"pendiente",vendedor:"Carla R."},
-      {id:"OP-2026-0380",estacion:3,cliente:"INDUSCO",inicio:9,fin:12,perfiles:"Kit 4× O-rings + 2× P52",mat:"Mixto",estado:"en_proceso",vendedor:"Diego P."},
-      {id:"OP-2026-0384",estacion:3,cliente:"SIDERPERU",inicio:13.5,fin:17,perfiles:"50× BWR05",mat:"PL POM",estado:"pendiente",vendedor:"Luis V."},
-      {id:"OP-2026-0378",estacion:4,cliente:"HYDRAULIC SAC",inicio:7.5,fin:9,perfiles:"Acabado lote 03",mat:"—",estado:"completada",vendedor:"—"},
-      {id:"OP-2026-0385",estacion:4,cliente:"INDUSCO",inicio:14,fin:17.5,perfiles:"Acabado P52",mat:"—",estado:"pendiente",vendedor:"Diego P."},
+      {id:"OP-2026-0384",estacion:2,cliente:"SIDERPERU",inicio:12,fin:14.5,perfiles:"50× BWR05",mat:"PL POM",estado:"pendiente",vendedor:"Luis V."},
+      {id:"OP-2026-0385",estacion:2,cliente:"MAQPOWER",inicio:15,fin:17.5,perfiles:"6× FL03",mat:"FPM F109",estado:"pendiente",vendedor:"Carla R."},
     ]
   };
 }
@@ -2656,7 +2745,10 @@ function renderGantt(){
   estaciones.forEach((est,ei)=>{
     const opsEst=ops.filter(o=>o.estacion===est.id);
     html+=`<div class="gantt-row" style="grid-template-columns:${hdrCols}">
-      <div class="gantt-row-label" style="width:${LABEL_W}px"><i class="ti ti-tool" style="font-size:13px;color:#7a7d99;margin-right:6px"></i>${est.nombre}</div>
+      <div class="gantt-row-label" style="width:${LABEL_W}px">
+        <i class="ti ti-cpu" style="font-size:13px;color:#D32F2F;margin-right:6px"></i>
+        <div><div style="font-weight:500">${est.nombre}</div>${est.sub?`<div style="font-size:9px;color:#7a7d99;letter-spacing:.4px">${est.sub}</div>`:""}</div>
+      </div>
       <div></div>
       ${GANTT_HOURS.map(()=>`<div class="gantt-cell"></div>`).join("")}`;
     opsEst.forEach((op,i)=>{
@@ -2710,8 +2802,56 @@ function ganttDragEnd(e){e.target.classList.remove("dragging");
   _ganttDragOp=null;
 }
 function ganttClickOp(opId){
+  const perm=PERMISOS[CU.rol];
   const op=_ganttData.ops.find(o=>o.id===opId);if(!op) return;
-  toast(`${op.id} — ${op.cliente} · ${op.perfiles} · ${op.mat}`,"info");
+  // Solo operadores (producción), supervisor y admin pueden editar tiempo
+  if(!perm.editarProduccion){
+    toast(`${op.id} — ${op.cliente} · ${op.perfiles} · ${op.mat}`,"info");
+    return;
+  }
+  abrirModalEditarOp(op);
+}
+
+// Convertir decimal a HH:MM y viceversa
+function decToHHMM(d){
+  const h=Math.floor(d),m=Math.round((d-h)*60);
+  return `${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}`;
+}
+function hhmmToDec(s){
+  const [h,m]=s.split(":").map(Number);
+  return (h||0)+((m||0)/60);
+}
+
+function abrirModalEditarOp(op){
+  document.getElementById("ed_op_id").value=op.id;
+  document.getElementById("ed_op_info").innerHTML=`
+    <div><strong style="color:#f0f0f5">${op.id}</strong> · ${op.cliente}</div>
+    <div style="font-size:11px;margin-top:4px">${op.perfiles}</div>
+    <div style="font-size:11px;color:#7a7d99;margin-top:2px">Material: ${op.mat} · Vendedor: ${op.vendedor}</div>`;
+  document.getElementById("ed_op_inicio").value=decToHHMM(op.inicio);
+  document.getElementById("ed_op_fin").value=decToHHMM(op.fin);
+  document.getElementById("ed_op_estacion").innerHTML=_ganttData.estaciones.map(e=>`<option value="${e.id}"${e.id===op.estacion?" selected":""}>${e.nombre}</option>`).join("");
+  document.getElementById("ed_op_estado").value=op.estado;
+  document.getElementById("modalEditarOp").style.display="flex";
+}
+
+function guardarEditarOp(){
+  const id=document.getElementById("ed_op_id").value;
+  const op=_ganttData.ops.find(o=>o.id===id);if(!op) return;
+  const inicio=hhmmToDec(document.getElementById("ed_op_inicio").value);
+  const fin=hhmmToDec(document.getElementById("ed_op_fin").value);
+  if(fin<=inicio){toast("La hora de fin debe ser mayor que la de inicio","err");return;}
+  if(inicio<GANTT_HOURS[0]||fin>GANTT_HOURS[GANTT_HOURS.length-1]+1){
+    toast(`Horario válido: ${GANTT_HOURS[0]}:00 a ${GANTT_HOURS[GANTT_HOURS.length-1]+1}:00`,"err");return;
+  }
+  op.inicio=inicio;
+  op.fin=fin;
+  op.estacion=parseInt(document.getElementById("ed_op_estacion").value);
+  op.estado=document.getElementById("ed_op_estado").value;
+  renderGantt();
+  renderGanttTabla();
+  closeModal("modalEditarOp");
+  toast(`✓ ${op.id} actualizada`,"ok");
 }
 
 // ── HELPERS ───────────────────────────────────────────────────────────────────
