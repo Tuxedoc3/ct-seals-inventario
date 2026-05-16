@@ -217,6 +217,31 @@ tbody tr:hover td{background:#1e2134}
 @keyframes spin{to{transform:rotate(360deg)}}
 .spinner{width:16px;height:16px;border:2px solid #2e3042;border-top-color:#D32F2F;border-radius:50%;animation:spin .7s linear infinite}
 
+/* GANTT */
+.gantt-wrap{background:#111318;border:.5px solid #2e3042;border-radius:10px;padding:0;overflow-x:auto}
+.gantt-header{display:grid;border-bottom:.5px solid #2e3042;background:#1a1d26;position:sticky;top:0;z-index:2}
+.gantt-hour{padding:8px 4px;text-align:center;font-size:10px;color:#7a7d99;border-right:.5px solid #22253a;text-transform:uppercase;letter-spacing:.5px}
+.gantt-hour:last-child{border-right:none}
+.gantt-row{display:grid;border-bottom:.5px solid #1e2134;position:relative;min-height:48px}
+.gantt-row:last-child{border-bottom:none}
+.gantt-cell{border-right:.5px solid #1e2134;min-height:48px}
+.gantt-cell:last-child{border-right:none}
+.gantt-row-label{position:absolute;left:0;top:0;width:140px;height:100%;background:#1a1d26;border-right:.5px solid #2e3042;padding:8px 10px;font-size:11px;color:#c8cce0;display:flex;align-items:center;z-index:1}
+.gantt-block{position:absolute;top:6px;height:36px;border-radius:6px;padding:6px 9px;cursor:move;font-size:11px;font-weight:500;color:#fff;overflow:hidden;display:flex;align-items:center;gap:6px;box-shadow:0 2px 6px rgba(0,0,0,.3);user-select:none;transition:transform .15s, box-shadow .15s}
+.gantt-block:hover{transform:translateY(-1px);box-shadow:0 4px 10px rgba(0,0,0,.4);z-index:5}
+.gantt-block.dragging{opacity:.6;z-index:10}
+.gantt-block-time{font-size:9px;opacity:.85;margin-left:auto;white-space:nowrap}
+.gantt-tabla-row{display:grid;grid-template-columns:60px 1fr 110px 100px 90px 90px 90px;gap:10px;padding:8px 12px;font-size:11px;border-bottom:.5px solid #1e2134;align-items:center}
+.gantt-tabla-row.header{color:#5a5e7a;text-transform:uppercase;font-size:10px;letter-spacing:.4px;font-weight:500}
+.gantt-estado{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:500}
+
+/* CLIENTE MODAL */
+.cli-section{font-size:10px;color:#7a7d99;text-transform:uppercase;letter-spacing:.5px;margin:14px 0 6px;padding-bottom:4px;border-bottom:.5px solid #2e3042;display:flex;align-items:center;gap:6px}
+.cli-section:first-child{margin-top:0}
+.cli-checks{display:flex;gap:14px;flex-wrap:wrap}
+.cli-check{display:flex;align-items:center;gap:5px;font-size:12px;color:#c8cce0;cursor:pointer}
+.cli-check input{accent-color:#D32F2F}
+
 @media(max-width:640px){.sidebar{display:none}.main{padding:10px}}
 </style>
 </head>
@@ -425,6 +450,105 @@ tbody tr:hover td{background:#1e2134}
           <button class="btn btn-blue" onclick="event.stopPropagation();document.getElementById('stockInput').click()"><i class="ti ti-upload"></i>Seleccionar archivo</button>
           <input type="file" id="stockInput" style="display:none" accept=".xlsx,.xls,.csv" onchange="loadStockFile(event)">
         </div>
+      </div>
+      <div class="card">
+        <div class="card-title"><i class="ti ti-users"></i>Carga masiva de clientes</div>
+        <div style="font-size:11px;color:#7a7d99;margin-bottom:10px">
+          El Excel debe tener encabezados en la fila 3: <strong style="color:#c8cce0">CODIGO</strong> · <strong style="color:#c8cce0">NOMBRE</strong> · <strong style="color:#c8cce0">RUC</strong> · <strong style="color:#c8cce0">DNI</strong> · <strong style="color:#c8cce0">TIPO</strong> · <em style="color:#5a5e7a">y demás campos del maestro</em>
+        </div>
+        <div class="upload-zone" onclick="document.getElementById('clientesInput').click()">
+          <div style="font-size:32px;color:#fb923c;margin-bottom:8px"><i class="ti ti-users"></i></div>
+          <div style="font-size:13px;font-weight:500;color:#f0f0f5;margin-bottom:4px">Cargar clientes desde Excel</div>
+          <div style="font-size:11px;color:#7a7d99;margin-bottom:12px">Se actualizan los existentes por CODIGO y se insertan los nuevos</div>
+          <button class="btn btn-amber" onclick="event.stopPropagation();document.getElementById('clientesInput').click()"><i class="ti ti-upload"></i>Seleccionar archivo</button>
+          <input type="file" id="clientesInput" style="display:none" accept=".xlsx,.xls" onchange="loadClientesFile(event)">
+        </div>
+        <div id="clientesProgress" style="display:none;margin-top:10px;font-size:11px;color:#5b9bd5"></div>
+      </div>
+    </div>
+
+    <!-- CLIENTES -->
+    <div class="page" id="page-clientes">
+      <div class="page-title"><i class="ti ti-users" style="color:#D32F2F"></i>Clientes</div>
+      <div class="kpi-grid" id="clientesKpis"></div>
+      <div class="card">
+        <div class="card-title"><i class="ti ti-filter"></i>Búsqueda y filtros</div>
+        <div class="filters-grid">
+          <div class="filter-group" style="grid-column:span 2">
+            <label class="filter-label">Búsqueda</label>
+            <input class="fi" id="cliQ" type="text" placeholder="Nombre, código, RUC, DNI, teléfono..." oninput="debounceClientes()">
+          </div>
+          <div class="filter-group">
+            <label class="filter-label">Tipo</label>
+            <select class="fi" id="cliTipo" onchange="renderClientes()">
+              <option value="">Todos</option>
+              <option value="JUR">Jurídico (empresa)</option>
+              <option value="NAT">Natural</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label class="filter-label">Indicador</label>
+            <select class="fi" id="cliInd" onchange="renderClientes()">
+              <option value="">Todos</option>
+              <option value="cli">Cliente</option>
+              <option value="pro">Proveedor</option>
+              <option value="tra">Trabajador</option>
+              <option value="otr">Otro</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label class="filter-label">Estado</label>
+            <select class="fi" id="cliEstado" onchange="renderClientes()">
+              <option value="">Todos</option>
+              <option value="activo" selected>Activos</option>
+              <option value="inactivo">Inactivos</option>
+            </select>
+          </div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-ghost" onclick="resetFiltrosClientes()"><i class="ti ti-refresh"></i>Limpiar</button>
+          <button class="btn btn-red" id="btnNuevoCliente" onclick="openModalCliente()"><i class="ti ti-plus"></i>Nuevo cliente</button>
+        </div>
+      </div>
+      <div class="card" style="padding:0">
+        <div class="tbl-wrap" style="max-height:none">
+          <table>
+            <thead><tr>
+              <th>Código</th>
+              <th>Nombre</th>
+              <th>Tipo</th>
+              <th>RUC / DNI</th>
+              <th>Indicador</th>
+              <th>Teléfono / Email</th>
+              <th>Ubigeo</th>
+              <th></th>
+            </tr></thead>
+            <tbody id="clientes-tbody"><tr><td colspan="8" class="no-data"><div class="loading"><div class="spinner"></div>Cargando clientes...</div></td></tr></tbody>
+          </table>
+        </div>
+        <div class="tbl-footer" style="padding:10px 14px" id="clientesFooter"></div>
+      </div>
+    </div>
+
+    <!-- PRODUCCIÓN (Gantt) -->
+    <div class="page" id="page-produccion">
+      <div class="page-title"><i class="ti ti-calendar-stats" style="color:#D32F2F"></i>Producción — Línea de tiempo</div>
+      <div class="btn-row">
+        <button class="btn btn-ghost" onclick="ganttPrevDia()"><i class="ti ti-chevron-left"></i></button>
+        <button class="btn btn-ghost" onclick="ganttHoy()"><i class="ti ti-calendar"></i>Hoy</button>
+        <button class="btn btn-ghost" onclick="ganttNextDia()"><i class="ti ti-chevron-right"></i></button>
+        <div style="font-size:13px;color:#f0f0f5;font-weight:500;padding:6px 12px" id="ganttFecha"></div>
+        <div style="flex:1"></div>
+        <button class="btn btn-red" id="btnNuevaOP" onclick="toast('Pendiente: módulo OP (requiere PDF de cotización)','info')"><i class="ti ti-plus"></i>Nueva OP</button>
+      </div>
+      <div class="kpi-grid" id="ganttKpis"></div>
+      <div class="card">
+        <div class="card-title"><i class="ti ti-info-circle"></i>Datos demostrativos — el módulo se enlazará con OPs reales cuando esté el sistema de cotización</div>
+        <div id="ganttContainer"></div>
+      </div>
+      <div class="card">
+        <div class="card-title"><i class="ti ti-list"></i>Detalle de OPs del día</div>
+        <div id="ganttTabla"></div>
       </div>
     </div>
 
@@ -709,6 +833,143 @@ tbody tr:hover td{background:#1e2134}
   </div>
 </div>
 
+<!-- MODAL: Cliente (nuevo / editar) -->
+<div class="modal-overlay" id="modalCliente" style="display:none" onclick="if(event.target===this)closeModal('modalCliente')">
+  <div class="modal" style="max-width:720px">
+    <div class="modal-title"><i class="ti ti-user" style="color:#D32F2F"></i><span id="modalClienteTitle">Nuevo cliente</span></div>
+
+    <div class="cli-section"><i class="ti ti-id"></i>Identificación</div>
+    <div class="form-row-3">
+      <div class="form-group"><label class="form-label">Código <span class="req">*</span></label><input class="form-input" id="cli_codigo" placeholder="000000123"></div>
+      <div class="form-group"><label class="form-label">Tipo <span class="req">*</span></label>
+        <select class="form-input" id="cli_tipo"><option value="JUR">JUR — Empresa</option><option value="NAT">NAT — Persona natural</option></select>
+      </div>
+      <div class="form-group"><label class="form-label">Estado</label>
+        <select class="form-input" id="cli_estado"><option value="activo">Activo</option><option value="inactivo">Inactivo</option></select>
+      </div>
+    </div>
+    <div class="form-group"><label class="form-label">Nombre / Razón social <span class="req">*</span></label><input class="form-input" id="cli_nombre" placeholder="MAQPOWER S.A.C."></div>
+    <div class="form-row-3">
+      <div class="form-group"><label class="form-label">RUC</label><input class="form-input" id="cli_ruc" placeholder="20XXXXXXXXX" maxlength="11"></div>
+      <div class="form-group"><label class="form-label">DNI</label><input class="form-input" id="cli_dni" placeholder="XXXXXXXX" maxlength="12"></div>
+      <div class="form-group"><label class="form-label">Doc. identidad</label><input class="form-input" id="cli_doc_ident" placeholder="DNI / CE / PAS"></div>
+    </div>
+    <div class="form-group"><label class="form-label">Nombre comercial</label><input class="form-input" id="cli_nom_comercial" placeholder="Opcional"></div>
+
+    <div class="cli-section"><i class="ti ti-tags"></i>Indicadores</div>
+    <div class="cli-checks">
+      <label class="cli-check"><input type="checkbox" id="cli_ind_cli"> Cliente</label>
+      <label class="cli-check"><input type="checkbox" id="cli_ind_pro"> Proveedor</label>
+      <label class="cli-check"><input type="checkbox" id="cli_ind_tra"> Trabajador</label>
+      <label class="cli-check"><input type="checkbox" id="cli_ind_otr"> Otro</label>
+      <label class="cli-check"><input type="checkbox" id="cli_ind_domic"> Domiciliado</label>
+    </div>
+
+    <div class="cli-section"><i class="ti ti-map-pin"></i>Ubicación</div>
+    <div class="form-group"><label class="form-label">Dirección</label><input class="form-input" id="cli_direccion" placeholder="Av. principal 123, distrito"></div>
+    <div class="form-row-3">
+      <div class="form-group"><label class="form-label">País</label><input class="form-input" id="cli_pais" placeholder="PERU"></div>
+      <div class="form-group"><label class="form-label">Ubigeo</label><input class="form-input" id="cli_ubigeo" placeholder="150101"></div>
+      <div class="form-group"><label class="form-label">Des. Ubigeo</label><input class="form-input" id="cli_des_ubigeo" placeholder="LIMA-LIMA-LIMA"></div>
+    </div>
+
+    <div class="cli-section"><i class="ti ti-phone"></i>Contacto</div>
+    <div class="form-row-3">
+      <div class="form-group"><label class="form-label">Teléfono</label><input class="form-input" id="cli_telefono" placeholder="01-XXXXXXX"></div>
+      <div class="form-group"><label class="form-label">Celular</label><input class="form-input" id="cli_celular" placeholder="9XX XXX XXX"></div>
+      <div class="form-group"><label class="form-label">Fax</label><input class="form-input" id="cli_fax" placeholder="—"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Email</label><input class="form-input" id="cli_email" type="email" placeholder="contacto@empresa.com"></div>
+      <div class="form-group"><label class="form-label">Página web</label><input class="form-input" id="cli_pag_web" placeholder="https://..."></div>
+    </div>
+    <div class="form-group"><label class="form-label">Contactos (nombres y cargos)</label><input class="form-input" id="cli_contactos" placeholder="Juan Pérez — Compras / María López — Gerencia"></div>
+
+    <div class="cli-section"><i class="ti ti-user-circle"></i>Datos persona natural (solo si TIPO=NAT)</div>
+    <div class="form-row-3">
+      <div class="form-group"><label class="form-label">Nombres</label><input class="form-input" id="cli_nombre_nat"></div>
+      <div class="form-group"><label class="form-label">Apellido paterno</label><input class="form-input" id="cli_ape_pat"></div>
+      <div class="form-group"><label class="form-label">Apellido materno</label><input class="form-input" id="cli_ape_mat"></div>
+    </div>
+    <div class="form-row-3">
+      <div class="form-group"><label class="form-label">Género</label>
+        <select class="form-input" id="cli_genero"><option value="">—</option><option value="M">Masculino</option><option value="F">Femenino</option></select>
+      </div>
+      <div class="form-group"><label class="form-label">Fecha de nacimiento</label><input class="form-input" id="cli_fec_nacim" type="date"></div>
+      <div class="form-group"><label class="form-label">Vínculo</label><input class="form-input" id="cli_ind_vincul" placeholder="—"></div>
+    </div>
+
+    <div class="cli-section"><i class="ti ti-note"></i>Adicional</div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Tipo de actividad</label><input class="form-input" id="cli_des_tipo_actividad" placeholder="—"></div>
+      <div class="form-group"><label class="form-label">Código anterior</label><input class="form-input" id="cli_codanterior" placeholder="—"></div>
+    </div>
+    <div class="form-group"><label class="form-label">Notas internas</label><input class="form-input" id="cli_notas" placeholder="Observaciones, condiciones, crédito, etc."></div>
+
+    <input type="hidden" id="cli_id">
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modalCliente')">Cancelar</button>
+      <button class="btn btn-red" onclick="saveCliente()"><i class="ti ti-check"></i>Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Consumir más del mismo tubo -->
+<div class="modal-overlay" id="modalConsumirExtra" style="display:none" onclick="if(event.target===this)closeModal('modalConsumirExtra')">
+  <div class="modal">
+    <div class="modal-title"><i class="ti ti-cut" style="color:#f5a623"></i>Consumir adicional del tubo</div>
+    <div id="consumirExtraInfo" style="background:#1a1d26;border-radius:8px;padding:12px;margin-bottom:12px;font-size:12px;color:#b0b3cc"></div>
+    <div class="mm-info" id="consumirExtraMmInfo"></div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">mm a consumir <span class="req">*</span></label>
+        <input class="form-input" id="ce_mm" type="number" min="1" placeholder="Ej: 50">
+      </div>
+      <div class="form-group">
+        <label class="form-label">OP relacionada (opcional)</label>
+        <input class="form-input" id="ce_op" placeholder="OP-2026-XXX">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Justificación <span class="req">*</span></label>
+      <input class="form-input" id="ce_motivo" placeholder="Ej: Rehacer sello dañado, error de medida, ajuste de corte...">
+    </div>
+    <input type="hidden" id="ce_inst_id">
+    <input type="hidden" id="ce_tubo_id">
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modalConsumirExtra')">Cancelar</button>
+      <button class="btn btn-amber" onclick="confirmarConsumirExtra()"><i class="ti ti-check"></i>Confirmar consumo</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Pedir tubo extra -->
+<div class="modal-overlay" id="modalTuboExtra" style="display:none" onclick="if(event.target===this)closeModal('modalTuboExtra')">
+  <div class="modal">
+    <div class="modal-title"><i class="ti ti-plus" style="color:#5b9bd5"></i>Pedir tubo extra</div>
+    <div id="tuboExtraInfo" style="background:#1a1d26;border-radius:8px;padding:12px;margin-bottom:12px;font-size:12px;color:#b0b3cc"></div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Cantidad de tubos <span class="req">*</span></label>
+        <input class="form-input" id="te_cant" type="number" min="1" value="1">
+      </div>
+      <div class="form-group">
+        <label class="form-label">OP relacionada (opcional)</label>
+        <input class="form-input" id="te_op" placeholder="OP-2026-XXX">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Justificación <span class="req">*</span></label>
+      <input class="form-input" id="te_motivo" placeholder="Ej: Material agotado por fallas en producción, lote defectuoso...">
+    </div>
+    <input type="hidden" id="te_tubo_id">
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modalTuboExtra')">Cancelar</button>
+      <button class="btn btn-blue" onclick="confirmarTuboExtra()"><i class="ti ti-send"></i>Enviar solicitud</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -758,21 +1019,23 @@ const SEAL_MAKER_MATS={
 
 // ── PERMISOS POR ROL ─────────────────────────────────────────────────────────
 const PERMISOS={
-  admin:    {nav:["dashboard","catalogo","tubos","solicitudes","carga","usuarios","config"],canConsumir:true,canAprobar:true,canCrearSol:true,verPrecios:true,editarCat:true,editarTubos:true},
-  gerente:  {nav:["dashboard","catalogo","tubos","solicitudes","carga"],canConsumir:false,canAprobar:true,canCrearSol:false,verPrecios:true,editarCat:false,editarTubos:false},
-  supervisor:{nav:["dashboard","catalogo","tubos","solicitudes"],canConsumir:false,canAprobar:true,canCrearSol:true,verPrecios:true,editarCat:false,editarTubos:false},
-  almacen:  {nav:["dashboard","catalogo","tubos","solicitudes","carga"],canConsumir:false,canAprobar:true,canCrearSol:false,verPrecios:true,editarCat:false,editarTubos:true},
-  produccion:{nav:["dashboard","tubos","solicitudes"],canConsumir:true,canAprobar:false,canCrearSol:false,verPrecios:false,editarCat:false,editarTubos:false},
-  vendedor: {nav:["dashboard","catalogo","solicitudes"],canConsumir:false,canAprobar:false,canCrearSol:true,verPrecios:true,editarCat:false,editarTubos:false},
+  admin:    {nav:["dashboard","catalogo","tubos","clientes","solicitudes","produccion","carga","usuarios","config"],canConsumir:true,canAprobar:true,canCrearSol:true,verPrecios:true,editarCat:true,editarTubos:true,verClientes:true,editarClientes:true,verProduccion:true,editarProduccion:true,canPedirExtra:true},
+  gerente:  {nav:["dashboard","catalogo","tubos","clientes","solicitudes","produccion","carga"],canConsumir:false,canAprobar:true,canCrearSol:false,verPrecios:true,editarCat:false,editarTubos:false,verClientes:true,editarClientes:false,verProduccion:true,editarProduccion:false,canPedirExtra:false},
+  supervisor:{nav:["dashboard","catalogo","tubos","clientes","solicitudes","produccion"],canConsumir:false,canAprobar:true,canCrearSol:true,verPrecios:true,editarCat:false,editarTubos:false,verClientes:true,editarClientes:true,verProduccion:true,editarProduccion:true,canPedirExtra:true},
+  almacen:  {nav:["dashboard","catalogo","tubos","solicitudes","carga"],canConsumir:false,canAprobar:true,canCrearSol:false,verPrecios:true,editarCat:false,editarTubos:true,verClientes:false,editarClientes:false,verProduccion:false,editarProduccion:false,canPedirExtra:true},
+  produccion:{nav:["dashboard","tubos","solicitudes","produccion"],canConsumir:true,canAprobar:false,canCrearSol:false,verPrecios:false,editarCat:false,editarTubos:false,verClientes:false,editarClientes:false,verProduccion:true,editarProduccion:true,canPedirExtra:true},
+  vendedor: {nav:["dashboard","catalogo","clientes","solicitudes"],canConsumir:false,canAprobar:false,canCrearSol:true,verPrecios:true,editarCat:false,editarTubos:false,verClientes:true,editarClientes:true,verProduccion:false,editarProduccion:false,canPedirExtra:false},
 };
 
 const NAV_ITEMS={
   dashboard:{icon:"ti-layout-dashboard",label:"Dashboard"},
   catalogo:{icon:"ti-books",label:"Catálogo"},
   tubos:{icon:"ti-cylinder",label:"Tubos"},
+  clientes:{icon:"ti-users",label:"Clientes"},
   solicitudes:{icon:"ti-arrows-transfer-up",label:"Solicitudes"},
+  produccion:{icon:"ti-calendar-stats",label:"Producción"},
   carga:{icon:"ti-upload",label:"Cargar Excel"},
-  usuarios:{icon:"ti-users",label:"Usuarios"},
+  usuarios:{icon:"ti-user-cog",label:"Usuarios"},
   config:{icon:"ti-settings",label:"Configuración"},
 };
 
@@ -853,7 +1116,7 @@ async function initApp(){
   nav.innerHTML="";
   let section="";
   perm.nav.forEach(p=>{
-    const newSection=["dashboard","catalogo","tubos","solicitudes"].includes(p)?"Principal":["carga"].includes(p)?"Datos":"Administración";
+    const newSection=["dashboard","catalogo","tubos","clientes","solicitudes","produccion"].includes(p)?"Principal":["carga"].includes(p)?"Datos":"Administración";
     if(newSection!==section){
       section=newSection;
       nav.innerHTML+=`<div class="nav-section">${section}</div>`;
@@ -891,6 +1154,8 @@ function goTo(page){
   if(page==="solicitudes") loadSolicitudes();
   if(page==="usuarios") loadUsuarios();
   if(page==="dashboard") loadDashboard();
+  if(page==="clientes") loadClientes();
+  if(page==="produccion") loadProduccion();
 }
 
 // ── DASHBOARD ─────────────────────────────────────────────────────────────────
@@ -1160,132 +1425,270 @@ async function saveMaterial(){
 }
 
 // ── TUBOS ─────────────────────────────────────────────────────────────────────
+// ── ESTADO Y CACHE DE LA PÁGINA TUBOS ─────────────────────────────────────────
+let _tubosState={detalleId:null,page:1,perPage:30,query:"",fMat:""};
+let _tubosCache={tubos:[],instByTubo:{}};
+
+// Parsear medidas desde descripción: "EPDM E131 - 0 / 25 / 120" o "AFLAS AF101 - 28 X 52 X 120 MM"
+function parseMedidas(desc){
+  const m=(desc||"").match(/-\s*(\d+(?:\.\d+)?)\s*[\/Xx]\s*(\d+(?:\.\d+)?)\s*[\/Xx]\s*(\d+(?:\.\d+)?)/);
+  return m?{di:+m[1],de:+m[2],lon:+m[3]}:{di:null,de:null,lon:null};
+}
+
+// Extraer "familia" (material base) desde descripcion: "EPDM E131 - ..." → "EPDM"
+function parseMaterial(desc){
+  const m=(desc||"").match(/^([A-Z\-]+(?:\s[A-Z0-9]+)?)/i);
+  return m?m[1].trim().toUpperCase():"OTROS";
+}
+
 async function loadTubos(){
+  _tubosState.detalleId=null;
   const perm=PERMISOS[CU.rol];
-  // Botones según rol
   const actRow=document.getElementById("tubosActions");
   if(actRow){
-    actRow.innerHTML="";
-    if(perm.editarTubos){
-      actRow.innerHTML=`<button class="btn btn-red" onclick="openModalTubo()"><i class="ti ti-plus"></i>Registrar entrada</button>
-        <button class="btn btn-ghost" onclick="loadTubos()"><i class="ti ti-refresh"></i>Actualizar</button>`;
-    }else{
-      actRow.innerHTML=`<button class="btn btn-ghost" onclick="loadTubos()"><i class="ti ti-refresh"></i>Actualizar</button>`;
-    }
+    actRow.innerHTML=perm.editarTubos
+      ?`<button class="btn btn-red" onclick="openModalTubo()"><i class="ti ti-plus"></i>Registrar entrada</button>
+        <button class="btn btn-ghost" onclick="loadTubos()"><i class="ti ti-refresh"></i>Actualizar</button>`
+      :`<button class="btn btn-ghost" onclick="loadTubos()"><i class="ti ti-refresh"></i>Actualizar</button>`;
   }
 
   document.getElementById("tubos-list").innerHTML=`<div class="loading"><div class="spinner"></div>Cargando tubos...</div>`;
-  const {data:tubos,error}=await sb.from("tubos").select("*").order("descripcion");
-  if(error){document.getElementById("tubos-list").innerHTML=`<div class="no-data">Error al cargar</div>`;return;}
-  if(!tubos?.length){
+
+  // Traer tubos + instancias (rangos grandes para no perder filas por límite default de Supabase)
+  const [tRes,iRes]=await Promise.all([
+    sb.from("tubos").select("*").order("descripcion").range(0,9999),
+    sb.from("tubo_instancias").select("id,tubo_id,estado,altura_usada").range(0,99999)
+  ]);
+  if(tRes.error){document.getElementById("tubos-list").innerHTML=`<div class="no-data">Error al cargar tubos</div>`;return;}
+
+  _tubosCache.tubos=tRes.data||[];
+  const instByTubo={};
+  for(const i of (iRes.data||[])) (instByTubo[i.tubo_id]=instByTubo[i.tubo_id]||[]).push(i);
+  _tubosCache.instByTubo=instByTubo;
+
+  if(!_tubosCache.tubos.length){
     document.getElementById("tubos-list").innerHTML=`<div class="card" style="text-align:center;padding:30px;color:#5a5e7a">
       <i class="ti ti-cylinder" style="font-size:32px;display:block;margin-bottom:10px;color:#3a3e5a"></i>
       No hay tubos registrados.${perm.editarTubos?' Usa <strong style="color:#D32F2F">Registrar entrada</strong> para comenzar.':''}</div>`;
     return;
   }
 
-  const ids=tubos.map(t=>t.id);
-  const {data:instancias}=await sb.from("tubo_instancias").select("*").in("tubo_id",ids);
-  const allInsts=instancias||[];
+  renderTubosResumen();
+}
 
-  // Movimientos solo si hay instancias
+// ── VISTA RESUMEN: agrupa por tipo de tubo (cada fila = una medida única) ─────
+function renderTubosResumen(){
+  const {tubos,instByTubo}=_tubosCache;
+  const q=(_tubosState.query||"").trim().toLowerCase();
+  const fMat=_tubosState.fMat||"";
+
+  // Filtrar y armar resumen
+  let resumen=tubos.filter(t=>(instByTubo[t.id]||[]).length>0).map(t=>{
+    const insts=instByTubo[t.id]||[];
+    const altTot=t.altura_total||0;
+    const disp=insts.filter(i=>i.estado==="disponible").length;
+    const ago=insts.filter(i=>i.estado==="agotado").length;
+    const mmRest=insts.reduce((a,i)=>a+Math.max(0,altTot-(i.altura_usada||0)),0);
+    const mmTot=altTot*insts.length;
+    const med=parseMedidas(t.descripcion);
+    const mat=parseMaterial(t.descripcion);
+    return {t,insts,disp,ago,mmRest,mmTot,med,mat};
+  });
+
+  if(q) resumen=resumen.filter(r=>(r.t.descripcion||"").toLowerCase().includes(q)||(r.t.codigo_mat||"").toLowerCase().includes(q));
+  if(fMat) resumen=resumen.filter(r=>r.mat===fMat);
+  resumen.sort((a,b)=>(a.t.descripcion||"").localeCompare(b.t.descripcion||""));
+
+  // KPIs globales (sobre el resultado filtrado)
+  const totalTipos=resumen.length;
+  const totalTubos=resumen.reduce((a,r)=>a+r.insts.length,0);
+  const totalDisp=resumen.reduce((a,r)=>a+r.disp,0);
+  const totalAgo=resumen.reduce((a,r)=>a+r.ago,0);
+  const totalMmRest=resumen.reduce((a,r)=>a+r.mmRest,0);
+
+  // Materiales únicos para el filtro
+  const matsSet=new Set(tubos.filter(t=>(instByTubo[t.id]||[]).length>0).map(t=>parseMaterial(t.descripcion)));
+  const matsOpts=["<option value=\"\">Todos los materiales</option>"].concat([...matsSet].sort().map(m=>`<option value="${m}"${m===fMat?" selected":""}>${m}</option>`)).join("");
+
+  // Paginación
+  const per=_tubosState.perPage;
+  const totalPg=Math.max(1,Math.ceil(totalTipos/per));
+  if(_tubosState.page>totalPg) _tubosState.page=totalPg;
+  if(_tubosState.page<1) _tubosState.page=1;
+  const start=(_tubosState.page-1)*per;
+  const visible=resumen.slice(start,start+per);
+
+  const kpisHtml=`<div class="kpi-grid" style="margin-bottom:14px">
+    <div class="kpi"><div class="kpi-label">Tipos de tubo</div><div class="kpi-val white">${totalTipos}</div><div class="kpi-sub">medidas únicas</div></div>
+    <div class="kpi"><div class="kpi-label">Tubos físicos</div><div class="kpi-val blue">${totalTubos}</div><div class="kpi-sub">${totalDisp} disponibles</div></div>
+    <div class="kpi"><div class="kpi-label">mm restantes</div><div class="kpi-val green">${totalMmRest.toFixed(0)}</div></div>
+    <div class="kpi"><div class="kpi-label">Agotados</div><div class="kpi-val red">${totalAgo}</div></div>
+  </div>`;
+
+  const buscadorHtml=`<div class="card" style="padding:10px 14px;margin-bottom:10px">
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <input class="fi" type="text" placeholder="Buscar por material, código o medida..."
+        value="${(_tubosState.query||"").replace(/"/g,"&quot;")}"
+        oninput="_tubosState.query=this.value;_tubosState.page=1;renderTubosResumen()"
+        style="flex:1;min-width:220px">
+      <select class="fi" style="width:auto;min-width:160px"
+        onchange="_tubosState.fMat=this.value;_tubosState.page=1;renderTubosResumen()">${matsOpts}</select>
+      ${(_tubosState.query||_tubosState.fMat)?`<button class="btn btn-ghost" onclick="_tubosState.query='';_tubosState.fMat='';_tubosState.page=1;renderTubosResumen()"><i class="ti ti-x"></i>Limpiar</button>`:""}
+    </div>
+  </div>`;
+
+  const filasHtml=visible.map(r=>{
+    const {t,insts,disp,mmRest,mmTot,med}=r;
+    const pct=mmTot>0?Math.round((mmTot-mmRest)/mmTot*100):0;
+    const medStr=(med.di!=null)?`DI ${med.di} · DE ${med.de} · L ${med.lon}`:(t.altura_total?`${t.altura_total} mm`:"—");
+    const colorDisp=disp===0?"#e85a5a":disp<=2?"#f5a623":"#4caf8c";
+    return `<tr>
+      <td><div style="font-weight:500;color:#f0f0f5">${t.descripcion||""}</div>
+        <div style="font-size:10px;color:#5a5e7a">${t.codigo_mat||"—"}</div></td>
+      <td style="color:#b0b3cc;white-space:nowrap">${medStr}</td>
+      <td style="text-align:center"><span style="color:${colorDisp};font-weight:600;font-size:13px">${disp}</span><span style="color:#5a5e7a"> / ${insts.length}</span></td>
+      <td style="text-align:right;color:#5b9bd5;font-weight:500;white-space:nowrap">${mmRest.toFixed(0)}<span style="color:#5a5e7a;font-size:10px"> mm</span></td>
+      <td style="text-align:center;color:#7a7d99">${pct}%</td>
+      <td style="text-align:right">
+        <button class="btn btn-blue" style="padding:5px 10px;font-size:11px;white-space:nowrap" onclick="verDetalleTubo(${t.id})"><i class="ti ti-eye"></i>Consultar stock</button>
+      </td>
+    </tr>`;
+  }).join("");
+
+  const tablaHtml=`<div class="card" style="padding:0">
+    <div class="tbl-wrap" style="max-height:none">
+      <table>
+        <thead><tr>
+          <th>Material / Código</th>
+          <th>Medidas</th>
+          <th style="text-align:center">Disp / Total</th>
+          <th style="text-align:right">mm restantes</th>
+          <th style="text-align:center">Consumido</th>
+          <th></th>
+        </tr></thead>
+        <tbody>${filasHtml||`<tr><td colspan="6" class="no-data">Sin resultados</td></tr>`}</tbody>
+      </table>
+    </div>
+    ${totalPg>1?`<div class="tbl-footer" style="padding:10px 14px">
+      <div class="row-info">Mostrando ${start+1}–${Math.min(start+per,totalTipos)} de ${totalTipos}</div>
+      <div class="pag">
+        <button class="pag-btn" ${_tubosState.page<=1?"disabled":""} onclick="_tubosState.page=1;renderTubosResumen()">«</button>
+        <button class="pag-btn" ${_tubosState.page<=1?"disabled":""} onclick="_tubosState.page--;renderTubosResumen()">‹</button>
+        <span class="pag-btn active">${_tubosState.page} / ${totalPg}</span>
+        <button class="pag-btn" ${_tubosState.page>=totalPg?"disabled":""} onclick="_tubosState.page++;renderTubosResumen()">›</button>
+        <button class="pag-btn" ${_tubosState.page>=totalPg?"disabled":""} onclick="_tubosState.page=${totalPg};renderTubosResumen()">»</button>
+      </div>
+    </div>`:""}
+  </div>`;
+
+  document.getElementById("tubos-list").innerHTML=kpisHtml+buscadorHtml+tablaHtml;
+}
+
+// ── VISTA DETALLE: muestra cada tubo físico individualmente (comportamiento original) ─
+async function verDetalleTubo(tuboId){
+  _tubosState.detalleId=tuboId;
+  const perm=PERMISOS[CU.rol];
+  const t=_tubosCache.tubos.find(x=>x.id===tuboId);
+  if(!t){toast("Tubo no encontrado","err");return;}
+
+  document.getElementById("tubos-list").innerHTML=`<div class="loading"><div class="spinner"></div>Cargando detalle...</div>`;
+
+  // Instancias completas + movimientos + solicitudes solo de este tubo
+  const {data:insts}=await sb.from("tubo_instancias").select("*").eq("tubo_id",tuboId);
+  const allInsts=insts||[];
   let movs=[];
   if(allInsts.length){
     const instIds=allInsts.map(i=>i.id);
     const {data:md}=await sb.from("movimientos").select("*").in("tubo_instancia_id",instIds).order("fecha",{ascending:false});
     movs=md||[];
   }
-
-  // Solicitudes aprobadas con tubo asignado
   const {data:solsAprobadas}=await sb.from("solicitudes").select("*").eq("estado","aprobada");
   const solsMap={};
   (solsAprobadas||[]).forEach(s=>{if(s.tubo_instancia_id) solsMap[s.tubo_instancia_id]=s;});
 
-  const html=tubos.map(t=>{
-    const insts=allInsts.filter(i=>i.tubo_id===t.id);
-    if(!insts.length) return "";
-    const altTotal=t.altura_total||0;
-    const disponibles=insts.filter(i=>i.estado==="disponible");
-    const agotados=insts.filter(i=>i.estado==="agotado");
-    const mmTot=altTotal*insts.length;
-    const mmUsado=insts.reduce((a,i)=>a+(i.altura_usada||0),0);
-    const mmRest=Math.max(0,mmTot-mmUsado);
-    const pct=mmTot>0?Math.round(mmUsado/mmTot*100):0;
-    const colorG=disponibles.length===0?"#e85a5a":pct>75?"#f5a623":"#4caf8c";
+  const cardHtml=renderTuboDetalle(t,allInsts,movs,solsMap,perm);
+  // Encontrar primera instancia con material disponible para "consumir más"
+  const instConMm=allInsts.find(i=>i.estado!=="agotado"&&(t.altura_total||0)-(i.altura_usada||0)>0);
+  const headerHtml=`<div class="btn-row">
+    <button class="btn btn-ghost" onclick="loadTubos()"><i class="ti ti-arrow-left"></i>Volver al resumen</button>
+    ${perm.editarTubos?`<button class="btn btn-ghost" onclick="openModalTuboFor('${t.codigo_mat||""}','${(t.descripcion||"").replace(/'/g,"\\'")}')"><i class="ti ti-plus"></i>Agregar tubos a esta medida</button>`:""}
+    ${perm.canPedirExtra&&instConMm?`<button class="btn btn-amber" onclick="openModalConsumirExtra(${t.id},${instConMm.id})"><i class="ti ti-cut"></i>Consumir adicional</button>`:""}
+    ${perm.canPedirExtra?`<button class="btn btn-blue" onclick="openModalTuboExtra(${t.id})"><i class="ti ti-plus"></i>Pedir tubo extra</button>`:""}
+  </div>`;
 
-    // Ficha técnica Seal Maker
-    const smKey=Object.keys(SEAL_MAKER_MATS).find(k=>(t.descripcion||"").toUpperCase().includes(k.replace(/-/g," ").toUpperCase().split(" ")[0]));
-    const smData=smKey?SEAL_MAKER_MATS[smKey]:null;
-    const fichaHtml=smData?`
-      <div class="ficha-toggle" onclick="toggleFicha(this)">
-        <i class="ti ti-chevron-right"></i>
-        <span>Ficha técnica Seal Maker — ${smKey}</span>
-      </div>
-      <div class="ficha-content">
-        <div class="ficha-row"><span class="ficha-key">Tipo</span><span class="ficha-val">${smData.tipo}</span></div>
-        <div class="ficha-row"><span class="ficha-key">Color</span><span class="ficha-val">${smData.color}</span></div>
-        <div class="ficha-row"><span class="ficha-key">Dureza</span><span class="ficha-val">${smData.dureza}</span></div>
-        <div class="ficha-row"><span class="ficha-key">Temperatura</span><span class="ficha-val">${smData.temp}</span></div>
-      </div>`:"";
+  document.getElementById("tubos-list").innerHTML=headerHtml+cardHtml;
+}
 
-    // Bloques de instancias
-    const bloquesHtml=insts.map((inst,idx)=>{
-      const mmR=Math.max(0,altTotal-(inst.altura_usada||0));
-      const pctF=altTotal>0?Math.round(mmR/altTotal*100):0;
-      const solAsig=solsMap[inst.id];
-      let clase="completo",tc2="#4caf8c",label="";
-      if(inst.estado==="agotado"){clase="agotado";tc2="#e85a5a";}
-      else if(solAsig){clase="separado";tc2="#5b9bd5";label="SEP";}
-      else if((inst.altura_usada||0)>0){clase="en-uso";tc2="#f5a623";}
+// Rendering individual de un tubo (mantiene exactamente el comportamiento original)
+function renderTuboDetalle(t,insts,movs,solsMap,perm){
+  const altTotal=t.altura_total||0;
+  const disponibles=insts.filter(i=>i.estado==="disponible");
+  const agotados=insts.filter(i=>i.estado==="agotado");
+  const mmTot=altTotal*insts.length;
+  const mmUsado=insts.reduce((a,i)=>a+(i.altura_usada||0),0);
+  const mmRest=Math.max(0,mmTot-mmUsado);
+  const pct=mmTot>0?Math.round(mmUsado/mmTot*100):0;
+  const colorG=disponibles.length===0?"#e85a5a":pct>75?"#f5a623":"#4caf8c";
 
-      // Click solo para produccion con solicitud asignada, o almacen/admin para consumo libre
-      const clickable=perm.canConsumir&&(CU.rol!=="produccion"||(solAsig));
-      const onclick=clickable&&inst.estado!=="agotado"?`onclick="openConsumoLibre(${t.id},'${(t.descripcion||"").replace(/'/g,"\\'")}',${inst.id})"`:""
+  // Ficha técnica Seal Maker
+  const smKey=Object.keys(SEAL_MAKER_MATS).find(k=>(t.descripcion||"").toUpperCase().includes(k.replace(/-/g," ").toUpperCase().split(" ")[0]));
+  const smData=smKey?SEAL_MAKER_MATS[smKey]:null;
+  const fichaHtml=smData?`
+    <div class="ficha-toggle" onclick="toggleFicha(this)">
+      <i class="ti ti-chevron-right"></i>
+      <span>Ficha técnica Seal Maker — ${smKey}</span>
+    </div>
+    <div class="ficha-content">
+      <div class="ficha-row"><span class="ficha-key">Tipo</span><span class="ficha-val">${smData.tipo}</span></div>
+      <div class="ficha-row"><span class="ficha-key">Color</span><span class="ficha-val">${smData.color}</span></div>
+      <div class="ficha-row"><span class="ficha-key">Dureza</span><span class="ficha-val">${smData.dureza}</span></div>
+      <div class="ficha-row"><span class="ficha-key">Temperatura</span><span class="ficha-val">${smData.temp}</span></div>
+    </div>`:"";
 
-      return `<div class="inst-bloque ${clase}" ${onclick} title="T${idx+1}: ${mmR}mm${solAsig?` · Separado para ${solAsig.cliente}`:""}">
-        <div class="inst-fill" style="height:${pctF}%;background:${tc2}"></div>
-        <div class="inst-mm" style="color:${tc2}">${mmR}mm</div>
-        <div class="inst-label" style="color:${tc2}">${label||"T"+(idx+1)}</div>
-      </div>`;
-    }).join("");
+  const bloquesHtml=insts.map((inst,idx)=>{
+    const mmR=Math.max(0,altTotal-(inst.altura_usada||0));
+    const pctF=altTotal>0?Math.round(mmR/altTotal*100):0;
+    const solAsig=solsMap[inst.id];
+    let clase="completo",tc2="#4caf8c",label="";
+    if(inst.estado==="agotado"){clase="agotado";tc2="#e85a5a";}
+    else if(solAsig){clase="separado";tc2="#5b9bd5";label="SEP";}
+    else if((inst.altura_usada||0)>0){clase="en-uso";tc2="#f5a623";}
 
-    // Movimientos recientes
-    const instIds2=insts.map(i=>i.id);
-    const movsG=movs.filter(m=>instIds2.includes(m.tubo_instancia_id)).slice(0,4);
-    const movsHtml=movsG.map(m=>`<div class="mov-item">
-      <div class="mov-icon ${m.tipo==="entrada"?"mov-in":"mov-out"}"><i class="ti ti-arrow-${m.tipo==="entrada"?"down":"up"}"></i></div>
-      <div style="flex:1">${m.tipo==="entrada"?"Entrada":m.altura_usada?`−${m.altura_usada}mm`:"-"}${m.op_numero?` · <span style="color:#5a5e7a">${m.op_numero}</span>`:""}</div>
-      <span style="color:#3a3e5a;font-size:10px">${new Date(m.fecha).toLocaleDateString("es-PE")}</span>
-    </div>`).join("");
+    const clickable=perm.canConsumir&&(CU.rol!=="produccion"||(solAsig));
+    const onclick=clickable&&inst.estado!=="agotado"?`onclick="openConsumoLibre(${t.id},'${(t.descripcion||"").replace(/'/g,"\\'")}',${inst.id})"`:"";
 
-    // Botones según rol
-    let btnsHtml="";
-    if(perm.editarTubos){
-      btnsHtml=`<button class="btn btn-ghost" style="font-size:11px" onclick="openModalTuboFor('${t.codigo_mat||""}','${(t.descripcion||"").replace(/'/g,"\\'")}')"><i class="ti ti-plus"></i>Agregar tubos</button>`;
-    }
-
-    return `<div class="tubo-card">
-      <div class="tubo-header">
-        <div>
-          <div class="tubo-title">${t.descripcion}</div>
-          <div class="tubo-sub">${t.codigo_mat||""}${altTotal?` · ${altTotal}mm/tubo`:""} · <span style="color:#7a7d99">${insts.length} tubo${insts.length>1?"s":""}</span></div>
-        </div>
-        <div style="display:flex;gap:6px">${btnsHtml}</div>
-      </div>
-      <div class="tubo-stats">
-        <div class="tubo-stat"><div class="tubo-stat-val" style="color:${colorG}">${disponibles.length}</div><div class="tubo-stat-lbl">Disponibles</div></div>
-        <div class="tubo-stat"><div class="tubo-stat-val" style="color:#5b9bd5">${mmRest.toFixed(0)}<span style="font-size:10px">mm</span></div><div class="tubo-stat-lbl">mm restantes</div></div>
-        <div class="tubo-stat"><div class="tubo-stat-val" style="color:#e85a5a">${mmUsado.toFixed(0)}<span style="font-size:10px">mm</span></div><div class="tubo-stat-lbl">mm consumidos</div></div>
-        <div class="tubo-stat"><div class="tubo-stat-val" style="color:#7a7d99">${agotados.length}</div><div class="tubo-stat-lbl">Agotados</div></div>
-      </div>
-      ${fichaHtml}
-      <div style="font-size:10px;color:#5a5e7a;margin:8px 0 5px;text-transform:uppercase;letter-spacing:.3px">Tubos físicos</div>
-      <div class="instancias-grid">${bloquesHtml}</div>
-      ${movsG.length?`<div class="movs-list"><div style="font-size:10px;color:#5a5e7a;margin-bottom:5px;text-transform:uppercase">Últimos movimientos</div>${movsHtml}</div>`:""}
+    return `<div class="inst-bloque ${clase}" ${onclick} title="T${idx+1}: ${mmR}mm${solAsig?` · Separado para ${solAsig.cliente}`:""}">
+      <div class="inst-fill" style="height:${pctF}%;background:${tc2}"></div>
+      <div class="inst-mm" style="color:${tc2}">${mmR}mm</div>
+      <div class="inst-label" style="color:${tc2}">${label||"T"+(idx+1)}</div>
     </div>`;
-  }).filter(Boolean).join("");
+  }).join("");
 
-  document.getElementById("tubos-list").innerHTML=html||`<div class="card" style="text-align:center;padding:30px;color:#5a5e7a">No hay instancias registradas aún</div>`;
+  const movsG=movs.slice(0,8);
+  const movsHtml=movsG.map(m=>`<div class="mov-item">
+    <div class="mov-icon ${m.tipo==="entrada"?"mov-in":"mov-out"}"><i class="ti ti-arrow-${m.tipo==="entrada"?"down":"up"}"></i></div>
+    <div style="flex:1">${m.tipo==="entrada"?"Entrada":m.altura_usada?`−${m.altura_usada}mm`:"-"}${m.op_numero?` · <span style="color:#5a5e7a">${m.op_numero}</span>`:""}</div>
+    <span style="color:#3a3e5a;font-size:10px">${new Date(m.fecha).toLocaleDateString("es-PE")}</span>
+  </div>`).join("");
+
+  return `<div class="tubo-card">
+    <div class="tubo-header">
+      <div>
+        <div class="tubo-title">${t.descripcion}</div>
+        <div class="tubo-sub">${t.codigo_mat||""}${altTotal?` · ${altTotal}mm/tubo`:""} · <span style="color:#7a7d99">${insts.length} tubo${insts.length>1?"s":""}</span></div>
+      </div>
+    </div>
+    <div class="tubo-stats">
+      <div class="tubo-stat"><div class="tubo-stat-val" style="color:${colorG}">${disponibles.length}</div><div class="tubo-stat-lbl">Disponibles</div></div>
+      <div class="tubo-stat"><div class="tubo-stat-val" style="color:#5b9bd5">${mmRest.toFixed(0)}<span style="font-size:10px">mm</span></div><div class="tubo-stat-lbl">mm restantes</div></div>
+      <div class="tubo-stat"><div class="tubo-stat-val" style="color:#e85a5a">${mmUsado.toFixed(0)}<span style="font-size:10px">mm</span></div><div class="tubo-stat-lbl">mm consumidos</div></div>
+      <div class="tubo-stat"><div class="tubo-stat-val" style="color:#7a7d99">${agotados.length}</div><div class="tubo-stat-lbl">Agotados</div></div>
+    </div>
+    ${fichaHtml}
+    <div style="font-size:10px;color:#5a5e7a;margin:8px 0 5px;text-transform:uppercase;letter-spacing:.3px">Tubos físicos</div>
+    <div class="instancias-grid">${bloquesHtml}</div>
+    ${movsG.length?`<div class="movs-list"><div style="font-size:10px;color:#5a5e7a;margin-bottom:5px;text-transform:uppercase">Últimos movimientos</div>${movsHtml}</div>`:""}
+  </div>`;
 }
 
 function toggleFicha(el){
@@ -1792,6 +2195,525 @@ function exportExcel(){
   }catch(err){toast("Error al exportar: "+err.message,"err");}
 }
 
+// ── CARGA MASIVA DE CLIENTES ──────────────────────────────────────────────────
+async function loadClientesFile(e){
+  const f=e.target.files[0];if(!f)return;
+  const prog=document.getElementById("clientesProgress");
+  prog.style.display="block";prog.textContent="Leyendo archivo...";
+  const r=new FileReader();
+  r.onload=async ev=>{
+    try{
+      const wb=XLSX.read(ev.target.result,{type:"array"});
+      const ws=wb.Sheets[wb.SheetNames[0]];
+      // Encabezados en la fila 3 → range:2 (0-indexed)
+      const rows=XLSX.utils.sheet_to_json(ws,{defval:"",range:2});
+      if(!rows.length){toast("El archivo está vacío o sin encabezados en fila 3","err");prog.style.display="none";return;}
+
+      // Normalizar y filtrar
+      const clean=rows.map(r=>{
+        const get=(k)=>{ for(const kk of Object.keys(r)){ if(kk.toUpperCase().trim()===k) return r[kk]; } return ""; };
+        const toBool=v=>v===1||v==="1"||v===true||String(v).toLowerCase()==="true";
+        const fec=v=>{
+          if(!v) return null;
+          const d=new Date(v);
+          return isNaN(d.getTime())?null:d.toISOString();
+        };
+        const dateOnly=v=>{
+          if(!v) return null;
+          const d=new Date(v);
+          return isNaN(d.getTime())?null:d.toISOString().slice(0,10);
+        };
+        return {
+          codigo:String(get("CODIGO")||"").trim(),
+          nombre:String(get("NOMBRE")||"").trim(),
+          ruc:String(get("RUC")||"").trim()||null,
+          dni:String(get("DNI")||"").trim()||null,
+          tipo:String(get("TIPO")||"NAT").trim(),
+          ind_domic:String(get("IND_DOMIC")||"").trim()||null,
+          ind_cli:toBool(get("IND_CLI")),
+          ind_pro:toBool(get("IND_PRO")),
+          ind_tra:toBool(get("IND_TRA")),
+          ind_otr:toBool(get("IND_OTR")),
+          direccion:String(get("DIRECCION")||"").trim()||null,
+          pais:String(get("PAIS")||"").trim()||null,
+          des_ubigeo:String(get("DES_UBIGEO")||"").trim()||null,
+          ubigeo:String(get("UBIGEO")||"").trim()||null,
+          nom_comercial:String(get("NOM_COMERCIAL")||"").trim()||null,
+          email:String(get("EMAIL")||"").trim()||null,
+          telefono:String(get("TELEFONO")||"").trim()||null,
+          celular:String(get("CELULAR")||"").trim()||null,
+          fax:String(get("FAX")||"").trim()||null,
+          pag_web:String(get("PAG_WEB")||"").trim()||null,
+          doc_ident:String(get("DOC_IDENT")||"").trim()||null,
+          nrodoc_ident:String(get("NRODOC_IDENT")||"").trim()||null,
+          genero:String(get("GENERO")||"").trim()||null,
+          fec_nacim:dateOnly(get("FEC_NACIM")),
+          ind_vincul:String(get("IND_VINCUL")||"").trim()||null,
+          nombre_nat:String(get("NOMBRE_NAT")||"").trim()||null,
+          ape_pat:String(get("APE_PAT")||"").trim()||null,
+          ape_mat:String(get("APE_MAT")||"").trim()||null,
+          contactos:String(get("CONTACTOS")||"").trim()||null,
+          des_tipo_actividad:String(get("DES_TIPO_ACTIVIDAD")||"").trim()||null,
+          notas:String(get("NOTAS")||"").trim()||null,
+          codanterior:String(get("CODANTERIOR")||"").trim()||null,
+          estado:String(get("ESTADO")||"activo").trim().toLowerCase()||"activo",
+          fec_act:fec(get("FEC_ACT")),
+          user_act:String(get("USER_ACT")||"").trim()||null,
+          fec_crea:fec(get("FEC_CREA")),
+          user_crea:String(get("USER_CREA")||"").trim()||null,
+          cia_codcia:String(get("CIA_CODCIA")||"").trim()||null,
+          ccr_codepk:String(get("CCR_CODEPK")||"").trim()||null,
+        };
+      }).filter(c=>c.codigo&&c.nombre);
+
+      // Insertar en lotes de 500 con upsert por codigo
+      const CHUNK=500;
+      let ok=0,err2=0;
+      for(let i=0;i<clean.length;i+=CHUNK){
+        const slice=clean.slice(i,i+CHUNK);
+        prog.textContent=`Subiendo ${i+1}–${Math.min(i+CHUNK,clean.length)} de ${clean.length}...`;
+        const {error}=await sb.from("clientes").upsert(slice,{onConflict:"codigo"});
+        if(error){err2+=slice.length;console.error(error);}else ok+=slice.length;
+      }
+      prog.textContent=`✓ ${ok} clientes cargados${err2>0?` · ${err2} con errores`:""}`;
+      toast(`✓ ${ok} clientes cargados${err2>0?` · ${err2} con errores`:""}`,ok>0?"ok":"err");
+      e.target.value="";
+    }catch(err){toast("Error: "+err.message,"err");prog.style.display="none";}
+  };
+  r.readAsArrayBuffer(f);
+}
+
+// ── MÓDULO CLIENTES ───────────────────────────────────────────────────────────
+let _clientesState={page:1,perPage:50,query:"",tipo:"",ind:"",estado:"activo"};
+let _clientesCache=[];
+let _cliDeb;
+function debounceClientes(){clearTimeout(_cliDeb);_cliDeb=setTimeout(()=>{_clientesState.query=document.getElementById("cliQ").value;_clientesState.page=1;renderClientes();},250);}
+function resetFiltrosClientes(){
+  document.getElementById("cliQ").value="";
+  document.getElementById("cliTipo").value="";
+  document.getElementById("cliInd").value="";
+  document.getElementById("cliEstado").value="activo";
+  _clientesState={page:1,perPage:50,query:"",tipo:"",ind:"",estado:"activo"};
+  renderClientes();
+}
+
+async function loadClientes(){
+  const perm=PERMISOS[CU.rol];
+  document.getElementById("btnNuevoCliente").style.display=perm.editarClientes?"inline-flex":"none";
+
+  document.getElementById("clientes-tbody").innerHTML=`<tr><td colspan="8" class="no-data"><div class="loading"><div class="spinner"></div>Cargando clientes...</div></td></tr>`;
+  // Traer en chunks para no perder filas si hay >1000
+  let all=[];
+  for(let from=0;;from+=1000){
+    const {data,error}=await sb.from("clientes").select("*").order("nombre").range(from,from+999);
+    if(error){toast("Error al cargar clientes: "+error.message,"err");break;}
+    if(!data?.length) break;
+    all=all.concat(data);
+    if(data.length<1000) break;
+  }
+  _clientesCache=all;
+  renderClientes();
+}
+
+function renderClientes(){
+  const perm=PERMISOS[CU.rol];
+  _clientesState.tipo=document.getElementById("cliTipo")?.value||"";
+  _clientesState.ind=document.getElementById("cliInd")?.value||"";
+  _clientesState.estado=document.getElementById("cliEstado")?.value||"";
+
+  const q=(_clientesState.query||"").trim().toLowerCase();
+  let lista=_clientesCache.filter(c=>{
+    if(_clientesState.tipo&&c.tipo!==_clientesState.tipo) return false;
+    if(_clientesState.estado&&(c.estado||"activo")!==_clientesState.estado) return false;
+    if(_clientesState.ind){
+      const f={cli:"ind_cli",pro:"ind_pro",tra:"ind_tra",otr:"ind_otr"}[_clientesState.ind];
+      if(!c[f]) return false;
+    }
+    if(q){
+      const hay=`${c.codigo} ${c.nombre} ${c.ruc||""} ${c.dni||""} ${c.telefono||""} ${c.celular||""} ${c.email||""}`.toLowerCase();
+      if(!hay.includes(q)) return false;
+    }
+    return true;
+  });
+
+  // KPIs
+  const totCli=_clientesCache.filter(c=>c.ind_cli).length;
+  const totPro=_clientesCache.filter(c=>c.ind_pro).length;
+  const totJur=_clientesCache.filter(c=>c.tipo==="JUR").length;
+  document.getElementById("clientesKpis").innerHTML=`
+    <div class="kpi"><div class="kpi-label">Total</div><div class="kpi-val white">${_clientesCache.length.toLocaleString()}</div><div class="kpi-sub">registros</div></div>
+    <div class="kpi"><div class="kpi-label">Clientes</div><div class="kpi-val green">${totCli.toLocaleString()}</div></div>
+    <div class="kpi"><div class="kpi-label">Proveedores</div><div class="kpi-val blue">${totPro.toLocaleString()}</div></div>
+    <div class="kpi"><div class="kpi-label">Jurídicos</div><div class="kpi-val amber">${totJur.toLocaleString()}</div><div class="kpi-sub">empresas</div></div>`;
+
+  const total=lista.length;
+  const per=_clientesState.perPage;
+  const totalPg=Math.max(1,Math.ceil(total/per));
+  if(_clientesState.page>totalPg) _clientesState.page=totalPg;
+  if(_clientesState.page<1) _clientesState.page=1;
+  const start=(_clientesState.page-1)*per;
+  const visible=lista.slice(start,start+per);
+
+  const indHtml=c=>{
+    const out=[];
+    if(c.ind_cli) out.push(`<span style="color:#4caf8c">CLI</span>`);
+    if(c.ind_pro) out.push(`<span style="color:#5b9bd5">PRO</span>`);
+    if(c.ind_tra) out.push(`<span style="color:#fb923c">TRA</span>`);
+    if(c.ind_otr) out.push(`<span style="color:#7a7d99">OTR</span>`);
+    return out.join(" · ")||`<span style="color:#5a5e7a">—</span>`;
+  };
+  const tipoBadge=t=>t==="JUR"
+    ?`<span class="rol-badge" style="background:#0f1e2e;color:#5b9bd5">JUR</span>`
+    :`<span class="rol-badge" style="background:#2a1e0a;color:#fb923c">NAT</span>`;
+
+  document.getElementById("clientes-tbody").innerHTML=visible.length?visible.map(c=>{
+    const idDoc=c.ruc?`RUC ${c.ruc}`:(c.dni?`DNI ${c.dni}`:"—");
+    const tel=c.celular||c.telefono||"";
+    return `<tr style="cursor:pointer" onclick="openModalCliente(${c.id})">
+      <td style="font-family:monospace;color:#7a7d99;font-size:10px">${c.codigo||""}</td>
+      <td><div style="color:#f0f0f5;font-weight:500">${c.nombre||""}</div>${c.nom_comercial?`<div style="font-size:10px;color:#5a5e7a">${c.nom_comercial}</div>`:""}</td>
+      <td>${tipoBadge(c.tipo)}</td>
+      <td style="font-family:monospace;font-size:10px;color:#b0b3cc">${idDoc}</td>
+      <td style="font-size:10px">${indHtml(c)}</td>
+      <td><div style="font-size:11px;color:#c8cce0">${tel||`<span style="color:#5a5e7a">—</span>`}</div>${c.email?`<div style="font-size:10px;color:#5a5e7a">${c.email}</div>`:""}</td>
+      <td style="font-size:10px;color:#7a7d99">${c.des_ubigeo||"—"}</td>
+      <td style="text-align:right"><button class="btn btn-ghost" style="padding:4px 8px;font-size:10px" onclick="event.stopPropagation();openModalCliente(${c.id})"><i class="ti ti-${perm.editarClientes?"edit":"eye"}"></i></button></td>
+    </tr>`;
+  }).join(""):`<tr><td colspan="8" class="no-data">Sin resultados con esos filtros</td></tr>`;
+
+  document.getElementById("clientesFooter").innerHTML=`
+    <div class="row-info">Mostrando ${total?start+1:0}–${Math.min(start+per,total)} de ${total.toLocaleString()}</div>
+    <div class="pag">
+      <button class="pag-btn" ${_clientesState.page<=1?"disabled":""} onclick="_clientesState.page=1;renderClientes()">«</button>
+      <button class="pag-btn" ${_clientesState.page<=1?"disabled":""} onclick="_clientesState.page--;renderClientes()">‹</button>
+      <span class="pag-btn active">${_clientesState.page} / ${totalPg}</span>
+      <button class="pag-btn" ${_clientesState.page>=totalPg?"disabled":""} onclick="_clientesState.page++;renderClientes()">›</button>
+      <button class="pag-btn" ${_clientesState.page>=totalPg?"disabled":""} onclick="_clientesState.page=${totalPg};renderClientes()">»</button>
+    </div>`;
+}
+
+function openModalCliente(id){
+  const perm=PERMISOS[CU.rol];
+  const c=id?_clientesCache.find(x=>x.id===id):null;
+  document.getElementById("modalClienteTitle").textContent=c?`Cliente — ${c.nombre}`:"Nuevo cliente";
+  const set=(k,v)=>{const el=document.getElementById(k);if(el){if(el.type==="checkbox") el.checked=!!v;else el.value=v??"";}};
+  set("cli_id",c?.id||"");
+  set("cli_codigo",c?.codigo||"");
+  set("cli_tipo",c?.tipo||"JUR");
+  set("cli_estado",c?.estado||"activo");
+  set("cli_nombre",c?.nombre||"");
+  set("cli_ruc",c?.ruc||"");
+  set("cli_dni",c?.dni||"");
+  set("cli_doc_ident",c?.doc_ident||"");
+  set("cli_nom_comercial",c?.nom_comercial||"");
+  set("cli_ind_cli",c?.ind_cli);set("cli_ind_pro",c?.ind_pro);set("cli_ind_tra",c?.ind_tra);set("cli_ind_otr",c?.ind_otr);set("cli_ind_domic",c?.ind_domic==="1"||c?.ind_domic===true);
+  set("cli_direccion",c?.direccion||"");
+  set("cli_pais",c?.pais||"PERU");
+  set("cli_ubigeo",c?.ubigeo||"");
+  set("cli_des_ubigeo",c?.des_ubigeo||"");
+  set("cli_telefono",c?.telefono||"");
+  set("cli_celular",c?.celular||"");
+  set("cli_fax",c?.fax||"");
+  set("cli_email",c?.email||"");
+  set("cli_pag_web",c?.pag_web||"");
+  set("cli_contactos",c?.contactos||"");
+  set("cli_nombre_nat",c?.nombre_nat||"");
+  set("cli_ape_pat",c?.ape_pat||"");
+  set("cli_ape_mat",c?.ape_mat||"");
+  set("cli_genero",c?.genero||"");
+  set("cli_fec_nacim",c?.fec_nacim||"");
+  set("cli_ind_vincul",c?.ind_vincul||"");
+  set("cli_des_tipo_actividad",c?.des_tipo_actividad||"");
+  set("cli_codanterior",c?.codanterior||"");
+  set("cli_notas",c?.notas||"");
+
+  // Si no puede editar, deshabilitar campos
+  const editable=perm.editarClientes;
+  document.querySelectorAll("#modalCliente .form-input, #modalCliente input[type=checkbox]").forEach(el=>{el.disabled=!editable;});
+  document.querySelector("#modalCliente .btn-red").style.display=editable?"inline-flex":"none";
+
+  document.getElementById("modalCliente").style.display="flex";
+}
+
+async function saveCliente(){
+  const perm=PERMISOS[CU.rol];
+  if(!perm.editarClientes){toast("Sin permiso para editar clientes","err");return;}
+  const v=k=>document.getElementById(k).value.trim();
+  const chk=k=>document.getElementById(k).checked;
+  const codigo=v("cli_codigo"),nombre=v("cli_nombre");
+  if(!codigo||!nombre){toast("Código y nombre son obligatorios","err");return;}
+
+  const payload={
+    codigo,nombre,
+    tipo:v("cli_tipo")||"NAT",
+    estado:v("cli_estado")||"activo",
+    ruc:v("cli_ruc")||null,
+    dni:v("cli_dni")||null,
+    doc_ident:v("cli_doc_ident")||null,
+    nom_comercial:v("cli_nom_comercial")||null,
+    ind_cli:chk("cli_ind_cli"),
+    ind_pro:chk("cli_ind_pro"),
+    ind_tra:chk("cli_ind_tra"),
+    ind_otr:chk("cli_ind_otr"),
+    ind_domic:chk("cli_ind_domic")?"1":null,
+    direccion:v("cli_direccion")||null,
+    pais:v("cli_pais")||null,
+    ubigeo:v("cli_ubigeo")||null,
+    des_ubigeo:v("cli_des_ubigeo")||null,
+    telefono:v("cli_telefono")||null,
+    celular:v("cli_celular")||null,
+    fax:v("cli_fax")||null,
+    email:v("cli_email")||null,
+    pag_web:v("cli_pag_web")||null,
+    contactos:v("cli_contactos")||null,
+    nombre_nat:v("cli_nombre_nat")||null,
+    ape_pat:v("cli_ape_pat")||null,
+    ape_mat:v("cli_ape_mat")||null,
+    genero:v("cli_genero")||null,
+    fec_nacim:v("cli_fec_nacim")||null,
+    ind_vincul:v("cli_ind_vincul")||null,
+    des_tipo_actividad:v("cli_des_tipo_actividad")||null,
+    codanterior:v("cli_codanterior")||null,
+    notas:v("cli_notas")||null,
+    fec_act:new Date().toISOString(),
+    user_act:CU?.nombre||null,
+  };
+
+  const id=document.getElementById("cli_id").value;
+  let res;
+  if(id){
+    res=await sb.from("clientes").update(payload).eq("id",id);
+  }else{
+    payload.fec_crea=new Date().toISOString();
+    payload.user_crea=CU?.nombre||null;
+    res=await sb.from("clientes").insert(payload);
+  }
+  if(res.error){toast("Error: "+res.error.message,"err");return;}
+  toast("✓ Cliente guardado","ok");
+  closeModal("modalCliente");
+  await loadClientes();
+}
+
+// ── MATERIAL EXTRA: consumir adicional ────────────────────────────────────────
+async function openModalConsumirExtra(tuboId,instId){
+  const {data:t}=await sb.from("tubos").select("*").eq("id",tuboId).single();
+  const {data:inst}=await sb.from("tubo_instancias").select("*").eq("id",instId).single();
+  if(!t||!inst){toast("No se pudo cargar el tubo","err");return;}
+  const mmRest=Math.max(0,(t.altura_total||0)-(inst.altura_usada||0));
+  document.getElementById("consumirExtraInfo").innerHTML=`
+    <div><strong style="color:#f0f0f5">${t.descripcion}</strong></div>
+    <div style="margin-top:4px;font-size:11px">Altura total: ${t.altura_total||0}mm · Ya consumido: ${inst.altura_usada||0}mm</div>
+    <div style="font-size:11px;color:#4caf8c;margin-top:2px">Disponible: <strong>${mmRest}mm</strong></div>`;
+  document.getElementById("consumirExtraMmInfo").className="mm-info";
+  document.getElementById("consumirExtraMmInfo").innerHTML=`<i class="ti ti-info-circle"></i>Este consumo se descontará directamente del tubo y quedará registrado con tu usuario y motivo.`;
+  document.getElementById("ce_mm").value="";
+  document.getElementById("ce_mm").max=mmRest;
+  document.getElementById("ce_op").value="";
+  document.getElementById("ce_motivo").value="";
+  document.getElementById("ce_inst_id").value=instId;
+  document.getElementById("ce_tubo_id").value=tuboId;
+  document.getElementById("modalConsumirExtra").style.display="flex";
+}
+
+async function confirmarConsumirExtra(){
+  const mm=parseFloat(document.getElementById("ce_mm").value);
+  const motivo=document.getElementById("ce_motivo").value.trim();
+  const op=document.getElementById("ce_op").value.trim()||null;
+  const instId=parseInt(document.getElementById("ce_inst_id").value);
+  const tuboId=parseInt(document.getElementById("ce_tubo_id").value);
+  if(!mm||mm<=0){toast("mm inválido","err");return;}
+  if(!motivo){toast("La justificación es obligatoria","err");return;}
+
+  const {data:t}=await sb.from("tubos").select("altura_total").eq("id",tuboId).single();
+  const {data:inst}=await sb.from("tubo_instancias").select("altura_usada,estado").eq("id",instId).single();
+  if(!inst){toast("Tubo no encontrado","err");return;}
+  const mmRest=Math.max(0,(t.altura_total||0)-(inst.altura_usada||0));
+  if(mm>mmRest){toast(`Solo hay ${mmRest}mm restantes`,"err");return;}
+
+  const nuevoUsado=(inst.altura_usada||0)+mm;
+  const nuevoEstado=nuevoUsado>=(t.altura_total||0)?"agotado":inst.estado;
+  const {error:e1}=await sb.from("tubo_instancias").update({altura_usada:nuevoUsado,estado:nuevoEstado}).eq("id",instId);
+  if(e1){toast("Error al actualizar tubo: "+e1.message,"err");return;}
+  await sb.from("movimientos").insert({
+    tubo_id:tuboId,tubo_instancia_id:instId,tipo:"consumo_extra",
+    altura_usada:mm,usuario_id:CU?.id,op_numero:op,
+    nota:`EXTRA: ${motivo}`
+  });
+  toast(`✓ ${mm}mm consumidos · justificación registrada`,"ok");
+  closeModal("modalConsumirExtra");
+  verDetalleTubo(tuboId);
+}
+
+// ── MATERIAL EXTRA: pedir tubo extra ──────────────────────────────────────────
+async function openModalTuboExtra(tuboId){
+  const {data:t}=await sb.from("tubos").select("*").eq("id",tuboId).single();
+  if(!t){toast("Tubo no encontrado","err");return;}
+  document.getElementById("tuboExtraInfo").innerHTML=`
+    <div><strong style="color:#f0f0f5">${t.descripcion}</strong></div>
+    <div style="margin-top:4px;font-size:11px">Código: ${t.codigo_mat||"—"} · ${t.altura_total||0}mm/tubo</div>
+    <div style="font-size:11px;color:#5b9bd5;margin-top:2px">Se enviará una solicitud para añadir tubo(s) nuevo(s) de esta medida al stock.</div>`;
+  document.getElementById("te_cant").value=1;
+  document.getElementById("te_op").value="";
+  document.getElementById("te_motivo").value="";
+  document.getElementById("te_tubo_id").value=tuboId;
+  document.getElementById("modalTuboExtra").style.display="flex";
+}
+
+async function confirmarTuboExtra(){
+  const cant=parseInt(document.getElementById("te_cant").value);
+  const motivo=document.getElementById("te_motivo").value.trim();
+  const op=document.getElementById("te_op").value.trim()||null;
+  const tuboId=parseInt(document.getElementById("te_tubo_id").value);
+  if(!cant||cant<=0){toast("Cantidad inválida","err");return;}
+  if(!motivo){toast("La justificación es obligatoria","err");return;}
+
+  const {data:t}=await sb.from("tubos").select("descripcion,codigo_mat,altura_total").eq("id",tuboId).single();
+  const {error}=await sb.from("solicitudes").insert({
+    tipo:"tubo_extra",
+    estado:"pendiente",
+    cliente:op||"Reposición",
+    codigo_mat:t?.codigo_mat||null,
+    descripcion_mat:t?.descripcion||"",
+    mm_solicitados:(t?.altura_total||0)*cant,
+    cantidad:cant,
+    comentario:`PEDIDO DE TUBO EXTRA (${cant} u.): ${motivo}`,
+    creado_por:CU?.id,
+    op_numero:op
+  });
+  if(error){toast("Error al crear solicitud: "+error.message,"err");return;}
+  toast(`✓ Solicitud enviada · ${cant} tubo${cant>1?"s":""} extra`,"ok");
+  closeModal("modalTuboExtra");
+  verDetalleTubo(tuboId);
+}
+
+// ── PRODUCCIÓN — Gantt (maqueta visual con datos demo) ────────────────────────
+let _ganttFecha=new Date();
+let _ganttData=null;
+const GANTT_HOURS=[7,8,9,10,11,12,13,14,15,16,17,18];
+const GANTT_COLORS=["#D32F2F","#5b9bd5","#4caf8c","#f5a623","#a78bfa","#fb923c","#e85a5a","#5b9bd5"];
+
+function ganttDemoData(){
+  return {
+    estaciones:[
+      {id:1,nombre:"Torno 1"},
+      {id:2,nombre:"Torno 2"},
+      {id:3,nombre:"Fresadora"},
+      {id:4,nombre:"Acabado"},
+    ],
+    ops:[
+      {id:"OP-2026-0381",estacion:1,cliente:"MAQPOWER",inicio:7.5,fin:10,perfiles:"38× P51",mat:"EPDM E131",estado:"en_proceso",vendedor:"Carla R."},
+      {id:"OP-2026-0382",estacion:1,cliente:"MINERA ALPINA",inicio:10.5,fin:13,perfiles:"12× WR01, 8× RS02",mat:"PU U500",estado:"pendiente",vendedor:"Luis V."},
+      {id:"OP-2026-0379",estacion:2,cliente:"HYDRAULIC SAC",inicio:8,fin:11.5,perfiles:"24× PS04",mat:"NBR N107",estado:"en_proceso",vendedor:"Carla R."},
+      {id:"OP-2026-0383",estacion:2,cliente:"MAQPOWER",inicio:12,fin:14,perfiles:"6× FL03",mat:"FPM F109",estado:"pendiente",vendedor:"Carla R."},
+      {id:"OP-2026-0380",estacion:3,cliente:"INDUSCO",inicio:9,fin:12,perfiles:"Kit 4× O-rings + 2× P52",mat:"Mixto",estado:"en_proceso",vendedor:"Diego P."},
+      {id:"OP-2026-0384",estacion:3,cliente:"SIDERPERU",inicio:13.5,fin:17,perfiles:"50× BWR05",mat:"PL POM",estado:"pendiente",vendedor:"Luis V."},
+      {id:"OP-2026-0378",estacion:4,cliente:"HYDRAULIC SAC",inicio:7.5,fin:9,perfiles:"Acabado lote 03",mat:"—",estado:"completada",vendedor:"—"},
+      {id:"OP-2026-0385",estacion:4,cliente:"INDUSCO",inicio:14,fin:17.5,perfiles:"Acabado P52",mat:"—",estado:"pendiente",vendedor:"Diego P."},
+    ]
+  };
+}
+
+function ganttHoy(){_ganttFecha=new Date();loadProduccion();}
+function ganttPrevDia(){const d=new Date(_ganttFecha);d.setDate(d.getDate()-1);_ganttFecha=d;loadProduccion();}
+function ganttNextDia(){const d=new Date(_ganttFecha);d.setDate(d.getDate()+1);_ganttFecha=d;loadProduccion();}
+
+function loadProduccion(){
+  const perm=PERMISOS[CU.rol];
+  document.getElementById("btnNuevaOP").style.display=perm.editarProduccion?"inline-flex":"none";
+  document.getElementById("ganttFecha").textContent=_ganttFecha.toLocaleDateString("es-PE",{weekday:"long",day:"2-digit",month:"long",year:"numeric"});
+
+  _ganttData=ganttDemoData();
+  renderGantt();
+  renderGanttTabla();
+}
+
+function renderGantt(){
+  const {estaciones,ops}=_ganttData;
+  const COL_W=80;     // ancho columna por hora
+  const LABEL_W=140;  // ancho label estación
+  const totalW=LABEL_W+GANTT_HOURS.length*COL_W;
+
+  // KPIs
+  const total=ops.length;
+  const enProc=ops.filter(o=>o.estado==="en_proceso").length;
+  const pend=ops.filter(o=>o.estado==="pendiente").length;
+  const comp=ops.filter(o=>o.estado==="completada").length;
+  document.getElementById("ganttKpis").innerHTML=`
+    <div class="kpi"><div class="kpi-label">OPs hoy</div><div class="kpi-val white">${total}</div></div>
+    <div class="kpi"><div class="kpi-label">En proceso</div><div class="kpi-val amber">${enProc}</div></div>
+    <div class="kpi"><div class="kpi-label">Pendientes</div><div class="kpi-val blue">${pend}</div></div>
+    <div class="kpi"><div class="kpi-label">Completadas</div><div class="kpi-val green">${comp}</div></div>`;
+
+  // Header con horas
+  const hdrCols=`${LABEL_W}px repeat(${GANTT_HOURS.length},${COL_W}px)`;
+  let html=`<div class="gantt-wrap"><div style="min-width:${totalW}px">
+    <div class="gantt-header" style="grid-template-columns:${hdrCols}">
+      <div class="gantt-hour" style="text-align:left;padding-left:14px">Estación</div>
+      ${GANTT_HOURS.map(h=>`<div class="gantt-hour">${String(h).padStart(2,"0")}:00</div>`).join("")}
+    </div>`;
+
+  // Filas por estación
+  estaciones.forEach((est,ei)=>{
+    const opsEst=ops.filter(o=>o.estacion===est.id);
+    html+=`<div class="gantt-row" style="grid-template-columns:${hdrCols}">
+      <div class="gantt-row-label" style="width:${LABEL_W}px"><i class="ti ti-tool" style="font-size:13px;color:#7a7d99;margin-right:6px"></i>${est.nombre}</div>
+      <div></div>
+      ${GANTT_HOURS.map(()=>`<div class="gantt-cell"></div>`).join("")}`;
+    opsEst.forEach((op,i)=>{
+      const left=LABEL_W+(op.inicio-GANTT_HOURS[0])*COL_W;
+      const width=(op.fin-op.inicio)*COL_W;
+      const color=op.estado==="completada"?"#4caf8c":(op.estado==="en_proceso"?"#f5a623":GANTT_COLORS[(ei+i)%GANTT_COLORS.length]);
+      const dur=(op.fin-op.inicio).toFixed(1);
+      html+=`<div class="gantt-block" draggable="true" style="left:${left}px;width:${width-4}px;background:${color}"
+        ondragstart="ganttDragStart(event,'${op.id}')" ondragend="ganttDragEnd(event)"
+        onclick="ganttClickOp('${op.id}')"
+        title="${op.id} · ${op.cliente} · ${op.perfiles}">
+        <span style="font-weight:600">${op.cliente}</span>
+        <span style="opacity:.85">· ${op.perfiles}</span>
+        <span class="gantt-block-time">${dur}h</span>
+      </div>`;
+    });
+    html+=`</div>`;
+  });
+  html+=`</div></div>`;
+  document.getElementById("ganttContainer").innerHTML=html;
+}
+
+function renderGanttTabla(){
+  const {ops}=_ganttData;
+  const estadoBadge=e=>{
+    const map={en_proceso:["#3a2e10","#f5a623","En proceso"],pendiente:["#0f1e2e","#5b9bd5","Pendiente"],completada:["#1a3a2a","#4caf8c","Completada"]};
+    const [bg,fg,lbl]=map[e]||["#22253a","#7a7d99",e];
+    return `<span class="gantt-estado" style="background:${bg};color:${fg}">${lbl}</span>`;
+  };
+  let html=`<div class="gantt-tabla-row header">
+    <div>OP</div><div>Cliente / Perfiles</div><div>Material</div><div>Vendedor</div><div>Inicio</div><div>Fin</div><div>Estado</div>
+  </div>`;
+  html+=ops.map(o=>`<div class="gantt-tabla-row">
+    <div style="font-family:monospace;color:#b0b3cc">${o.id}</div>
+    <div><div style="color:#f0f0f5;font-weight:500">${o.cliente}</div><div style="font-size:10px;color:#7a7d99">${o.perfiles}</div></div>
+    <div style="color:#c8cce0">${o.mat}</div>
+    <div style="color:#b0b3cc">${o.vendedor}</div>
+    <div style="color:#7a7d99">${String(Math.floor(o.inicio)).padStart(2,"0")}:${o.inicio%1?"30":"00"}</div>
+    <div style="color:#7a7d99">${String(Math.floor(o.fin)).padStart(2,"0")}:${o.fin%1?"30":"00"}</div>
+    <div>${estadoBadge(o.estado)}</div>
+  </div>`).join("");
+  document.getElementById("ganttTabla").innerHTML=html;
+}
+
+let _ganttDragOp=null;
+function ganttDragStart(e,opId){_ganttDragOp=opId;e.target.classList.add("dragging");e.dataTransfer.effectAllowed="move";}
+function ganttDragEnd(e){e.target.classList.remove("dragging");
+  const op=_ganttData.ops.find(o=>o.id===_ganttDragOp);if(!op) return;
+  // Calcular nueva hora aproximada (demo)
+  toast(`Demo: OP ${op.id} reubicada (en versión real esto guardaría el cambio)`,"info");
+  _ganttDragOp=null;
+}
+function ganttClickOp(opId){
+  const op=_ganttData.ops.find(o=>o.id===opId);if(!op) return;
+  toast(`${op.id} — ${op.cliente} · ${op.perfiles} · ${op.mat}`,"info");
+}
+
 // ── HELPERS ───────────────────────────────────────────────────────────────────
 function closeModal(id){document.getElementById(id).style.display="none";}
 function toast(msg,type="ok"){
@@ -1813,7 +2735,79 @@ if(saved){
 }
 </script>
 
-<!-- SQL para agregar columnas necesarias — ejecutar en Supabase si es primera vez -->
-<!-- ALTER TABLE solicitudes ADD COLUMN IF NOT EXISTS perfil_tipo text; -->
+<!-- ╔══════════════════════════════════════════════════════════════════════════╗
+     ║  SQL DE MIGRACIÓN — Ejecutar UNA VEZ en Supabase SQL Editor             ║
+     ║  https://supabase.com/dashboard/project/_/sql/new                       ║
+     ╚══════════════════════════════════════════════════════════════════════════╝
+
+-- (existente) Columna perfil_tipo en solicitudes
+ALTER TABLE solicitudes ADD COLUMN IF NOT EXISTS perfil_tipo text;
+
+-- (nuevo) Columnas para "tubo extra" y "consumo extra"
+ALTER TABLE solicitudes ADD COLUMN IF NOT EXISTS tipo text DEFAULT 'separado';
+ALTER TABLE solicitudes ADD COLUMN IF NOT EXISTS cantidad int;
+ALTER TABLE solicitudes ADD COLUMN IF NOT EXISTS op_numero text;
+ALTER TABLE movimientos ADD COLUMN IF NOT EXISTS op_numero text;
+
+-- (nuevo) Tabla CLIENTES — maestro de clientes/proveedores
+CREATE TABLE IF NOT EXISTS clientes (
+  id              bigserial PRIMARY KEY,
+  codigo          text UNIQUE NOT NULL,
+  nombre          text NOT NULL,
+  tipo            text DEFAULT 'NAT',          -- JUR | NAT
+  estado          text DEFAULT 'activo',       -- activo | inactivo
+  ruc             text,
+  dni             text,
+  doc_ident       text,
+  nrodoc_ident    text,
+  nom_comercial   text,
+  ind_domic       text,
+  ind_cli         boolean DEFAULT false,
+  ind_pro         boolean DEFAULT false,
+  ind_tra         boolean DEFAULT false,
+  ind_otr         boolean DEFAULT false,
+  direccion       text,
+  pais            text,
+  ubigeo          text,
+  des_ubigeo      text,
+  email           text,
+  telefono        text,
+  celular         text,
+  fax             text,
+  pag_web         text,
+  contactos       text,
+  nombre_nat      text,
+  ape_pat         text,
+  ape_mat         text,
+  genero          text,                        -- M | F
+  fec_nacim       date,
+  ind_vincul      text,
+  des_tipo_actividad text,
+  notas           text,
+  codanterior     text,
+  cia_codcia      text,
+  ccr_codepk      text,
+  fec_crea        timestamptz DEFAULT now(),
+  user_crea       text,
+  fec_act         timestamptz,
+  user_act        text
+);
+CREATE INDEX IF NOT EXISTS idx_clientes_nombre  ON clientes (lower(nombre));
+CREATE INDEX IF NOT EXISTS idx_clientes_ruc     ON clientes (ruc);
+CREATE INDEX IF NOT EXISTS idx_clientes_dni     ON clientes (dni);
+CREATE INDEX IF NOT EXISTS idx_clientes_estado  ON clientes (estado);
+CREATE INDEX IF NOT EXISTS idx_clientes_indcli  ON clientes (ind_cli);
+
+-- Habilitar acceso anónimo (mismo patrón que el resto de tablas del proyecto).
+-- Si tienes RLS activo, agrega política según corresponda:
+ALTER TABLE clientes ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS clientes_all ON clientes;
+CREATE POLICY clientes_all ON clientes FOR ALL USING (true) WITH CHECK (true);
+
+--═══════════════════════════════════════════════════════════════════════════════
+-- PENDIENTE (cuando tengas el PDF de cotización): tablas OPs, kits, ops_items,
+-- ops_consumos, producción_estaciones, producción_bloques.
+--═══════════════════════════════════════════════════════════════════════════════
+-->
 </body>
 </html>
