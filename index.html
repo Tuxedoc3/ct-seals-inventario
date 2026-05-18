@@ -422,6 +422,62 @@ tbody tr:hover td{background:#1e2134}
       </div>
     </div>
 
+    <!-- CONSUMOS DE MATERIAL (Registro Diario) -->
+    <div class="page" id="page-consumos">
+      <div class="page-title"><i class="ti ti-clipboard-list" style="color:#D32F2F"></i>Consumos de Material — Registro Diario</div>
+      <div class="kpi-grid" id="consKpis"></div>
+      <div class="card">
+        <div class="card-title"><i class="ti ti-filter"></i>Filtros</div>
+        <div class="filters-grid">
+          <div class="filter-group">
+            <label class="filter-label">Mes / Año</label>
+            <input class="fi" id="consMes" type="month" onchange="renderConsumos()">
+          </div>
+          <div class="filter-group">
+            <label class="filter-label">N° OP</label>
+            <input class="fi" id="consOp" type="text" placeholder="Ej: 8837" oninput="renderConsumos()">
+          </div>
+          <div class="filter-group">
+            <label class="filter-label">Material</label>
+            <input class="fi" id="consMat" type="text" placeholder="PU RED, NBR..." oninput="renderConsumos()">
+          </div>
+          <div class="filter-group">
+            <label class="filter-label">Solo</label>
+            <select class="fi" id="consSolo" onchange="renderConsumos()">
+              <option value="">Todos</option>
+              <option value="abiertos">OPs abiertas (sin DEVUELTO)</option>
+              <option value="merma">Mermas</option>
+              <option value="historico">Históricos</option>
+              <option value="actual">Solo del sistema</option>
+            </select>
+          </div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-ghost" onclick="resetFiltrosCons()"><i class="ti ti-refresh"></i>Limpiar</button>
+          <button class="btn btn-red" id="btnNuevoCons" onclick="openModalConsumo()"><i class="ti ti-plus"></i>Nuevo registro</button>
+          <button class="btn btn-blue" id="btnImportCons" onclick="document.getElementById('consImportInput').click()"><i class="ti ti-upload"></i>Importar histórico Excel</button>
+          <input type="file" id="consImportInput" style="display:none" accept=".xlsx,.xls" onchange="importConsumosExcel(event)">
+        </div>
+        <div id="consImportProgress" style="display:none"></div>
+      </div>
+      <div class="card" style="padding:0">
+        <div class="tbl-wrap" style="max-height:none">
+          <table>
+            <thead><tr>
+              <th>FECHA</th><th>OP</th><th>MATERIAL</th>
+              <th style="text-align:right">DI</th><th style="text-align:right">DE</th><th style="text-align:right">LARGO</th>
+              <th style="text-align:right">ENVIADO</th><th style="text-align:right">DEVUELTO</th>
+              <th style="text-align:right">CONSUMIDO</th>
+              <th>OBSERVACIONES</th>
+              <th>Acciones</th>
+            </tr></thead>
+            <tbody id="cons-tbody"><tr><td colspan="11" class="no-data"><div class="loading"><div class="spinner"></div>Cargando...</div></td></tr></tbody>
+          </table>
+        </div>
+        <div class="tbl-footer" id="consFooter"></div>
+      </div>
+    </div>
+
     <!-- CARGA EXCEL -->
     <div class="page" id="page-carga">
       <div class="page-title"><i class="ti ti-upload" style="color:#D32F2F"></i>Cargar Excel</div>
@@ -585,6 +641,67 @@ tbody tr:hover td{background:#1e2134}
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modalCliente')">Cancelar</button>
       <button class="btn btn-red" id="btnSaveCliente" onclick="saveCliente()"><i class="ti ti-check"></i>Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Nuevo consumo (registro diario) -->
+<div class="modal-overlay" id="modalConsumo" style="display:none" onclick="if(event.target===this)closeModal('modalConsumo')">
+  <div class="modal" style="max-width:640px">
+    <div class="modal-title"><i class="ti ti-clipboard-plus" style="color:#D32F2F"></i><span id="modalConsumoTitle">Nuevo registro de consumo</span></div>
+    <div class="form-row-3">
+      <div class="form-group"><label class="form-label">Fecha <span class="req">*</span></label><input class="form-input" id="co_fecha" type="date"></div>
+      <div class="form-group"><label class="form-label">N° OP <span class="req">*</span></label><input class="form-input" id="co_op" placeholder="8837"></div>
+      <div class="form-group"><label class="form-label">Material <span class="req">*</span></label><input class="form-input" id="co_material" placeholder="PU RED, NBR..." list="consMatList"></div>
+    </div>
+    <datalist id="consMatList"></datalist>
+    <div class="form-row-3">
+      <div class="form-group"><label class="form-label">DI (mm) <span class="req">*</span></label><input class="form-input" id="co_di" type="number" oninput="buscarTuboCons()"></div>
+      <div class="form-group"><label class="form-label">DE (mm) <span class="req">*</span></label><input class="form-input" id="co_de" type="number" oninput="buscarTuboCons()"></div>
+      <div class="form-group"><label class="form-label">LARGO (mm) <span class="req">*</span></label><input class="form-input" id="co_largo" type="number" oninput="buscarTuboCons()"></div>
+    </div>
+    <div id="co_tubo_match" style="background:#1a1d26;border:.5px solid #2e3042;border-radius:8px;padding:10px 12px;font-size:12px;color:#7a7d99;margin-bottom:10px">Ingresa medidas para buscar tubo en MP Custom...</div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">ENVIADO (mm) <span class="req">*</span></label><input class="form-input" id="co_enviado" type="number" min="0" placeholder="Lo que sale del almacén"></div>
+      <div class="form-group"><label class="form-label">DEVUELTO (mm)</label><input class="form-input" id="co_devuelto" type="number" min="0" placeholder="(opcional, al cerrar OP)"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Observaciones</label><input class="form-input" id="co_observ" placeholder="MERMA, normal, etc."></div>
+      <div class="form-group"><label class="form-label">Material óptimo (sugerencia)</label><input class="form-input" id="co_optimo" placeholder="Opcional"></div>
+    </div>
+    <div style="background:#0f1e2e;border:.5px solid #1a4a7a;color:#5b9bd5;font-size:11px;padding:8px 12px;border-radius:8px;margin-bottom:10px">
+      <i class="ti ti-info-circle"></i> ENVIADO se descontará automáticamente del tubo seleccionado. Si llenas DEVUELTO ahora, ese material vuelve al stock.
+    </div>
+    <input type="hidden" id="co_id">
+    <input type="hidden" id="co_tubo_id">
+    <input type="hidden" id="co_tubo_inst_id">
+    <input type="hidden" id="co_enviado_original">
+    <input type="hidden" id="co_devuelto_original">
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modalConsumo')">Cancelar</button>
+      <button class="btn btn-red" id="btnSaveConsumo" onclick="saveConsumo()"><i class="ti ti-check"></i>Guardar registro</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: MERMA (descartar tubo entero) -->
+<div class="modal-overlay" id="modalMerma" style="display:none" onclick="if(event.target===this)closeModal('modalMerma')">
+  <div class="modal" style="max-width:440px">
+    <div class="modal-title"><i class="ti ti-trash-x" style="color:#e85a5a"></i>Marcar como MERMA</div>
+    <div style="background:#2e1a1a;border:.5px solid #e85a5a44;color:#e85a5a;font-size:12px;padding:10px 12px;border-radius:8px;margin-bottom:12px">
+      <i class="ti ti-alert-triangle"></i> Esta acción <strong>elimina el tubo físico entero</strong> del stock. Todos los mm restantes se perderán y el tubo no podrá usarse más.
+    </div>
+    <div id="mermaInfo" style="background:#1a1d26;border-radius:8px;padding:10px 12px;font-size:12px;color:#b0b3cc;margin-bottom:12px"></div>
+    <div class="form-group">
+      <label class="form-label">Motivo de la merma <span class="req">*</span></label>
+      <input class="form-input" id="mer_motivo" placeholder="Rotura, porosidad, error de medida, etc.">
+    </div>
+    <input type="hidden" id="mer_consumo_id">
+    <input type="hidden" id="mer_tubo_inst_id">
+    <input type="hidden" id="mer_tubo_id">
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modalMerma')">Cancelar</button>
+      <button class="btn btn-red" id="btnConfirmMerma" onclick="confirmMerma()"><i class="ti ti-trash"></i>Confirmar MERMA</button>
     </div>
   </div>
 </div>
@@ -803,16 +920,37 @@ tbody tr:hover td{background:#1e2134}
   <div class="modal">
     <div class="modal-title"><i class="ti ti-cylinder" style="color:#D32F2F"></i><span id="modalTuboTitle">Registrar entrada de tubos</span></div>
     <div class="form-group">
-      <label class="form-label">Código de material</label>
-      <input class="form-input" id="t_cod" placeholder="Opcional">
+      <label class="form-label">Seleccionar Material <span class="req">*</span></label>
+      <select class="form-input" id="t_mat_select" onchange="onTuboMatSelect()">
+        <option value="">-- Seleccione un material --</option>
+      </select>
     </div>
     <div class="form-group">
-      <label class="form-label">Descripción <span class="req">*</span></label>
-      <input class="form-input" id="t_desc" placeholder="Ej: PU U500 - 28/52/120">
+      <label class="form-label">Modo de ingreso</label>
+      <div class="cli-checks">
+        <label class="cli-check"><input type="checkbox" id="t_manual" onchange="toggleTuboManual()"> Manual (Nacionales sin código)</label>
+      </div>
+    </div>
+    <div id="t_manual_fields">
+      <div class="form-group">
+        <label class="form-label">Código de material</label>
+        <input class="form-input" id="t_cod" placeholder="Opcional">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Descripción <span class="req">*</span></label>
+        <input class="form-input" id="t_desc" placeholder="Ej: PU U500 - 28/52/120">
+      </div>
     </div>
     <div class="form-row">
-      <div class="form-group"><label class="form-label">Altura (mm) <span class="req">*</span></label><input class="form-input" id="t_altura" type="number"></div>
+      <div class="form-group"><label class="form-label">Altura (mm) <span class="req">*</span></label><input class="form-input" id="t_altura" type="number">(Sugerido por catálogo)</div>
       <div class="form-group"><label class="form-label">Cantidad <span class="req">*</span></label><input class="form-input" id="t_cantidad" type="number" min="1"></div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Origen <span class="req">*</span></label>
+      <select class="form-input" id="t_origen">
+        <option value="Nacional">Nacional</option>
+        <option value="Importado">Importado</option>
+      </select>
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modalTubo')">Cancelar</button>
@@ -910,12 +1048,12 @@ let cfg={tipo_cambio_eur_pen:3.8,tipo_cambio_usd_pen:3.78,stock_minimo_default:2
 
 // ── PERMISOS POR ROL ─────────────────────────────────────────────────────────
 const PERMISOS={
-  admin:    {nav:["dashboard","mp_custom","mp_mecaniza","mercaderias","alm_mecaniza","clientes","carga","usuarios","config"],editarCat:true,editarTubos:true,editarClientes:true,editarMerc:true,editarAlmMec:true,verPrecios:true,canConsumir:true},
-  gerente:  {nav:["dashboard","mp_custom","mp_mecaniza","mercaderias","alm_mecaniza","clientes","config"],editarCat:false,editarTubos:false,editarClientes:false,editarMerc:false,editarAlmMec:false,verPrecios:true,canConsumir:false},
-  supervisor:{nav:["dashboard","mp_custom","mp_mecaniza","mercaderias","alm_mecaniza","clientes","config"],editarCat:true,editarTubos:true,editarClientes:true,editarMerc:true,editarAlmMec:true,verPrecios:true,canConsumir:true},
-  almacen:  {nav:["dashboard","mp_custom","mp_mecaniza","mercaderias","alm_mecaniza","carga","config"],editarCat:true,editarTubos:true,editarClientes:false,editarMerc:true,editarAlmMec:true,verPrecios:true,canConsumir:true},
-  produccion:{nav:["dashboard","mp_custom","mp_mecaniza","mercaderias","alm_mecaniza","config"],editarCat:false,editarTubos:false,editarClientes:false,editarMerc:false,editarAlmMec:false,verPrecios:false,canConsumir:true},
-  vendedor: {nav:["dashboard","mp_custom","mp_mecaniza","mercaderias","alm_mecaniza","clientes","config"],editarCat:false,editarTubos:false,editarClientes:true,editarMerc:false,editarAlmMec:false,verPrecios:true,canConsumir:false},
+  admin:    {nav:["dashboard","mp_custom","mp_mecaniza","mercaderias","alm_mecaniza","consumos","clientes","carga","usuarios","config"],editarCat:true,editarTubos:true,editarClientes:true,editarMerc:true,editarAlmMec:true,editarConsumos:true,verPrecios:true,canConsumir:true},
+  gerente:  {nav:["dashboard","mp_custom","mp_mecaniza","mercaderias","alm_mecaniza","consumos","clientes","config"],editarCat:false,editarTubos:false,editarClientes:false,editarMerc:false,editarAlmMec:false,editarConsumos:false,verPrecios:true,canConsumir:false},
+  supervisor:{nav:["dashboard","mp_custom","mp_mecaniza","mercaderias","alm_mecaniza","consumos","clientes","config"],editarCat:true,editarTubos:true,editarClientes:true,editarMerc:true,editarAlmMec:true,editarConsumos:true,verPrecios:true,canConsumir:true},
+  almacen:  {nav:["dashboard","mp_custom","mp_mecaniza","mercaderias","alm_mecaniza","consumos","carga","config"],editarCat:true,editarTubos:true,editarClientes:false,editarMerc:true,editarAlmMec:true,editarConsumos:true,verPrecios:true,canConsumir:true},
+  produccion:{nav:["dashboard","mp_custom","mp_mecaniza","mercaderias","alm_mecaniza","consumos","config"],editarCat:false,editarTubos:false,editarClientes:false,editarMerc:false,editarAlmMec:false,editarConsumos:true,verPrecios:false,canConsumir:true},
+  vendedor: {nav:["dashboard","mp_custom","mp_mecaniza","mercaderias","alm_mecaniza","consumos","clientes","config"],editarCat:false,editarTubos:false,editarClientes:true,editarMerc:false,editarAlmMec:false,editarConsumos:false,verPrecios:true,canConsumir:false},
 };
 
 const NAV_ITEMS={
@@ -924,6 +1062,7 @@ const NAV_ITEMS={
   mp_mecaniza:  {icon:"ti-cylinder",label:"Mat. Prima — Mecaniza",sec:"Almacenes"},
   mercaderias:  {icon:"ti-circle-dot",label:"Mercaderías",sec:"Almacenes"},
   alm_mecaniza: {icon:"ti-box",label:"Almacén Mecaniza",sec:"Almacenes"},
+  consumos:     {icon:"ti-clipboard-list",label:"Consumos de Material",sec:"Operación"},
   clientes:     {icon:"ti-users",label:"Clientes",sec:"Principal"},
   carga:        {icon:"ti-upload",label:"Cargar Excel",sec:"Datos"},
   usuarios:     {icon:"ti-user-cog",label:"Usuarios",sec:"Administración"},
@@ -1110,6 +1249,7 @@ function goTo(page){
   if(page==="mp_custom"||page==="mp_mecaniza"){_tubosState.sede=SEDE_BY_PAGE[page];loadTubos();}
   if(page==="mercaderias") loadMercaderias();
   if(page==="alm_mecaniza") loadAlmMecaniza();
+  if(page==="consumos") loadConsumos();
   if(page==="clientes") loadClientes();
   if(page==="usuarios") loadUsuarios();
   if(page==="config") loadConfigPage();
@@ -1158,7 +1298,7 @@ async function loadDashboard(){
 // ────────────────────────────────────────────────────────────────────────────
 //  TUBOS
 // ────────────────────────────────────────────────────────────────────────────
-let _tubosState={detalleId:null,page:1,perPage:30,query:"",fMat:"",sede:"custom"};
+let _tubosState={detalleId:null,page:1,perPage:30,query:"",fMat:"",fSubFam:"",fDi:"",fDe:"",sede:"custom"};
 let _tubosCache={tubos:[],instByTubo:{}};
 
 function parseMaterial(desc){
@@ -1227,6 +1367,16 @@ function renderTubosResumen(){
   });
   if(q) resumen=resumen.filter(r=>(r.t.descripcion||"").toLowerCase().includes(q)||(r.t.codigo_mat||"").toLowerCase().includes(q));
   if(fMat) resumen=resumen.filter(r=>r.mat===fMat);
+  if(_tubosState.fSubFam) resumen=resumen.filter(r=>r.t.subfamilia===_tubosState.fSubFam);
+
+  const checkRange=(val,f)=>{
+    if(!f) return true;
+    const p=f.split('-').map(Number);
+    if(p.length===2) return val>=p[0]&&val<=p[1];
+    return val==f;
+  };
+  if(_tubosState.fDi) resumen=resumen.filter(r=>checkRange(r.med.di,_tubosState.fDi));
+  if(_tubosState.fDe) resumen=resumen.filter(r=>checkRange(r.med.de,_tubosState.fDe));
   resumen.sort((a,b)=>(a.t.descripcion||"").localeCompare(b.t.descripcion||""));
 
   const totalTipos=resumen.length;
@@ -1253,14 +1403,19 @@ function renderTubosResumen(){
   </div>`;
 
   const buscadorHtml=`<div class="card" style="padding:10px 14px;margin-bottom:10px">
-    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-      <input class="fi" type="text" placeholder="Buscar por material, código o medida..."
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;align-items:center">
+      <input class="fi" type="text" placeholder="Buscar material, código..."
         value="${(_tubosState.query||"").replace(/"/g,"&quot;")}"
         oninput="_tubosState.query=this.value;_tubosState.page=1;renderTubosResumen()"
-        style="flex:1;min-width:220px">
-      <select class="fi" style="width:auto;min-width:160px"
-        onchange="_tubosState.fMat=this.value;_tubosState.page=1;renderTubosResumen()">${matsOpts}</select>
-      ${(_tubosState.query||_tubosState.fMat)?`<button class="btn btn-ghost" onclick="_tubosState.query='';_tubosState.fMat='';_tubosState.page=1;renderTubosResumen()"><i class="ti ti-x"></i>Limpiar</button>`:""}
+        style="grid-column:span 2">
+      <select class="fi" onchange="_tubosState.fMat=this.value;_tubosState.page=1;renderTubosResumen()">${matsOpts}</select>
+      <select class="fi" onchange="_tubosState.fSubFam=this.value;_tubosState.page=1;renderTubosResumen()">
+        <option value="">Todas subfamilias</option>
+        ${[...new Set(tubos.map(t=>t.subfamilia))].filter(Boolean).sort().map(s=>`<option value="${s}"${_tubosState.fSubFam===s?" selected":""}>${s}</option>`).join("")}
+      </select>
+      <input class="fi" type="text" placeholder="DI (ej: 25 o 20-30)" value="${_tubosState.fDi}" oninput="_tubosState.fDi=this.value;_tubosState.page=1;renderTubosResumen()">
+      <input class="fi" type="text" placeholder="DE (ej: 52 o 50-60)" value="${_tubosState.fDe}" oninput="_tubosState.fDe=this.value;_tubosState.page=1;renderTubosResumen()">
+      ${(_tubosState.query||_tubosState.fMat||_tubosState.fSubFam||_tubosState.fDi||_tubosState.fDe)?`<button class="btn btn-ghost" onclick="_tubosState.query='';_tubosState.fMat='';_tubosState.fSubFam='';_tubosState.fDi='';_tubosState.fDe='';_tubosState.page=1;renderTubosResumen()"><i class="ti ti-x"></i>Limpiar</button>`:""}
     </div>
   </div>`;
 
@@ -1351,7 +1506,10 @@ async function verDetalleTubo(tuboId){
 
   const movsHtml=movs.slice(0,10).map(m=>`<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:.5px solid #1e2134;font-size:11px">
     <div style="flex:1;color:#c8cce0">${m.tipo}${m.altura_usada?` · ${m.altura_usada}mm`:""}${m.op_numero?` · OP ${m.op_numero}`:""}${m.nota?` · ${m.nota}`:""}</div>
-    <span style="color:#3a3e5a;font-size:10px">${new Date(m.fecha).toLocaleDateString("es-PE")}</span>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="color:#3a3e5a;font-size:10px">${new Date(m.fecha).toLocaleDateString("es-PE")}</span>
+        ${perm.editarTubos?`<button class="btn-ghost" style="padding:2px 5px;border-radius:4px;color:#e85a5a" onclick="deleteMovimiento(${m.id},${m.tubo_instancia_id||"null"})" title="Eliminar"><i class="ti ti-trash" style="font-size:12px"></i></button>`:""}
+      </div>
   </div>`).join("");
 
   const headerHtml=`<div class="btn-row">
@@ -1378,9 +1536,82 @@ async function verDetalleTubo(tuboId){
   </div>`;
 }
 
+async function deleteMovimiento(id, instId){
+  if(!confirm("¿Estás seguro de eliminar este movimiento? Si afectó al stock, se intentará revertir el cambio.")){return;}
+  setBtnLoading("btnSaveTubo",true,"Eliminando...");
+
+  const {data:m}=await sb.from("movimientos").select("*").eq("id",id).single();
+  if(!m){toast("Movimiento no encontrado","err");setBtnLoading("btnSaveTubo",false);return;}
+
+  if(instId){
+    const {data:inst}=await sb.from("tubo_instancias").select("altura_usada").eq("id",instId).single();
+    if(inst){
+      let nuevoUsado=inst.altura_usada;
+      if(m.tipo==="consumo"){
+        nuevoUsado-=m.altura_usada||0;
+      } else if(m.tipo==="merma"){
+        await sb.from("tubo_instancias").update({estado:"disponible"}).eq("id",instId);
+      }
+
+      if(m.tipo==="consumo"){
+        await sb.from("tubo_instancias").update({altura_usada:Math.max(0,nuevoUsado)}).eq("id",instId);
+      }
+    }
+  }
+
+  const {error}=await sb.from("movimientos").delete().eq("id",id);
+  setBtnLoading("btnSaveTubo",false);
+  if(error){toast("Error al eliminar: "+error.message,"err");}
+  else{toast("✓ Movimiento eliminado","ok");loadTubos();}
+}
+
+function toggleTuboManual(){
+  const isManual=document.getElementById("t_manual").checked;
+  document.getElementById("t_manual_fields").style.display=isManual?"block":"none";
+  if(!isManual){
+    document.getElementById("t_cod").value="";
+    document.getElementById("t_desc").value="";
+  }
+}
+
+async function onTuboMatSelect(){
+  const id=document.getElementById("t_mat_select").value;
+  const codIn=document.getElementById("t_cod");
+  const descIn=document.getElementById("t_desc");
+  const altIn=document.getElementById("t_altura");
+
+  if(!id){
+    codIn.value=""; descIn.value=""; altIn.value="";
+    return;
+  }
+
+  const {data}=await sb.from("tubos").select("codigo_mat,descripcion,altura_total").eq("id",id).single();
+  if(data){
+    codIn.value=data.codigo_mat||"";
+    descIn.value=data.descripcion||"";
+    altIn.value=data.altura_total||"";
+  }
+}
+
 function openModalTubo(){
   document.getElementById("modalTuboTitle").textContent="Registrar entrada de tubos";
   ["t_cod","t_desc","t_altura","t_cantidad"].forEach(id=>document.getElementById(id).value="");
+  document.getElementById("t_manual").checked=false;
+  document.getElementById("t_manual_fields").style.display="none";
+  document.getElementById("t_mat_select").innerHTML=`<option value="">-- Seleccione un material --</option>`;
+
+  const sede=_tubosState.sede||"custom";
+  sb.from("tubos").select("id,descripcion").eq("sede",sede).order("descripcion").then(({data})=>{
+    if(data){
+      data.forEach(m=> {
+        const opt=document.createElement("option");
+        opt.value=m.id;
+        opt.textContent=m.descripcion;
+        document.getElementById("t_mat_select").appendChild(opt);
+      });
+    }
+  });
+
   document.getElementById("modalTubo").style.display="flex";
 }
 function openModalTuboFor(cod,desc){
@@ -1392,28 +1623,46 @@ function openModalTuboFor(cod,desc){
   document.getElementById("modalTubo").style.display="flex";
 }
 async function saveTubo(){
+  const matId=document.getElementById("t_mat_select").value;
+  const isManual=document.getElementById("t_manual").checked;
   const cod=document.getElementById("t_cod").value.trim()||null;
   const desc=document.getElementById("t_desc").value.trim();
   const altura=parseFloat(document.getElementById("t_altura").value);
   const cant=parseInt(document.getElementById("t_cantidad").value);
+  const origen=document.getElementById("t_origen").value;
   const sede=_tubosState.sede||"custom";
+
   if(!desc||!altura||!cant||cant<=0){toast("Completa todos los campos obligatorios","err");return;}
   setBtnLoading("btnSaveTubo",true,"Guardando...");
-  const {data:ex}=await sb.from("tubos").select("id").eq("descripcion",desc).eq("altura_total",altura).eq("sede",sede).maybeSingle();
+
   let tuboId;
-  if(ex){tuboId=ex.id;}
-  else{
-    const {data:nv,error}=await sb.from("tubos").insert({codigo_mat:cod,descripcion:desc,altura_total:altura,sede}).select().single();
-    if(error){setBtnLoading("btnSaveTubo",false);toast("Error: "+error.message,"err");return;}
-    tuboId=nv.id;
+  if(matId && !isManual){
+    tuboId=matId;
+  } else {
+    const {data:ex}=await sb.from("tubos").select("id").eq("descripcion",desc).eq("altura_total",altura).eq("sede",sede).maybeSingle();
+    if(ex){tuboId=ex.id;}
+    else{
+      const {data:nv,error}=await sb.from("tubos").insert({codigo_mat:cod,descripcion:desc,altura_total:altura,sede}).select().single();
+      if(error){setBtnLoading("btnSaveTubo",false);toast("Error: "+error.message,"err");return;}
+      tuboId=nv.id;
+    }
   }
+
   const insts=Array.from({length:cant},()=>({tubo_id:tuboId,altura_usada:0,estado:"disponible"}));
   const {error:ei}=await sb.from("tubo_instancias").insert(insts);
   if(ei){setBtnLoading("btnSaveTubo",false);toast("Error: "+ei.message,"err");return;}
-  await sb.from("movimientos").insert({tubo_id:tuboId,tipo:"entrada",cantidad:cant,usuario_id:CU?.id,nota:`Manual sede ${sede}: ${cant} tubos`});
+
+  await sb.from("movimientos").insert({
+    tubo_id:tuboId,
+    tipo:"entrada",
+    cantidad:cant,
+    usuario_id:CU?.id,
+    nota:`Entrada ${origen}: ${cant} tubos (Sede ${sede})`
+  });
+
   setBtnLoading("btnSaveTubo",false);
   closeModal("modalTubo");
-  toast(`✓ ${cant} tubo${cant>1?"s":""} registrado${cant>1?"s":""} en sede ${sede}`,"ok");
+  toast(`✓ ${cant} tubo${cant>1?"s":""} registrado${cant>1?"s":""} en sede ${sede} (${origen})`,"ok");
   loadTubos();
 }
 
@@ -1712,6 +1961,394 @@ async function saveMaterial(){
   closeModal("modalMaterial");
   toast(`✓ Material ${id?"actualizado":"creado"} en sede ${sede}`,"ok");
   loadTubos();
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+//  CONSUMOS DE MATERIAL (Registro Diario, conectado a MP Custom)
+// ────────────────────────────────────────────────────────────────────────────
+let _consState={page:1,perPage:50,query:"",mes:"",op:"",material:"",solo:""};
+let _consCache=[];
+let _consMatList=[]; // nombres únicos de material para autocompletar
+
+async function loadConsumos(){
+  const perm=PERMISOS[CU.rol];
+  document.getElementById("btnNuevoCons").style.display=perm.editarConsumos?"inline-flex":"none";
+  document.getElementById("btnImportCons").style.display=perm.editarConsumos?"inline-flex":"none";
+  // Default mes a mes actual si vacío
+  if(!document.getElementById("consMes").value){
+    const d=new Date();
+    document.getElementById("consMes").value=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
+  }
+  document.getElementById("cons-tbody").innerHTML=`<tr><td colspan="11" class="no-data"><div class="loading"><div class="spinner"></div>Cargando consumos...</div></td></tr>`;
+  showLoading(true);
+  let all=[];
+  for(let from=0;;from+=1000){
+    const {data,error}=await sb.from("consumos_ops").select("*").order("fecha",{ascending:false}).range(from,from+999);
+    if(error){toast("Error: "+error.message,"err");break;}
+    if(!data?.length) break;
+    all=all.concat(data);
+    if(data.length<1000) break;
+  }
+  showLoading(false);
+  _consCache=all;
+  // Construir lista única de materiales
+  const set=new Set(all.map(c=>c.material).filter(Boolean));
+  _consMatList=[...set].sort();
+  document.getElementById("consMatList").innerHTML=_consMatList.map(m=>`<option value="${m.replace(/"/g,"&quot;")}"></option>`).join("");
+  renderConsumos();
+}
+
+function resetFiltrosCons(){
+  document.getElementById("consOp").value="";
+  document.getElementById("consMat").value="";
+  document.getElementById("consSolo").value="";
+  // dejar consMes como está
+  _consState.page=1;
+  renderConsumos();
+}
+
+function renderConsumos(){
+  const perm=PERMISOS[CU.rol];
+  const mes=document.getElementById("consMes")?.value||"";
+  const op=document.getElementById("consOp")?.value.trim().toLowerCase()||"";
+  const mat=document.getElementById("consMat")?.value.trim().toLowerCase()||"";
+  const solo=document.getElementById("consSolo")?.value||"";
+
+  let lista=_consCache.filter(c=>{
+    if(mes&&!String(c.fecha||"").startsWith(mes)) return false;
+    if(op&&!String(c.op||"").toLowerCase().includes(op)) return false;
+    if(mat&&!String(c.material||"").toLowerCase().includes(mat)) return false;
+    if(solo==="abiertos"&&c.devuelto!=null) return false;
+    if(solo==="merma"&&!c.es_merma) return false;
+    if(solo==="historico"&&!c.es_historico) return false;
+    if(solo==="actual"&&c.es_historico) return false;
+    return true;
+  });
+
+  // KPIs (sobre lista filtrada)
+  const totEnv=lista.reduce((a,c)=>a+(c.enviado||0),0);
+  const totDev=lista.reduce((a,c)=>a+(c.devuelto||0),0);
+  const totCons=lista.reduce((a,c)=>a+(c.consumido||0),0);
+  const opsSet=new Set(lista.map(c=>c.op));
+  const mermas=lista.filter(c=>c.es_merma).length;
+  const pctMerma=lista.length>0?Math.round((mermas/lista.length)*100):0;
+  // Material más usado
+  const matCount={};
+  lista.forEach(c=>{if(c.material) matCount[c.material]=(matCount[c.material]||0)+(c.consumido||0);});
+  const topMat=Object.entries(matCount).sort((a,b)=>b[1]-a[1])[0];
+  document.getElementById("consKpis").innerHTML=`
+    <div class="kpi"><div class="kpi-label">Registros</div><div class="kpi-val white">${lista.length}</div><div class="kpi-sub">${opsSet.size} OPs</div></div>
+    <div class="kpi"><div class="kpi-label">mm enviados</div><div class="kpi-val blue">${totEnv.toFixed(0)}</div></div>
+    <div class="kpi"><div class="kpi-label">mm consumidos</div><div class="kpi-val amber">${totCons.toFixed(0)}</div><div class="kpi-sub">${totDev.toFixed(0)}mm devueltos</div></div>
+    <div class="kpi"><div class="kpi-label">Mermas</div><div class="kpi-val ${mermas>0?'red':'green'}">${mermas}</div><div class="kpi-sub">${pctMerma}% del total</div></div>
+    ${topMat?`<div class="kpi"><div class="kpi-label">Top material</div><div class="kpi-val green" style="font-size:13px">${topMat[0]}</div><div class="kpi-sub">${topMat[1].toFixed(0)}mm</div></div>`:""}`;
+
+  const per=_consState.perPage;
+  const total=lista.length;
+  const totalPg=Math.max(1,Math.ceil(total/per));
+  if(_consState.page>totalPg) _consState.page=totalPg;
+  if(_consState.page<1) _consState.page=1;
+  const start=(_consState.page-1)*per;
+  const visible=lista.slice(start,start+per);
+
+  document.getElementById("cons-tbody").innerHTML=visible.length?visible.map(c=>{
+    const isOpen=c.devuelto==null&&!c.es_merma;
+    const merma=c.es_merma;
+    const histo=c.es_historico;
+    const rowStyle=merma?'background:#2e1a1a08':histo?'opacity:.7':'';
+    return `<tr style="${rowStyle}">
+      <td style="font-size:11px;color:#b0b3cc">${c.fecha||""}</td>
+      <td style="font-family:monospace;color:#f0f0f5">${c.op||""}</td>
+      <td style="color:#c8cce0">${c.material||""}${histo?' <span style="font-size:9px;color:#7a7d99">(hist)</span>':''}</td>
+      <td style="text-align:right;color:#7a7d99;font-size:11px">${c.di??""}</td>
+      <td style="text-align:right;color:#7a7d99;font-size:11px">${c.de??""}</td>
+      <td style="text-align:right;color:#7a7d99;font-size:11px">${c.largo??""}</td>
+      <td style="text-align:right;color:#5b9bd5;font-weight:500">${c.enviado??""}</td>
+      <td style="text-align:right;color:${c.devuelto!=null?'#4caf8c':'#5a5e7a'}">${c.devuelto??"—"}</td>
+      <td style="text-align:right;color:${c.consumido>0?'#f5a623':'#7a7d99'};font-weight:500">${c.consumido??""}</td>
+      <td style="font-size:10px;color:${merma?'#e85a5a':'#7a7d99'}">${merma?`<i class="ti ti-trash-x"></i> MERMA${c.motivo_merma?`: ${c.motivo_merma}`:''}`:(c.observaciones||"")}</td>
+      <td style="white-space:nowrap">
+        ${perm.editarConsumos&&!histo&&!merma?`
+          ${isOpen?`<button class="btn btn-green" style="padding:3px 7px;font-size:10px" onclick="openModalConsumo(${c.id})" title="Cerrar (DEVUELTO)"><i class="ti ti-arrow-back-up"></i></button>`:""}
+          <button class="btn btn-ghost" style="padding:3px 7px;font-size:10px" onclick="openModalConsumo(${c.id})" title="Editar"><i class="ti ti-edit"></i></button>
+          ${c.tubo_instancia_id?`<button class="btn btn-amber" style="padding:3px 7px;font-size:10px" onclick="openMermaModal(${c.id})" title="MERMA"><i class="ti ti-trash-x"></i></button>`:""}
+        `:""}
+      </td>
+    </tr>`;
+  }).join(""):`<tr><td colspan="11" class="no-data">Sin registros con esos filtros</td></tr>`;
+
+  document.getElementById("consFooter").innerHTML=`
+    <div class="row-info">Mostrando ${total?start+1:0}–${Math.min(start+per,total)} de ${total.toLocaleString()}</div>
+    <div class="pag">
+      <button class="pag-btn" ${_consState.page<=1?"disabled":""} onclick="_consState.page=1;renderConsumos()">«</button>
+      <button class="pag-btn" ${_consState.page<=1?"disabled":""} onclick="_consState.page--;renderConsumos()">‹</button>
+      <span class="pag-btn active">${_consState.page} / ${totalPg}</span>
+      <button class="pag-btn" ${_consState.page>=totalPg?"disabled":""} onclick="_consState.page++;renderConsumos()">›</button>
+      <button class="pag-btn" ${_consState.page>=totalPg?"disabled":""} onclick="_consState.page=${totalPg};renderConsumos()">»</button>
+    </div>`;
+}
+
+function openModalConsumo(id=null){
+  const c=id?_consCache.find(x=>x.id===id):null;
+  document.getElementById("modalConsumoTitle").textContent=c?(c.devuelto==null?`Cerrar OP ${c.op}`:`Editar registro ${c.op}`):"Nuevo registro de consumo";
+  const set=(k,v)=>{const el=document.getElementById(k);if(el)el.value=v??"";};
+  set("co_id",c?.id||"");
+  set("co_fecha",c?.fecha||new Date().toISOString().slice(0,10));
+  set("co_op",c?.op||"");
+  set("co_material",c?.material||"");
+  set("co_di",c?.di??"");
+  set("co_de",c?.de??"");
+  set("co_largo",c?.largo??"");
+  set("co_enviado",c?.enviado??"");
+  set("co_devuelto",c?.devuelto??"");
+  set("co_observ",c?.observaciones||"");
+  set("co_optimo",c?.material_optimo||"");
+  set("co_tubo_id",c?.tubo_id||"");
+  set("co_tubo_inst_id",c?.tubo_instancia_id||"");
+  set("co_enviado_original",c?.enviado??"");
+  set("co_devuelto_original",c?.devuelto??"");
+  document.getElementById("co_tubo_match").innerHTML=c?.tubo_id?
+    `<i class="ti ti-cylinder" style="color:#4caf8c"></i> Tubo ya vinculado (id ${c.tubo_id})`:
+    `Ingresa medidas para buscar tubo en MP Custom...`;
+  document.getElementById("modalConsumo").style.display="flex";
+  if(!c) buscarTuboCons();
+}
+
+async function buscarTuboCons(){
+  const di=parseFloat(document.getElementById("co_di").value);
+  const de=parseFloat(document.getElementById("co_de").value);
+  const largo=parseFloat(document.getElementById("co_largo").value);
+  const matchEl=document.getElementById("co_tubo_match");
+  if(isNaN(di)||isNaN(de)||isNaN(largo)){
+    matchEl.innerHTML=`Ingresa medidas DI, DE y LARGO para buscar tubo...`;
+    document.getElementById("co_tubo_id").value="";
+    document.getElementById("co_tubo_inst_id").value="";
+    return;
+  }
+  matchEl.innerHTML=`<div class="spin" style="display:inline-block;width:10px;height:10px;border:2px solid #5b9bd5;border-top-color:transparent;border-radius:50%;vertical-align:middle"></div> Buscando...`;
+  // Buscar tubos con esas medidas exactas en sede custom
+  const {data:tubos}=await sb.from("tubos").select("*").eq("sede","custom").eq("di",di).eq("de",de).eq("altura_total",largo);
+  if(!tubos?.length){
+    matchEl.innerHTML=`<span style="color:#e85a5a"><i class="ti ti-alert-circle"></i> No hay tubos con DI ${di} · DE ${de} · L ${largo} en MP Custom</span>`;
+    document.getElementById("co_tubo_id").value="";
+    document.getElementById("co_tubo_inst_id").value="";
+    return;
+  }
+  // Para cada tubo, ver instancias disponibles
+  const ids=tubos.map(t=>t.id);
+  const {data:insts}=await sb.from("tubo_instancias").select("*").in("tubo_id",ids).eq("estado","disponible");
+  if(!insts?.length){
+    matchEl.innerHTML=`<span style="color:#f5a623"><i class="ti ti-alert-triangle"></i> Hay materiales con esas medidas pero sin tubos disponibles</span>`;
+    document.getElementById("co_tubo_id").value="";
+    document.getElementById("co_tubo_inst_id").value="";
+    return;
+  }
+  // Tomar el primer tubo con instancia disponible
+  const first=insts[0];
+  const tubo=tubos.find(t=>t.id===first.tubo_id);
+  const mmRest=(tubo.altura_total||0)-(first.altura_usada||0);
+  document.getElementById("co_tubo_id").value=tubo.id;
+  document.getElementById("co_tubo_inst_id").value=first.id;
+  matchEl.innerHTML=`<span style="color:#4caf8c"><i class="ti ti-check"></i> <strong>${tubo.descripcion}</strong> · ${insts.length} tubo${insts.length>1?"s":""} disponible${insts.length>1?"s":""} · ${mmRest}mm en T1 (de donde se descontará)</span>`;
+}
+
+async function saveConsumo(){
+  const v=k=>document.getElementById(k).value.trim();
+  const num=k=>{const x=parseFloat(document.getElementById(k).value);return isNaN(x)?null:x;};
+  const fecha=v("co_fecha"),op=v("co_op"),material=v("co_material");
+  const di=num("co_di"),de=num("co_de"),largo=num("co_largo");
+  const enviado=num("co_enviado");
+  const devuelto=num("co_devuelto");
+  if(!fecha||!op||!material||di==null||de==null||largo==null||enviado==null){
+    toast("Completa Fecha, OP, Material, medidas y ENVIADO","err");return;
+  }
+  if(devuelto!=null&&devuelto>enviado){
+    toast("DEVUELTO no puede ser mayor que ENVIADO","err");return;
+  }
+  setBtnLoading("btnSaveConsumo",true,"Guardando...");
+  const tuboId=parseInt(document.getElementById("co_tubo_id").value)||null;
+  const tuboInstId=parseInt(document.getElementById("co_tubo_inst_id").value)||null;
+  const enviadoOrig=parseFloat(document.getElementById("co_enviado_original").value)||0;
+  const devueltoOrig=parseFloat(document.getElementById("co_devuelto_original").value);
+  const id=v("co_id");
+
+  // Calcular delta neto a aplicar al tubo: (enviado - devuelto) - (enviadoOrig - devueltoOrig)
+  // Si es nuevo: delta = enviado - (devuelto||0)
+  // Si edita: delta = (enviado - devuelto) - (enviadoOrig - devueltoOrig)
+  const consumoNuevo=enviado-(devuelto||0);
+  const consumoOrig=id?(enviadoOrig-(isNaN(devueltoOrig)?0:devueltoOrig)):0;
+  const delta=consumoNuevo-consumoOrig; // positivo = más consumo, negativo = devuelve
+
+  // Aplicar al tubo si está vinculado
+  if(tuboInstId&&delta!==0){
+    const {data:inst}=await sb.from("tubo_instancias").select("*").eq("id",tuboInstId).single();
+    const {data:tubo}=await sb.from("tubos").select("altura_total").eq("id",tuboId).single();
+    if(!inst||!tubo){setBtnLoading("btnSaveConsumo",false);toast("Tubo no encontrado","err");return;}
+    const altTot=tubo.altura_total||0;
+    const nuevoUsado=Math.max(0,(inst.altura_usada||0)+delta);
+    if(nuevoUsado>altTot){
+      setBtnLoading("btnSaveConsumo",false);
+      toast(`Stock insuficiente: el tubo solo tiene ${altTot-(inst.altura_usada||0)}mm restantes`,"err");return;
+    }
+    const nuevoEstado=nuevoUsado>=altTot?"agotado":(nuevoUsado>0?"en_uso":"disponible");
+    const {error:eU}=await sb.from("tubo_instancias").update({altura_usada:nuevoUsado,estado:nuevoEstado}).eq("id",tuboInstId);
+    if(eU){setBtnLoading("btnSaveConsumo",false);toast("Error stock: "+eU.message,"err");return;}
+    // Movimiento
+    await sb.from("movimientos").insert({
+      tubo_id:tuboId,tubo_instancia_id:tuboInstId,
+      tipo:delta>0?"consumo":"ajuste",
+      altura_usada:Math.abs(delta),op_numero:op,usuario_id:CU?.id,
+      nota:`Consumo OP ${op}: ${delta>0?"-":"+"}${Math.abs(delta)}mm`
+    });
+  }
+
+  // Persistir el registro
+  const observ=v("co_observ");
+  const payload={
+    fecha,op,material,
+    tubo_id:tuboId,tubo_instancia_id:tuboInstId,
+    di,de,largo,enviado,
+    devuelto:devuelto!=null?devuelto:null,
+    observaciones:observ||null,
+    material_optimo:v("co_optimo")||null,
+    es_merma:false,
+    es_historico:false,
+    sede:"custom",
+    usuario_id:CU?.id,
+  };
+  let res;
+  if(id){res=await sb.from("consumos_ops").update(payload).eq("id",id);}
+  else{res=await sb.from("consumos_ops").insert(payload);}
+  setBtnLoading("btnSaveConsumo",false);
+  if(res.error){toast("Error: "+res.error.message,"err");return;}
+  closeModal("modalConsumo");
+  toast(id?"✓ Registro actualizado":"✓ Consumo registrado y stock descontado","ok");
+  loadConsumos();
+}
+
+function openMermaModal(consumoId){
+  const c=_consCache.find(x=>x.id===consumoId);if(!c)return;
+  document.getElementById("mer_consumo_id").value=consumoId;
+  document.getElementById("mer_tubo_inst_id").value=c.tubo_instancia_id||"";
+  document.getElementById("mer_tubo_id").value=c.tubo_id||"";
+  document.getElementById("mer_motivo").value=c.observaciones&&c.observaciones.toUpperCase().includes("MERMA")?c.observaciones:"";
+  document.getElementById("mermaInfo").innerHTML=`
+    <div><strong style="color:#f0f0f5">OP ${c.op}</strong> · ${c.material}</div>
+    <div style="font-size:11px;margin-top:4px">DI ${c.di} · DE ${c.de} · L ${c.largo}mm</div>
+    <div style="font-size:11px;color:#7a7d99;margin-top:2px">Enviado: ${c.enviado}mm · Devuelto: ${c.devuelto??"—"}mm</div>`;
+  document.getElementById("modalMerma").style.display="flex";
+}
+
+async function confirmMerma(){
+  const consId=parseInt(document.getElementById("mer_consumo_id").value);
+  const tuboInstId=parseInt(document.getElementById("mer_tubo_inst_id").value);
+  const tuboId=parseInt(document.getElementById("mer_tubo_id").value);
+  const motivo=document.getElementById("mer_motivo").value.trim();
+  if(!motivo){toast("El motivo es obligatorio","err");return;}
+  if(!tuboInstId){toast("Este consumo no tiene tubo vinculado","err");return;}
+  setBtnLoading("btnConfirmMerma",true,"Procesando...");
+  // 1) Marcar instancia como merma con altura_usada = altura_total
+  const {data:tubo}=await sb.from("tubos").select("altura_total").eq("id",tuboId).single();
+  if(!tubo){setBtnLoading("btnConfirmMerma",false);toast("Tubo no encontrado","err");return;}
+  const {error:e1}=await sb.from("tubo_instancias").update({altura_usada:tubo.altura_total,estado:"merma"}).eq("id",tuboInstId);
+  if(e1){setBtnLoading("btnConfirmMerma",false);toast("Error: "+e1.message,"err");return;}
+  // 2) Registrar movimiento de merma
+  await sb.from("movimientos").insert({
+    tubo_id:tuboId,tubo_instancia_id:tuboInstId,
+    tipo:"merma",altura_usada:tubo.altura_total,
+    usuario_id:CU?.id,motivo:motivo,nota:`MERMA: ${motivo}`
+  });
+  // 3) Marcar el consumo como merma
+  const {error:e3}=await sb.from("consumos_ops").update({es_merma:true,motivo_merma:motivo,observaciones:`MERMA: ${motivo}`}).eq("id",consId);
+  if(e3){setBtnLoading("btnConfirmMerma",false);toast("Error registro: "+e3.message,"err");return;}
+  setBtnLoading("btnConfirmMerma",false);
+  closeModal("modalMerma");
+  toast("✓ MERMA registrada. Tubo eliminado del stock.","ok");
+  loadConsumos();
+}
+
+// ── IMPORTAR HISTÓRICO EXCEL ─────────────────────────────────────────────────
+async function importConsumosExcel(e){
+  const f=e.target.files[0];if(!f)return;
+  if(!confirm("Se importarán todas las hojas mensuales como HISTÓRICO (no afectan el stock actual). ¿Continuar?")){
+    e.target.value="";return;
+  }
+  const prog=document.getElementById("consImportProgress");
+  prog.style.display="block";
+  prog.innerHTML=`<div class="progress-info"><span>Leyendo archivo...</span></div><div class="progress-bar"><div class="progress-bar-fill" style="width:5%"></div></div>`;
+  showLoading(true);
+  const r=new FileReader();
+  r.onload=async ev=>{
+    try{
+      const wb=XLSX.read(ev.target.result,{type:"array"});
+      const rowsAll=[];
+      for(const sheetName of wb.SheetNames){
+        if(sheetName.toUpperCase().includes("INSTRUCC")) continue;
+        const ws=wb.Sheets[sheetName];
+        const rows=XLSX.utils.sheet_to_json(ws,{defval:""});
+        for(const r of rows){
+          const get=k=>{for(const kk of Object.keys(r)){if(kk.toUpperCase().trim()===k) return r[kk];}return"";};
+          const fechaRaw=get("FECHA");
+          let fecha=null;
+          if(fechaRaw){
+            if(fechaRaw instanceof Date){
+              fecha=fechaRaw.toISOString().slice(0,10);
+            } else if(typeof fechaRaw === 'number'){
+              const d=new Date((fechaRaw-25569)*86400*1000);
+              if(!isNaN(d.getTime())) fecha=d.toISOString().slice(0,10);
+            } else {
+              const s=String(fechaRaw).trim();
+              const m=s.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})$/);
+              if(m){
+                const day=m[1].padStart(2,'0'), month=m[2].padStart(2,'0'), year=m[3];
+                fecha=`${year}-${month}-${day}`;
+              } else {
+                const d=new Date(s);
+                if(!isNaN(d.getTime())) fecha=d.toISOString().slice(0,10);
+              }
+            }
+          }
+          const op=String(get("OP")||"").trim();
+          const material=String(get("MATERIAL")||"").trim();
+          if(!fecha||!op||!material) continue;
+          const enviado=parseFloat(get("ENVIADO"))||0;
+          const devueltoRaw=get("DEVUELTO");
+          const devuelto=devueltoRaw===""||devueltoRaw==null?null:parseFloat(devueltoRaw);
+          rowsAll.push({
+            fecha,op,material,
+            di:parseFloat(get("DI"))||null,
+            de:parseFloat(get("DE"))||null,
+            largo:parseFloat(get("LARGO"))||null,
+            enviado:enviado||0,
+            devuelto,
+            observaciones:String(get("OBSERVACIONES")||"").trim()||null,
+            material_optimo:String(get("MATERIAL_OPTIMO")||"").trim()||null,
+            es_historico:true,
+            es_merma:String(get("OBSERVACIONES")||"").toUpperCase().includes("MERMA"),
+            sede:"custom",
+            usuario_id:CU?.id,
+          });
+        }
+      }
+      if(!rowsAll.length){toast("Sin filas válidas en el archivo","err");prog.style.display="none";showLoading(false);return;}
+      const CHUNK=500;
+      let ok=0,err2=0,firstErr=null;
+      for(let i=0;i<rowsAll.length;i+=CHUNK){
+        const slice=rowsAll.slice(i,i+CHUNK);
+        const pct=Math.round((i/rowsAll.length)*100);
+        prog.innerHTML=`<div class="progress-info"><span>Subiendo ${i+1}–${Math.min(i+CHUNK,rowsAll.length)} de ${rowsAll.length}</span><span>${pct}%</span></div><div class="progress-bar"><div class="progress-bar-fill" style="width:${pct}%"></div></div>`;
+        const {error}=await sb.from("consumos_ops").insert(slice);
+        if(error){err2+=slice.length;if(!firstErr)firstErr=error.message;console.error(error);}
+        else ok+=slice.length;
+      }
+      prog.innerHTML=`<div class="progress-info done"><span>✓ ${ok} registros históricos${err2?` · ${err2} con errores`:""}</span><span>100%</span></div><div class="progress-bar"><div class="progress-bar-fill" style="width:100%;background:#4caf8c"></div></div>${firstErr?`<div style="color:#e85a5a;font-size:11px;margin-top:4px">${firstErr}</div>`:""}`;
+      toast(`✓ ${ok} consumos históricos cargados`,ok>0?"ok":"err");
+      e.target.value="";
+      loadConsumos();
+    }catch(err){console.error(err);toast("Error: "+err.message,"err");prog.style.display="none";}
+    showLoading(false);
+  };
+  r.readAsArrayBuffer(f);
 }
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -2391,12 +3028,32 @@ async function loadCatalogFile(e){
         const slice=clean.slice(i,i+CHUNK);
         const pct=Math.round((i/clean.length)*100);
         prog.innerHTML=`<div class="progress-info"><span>Subiendo ${i+1}–${Math.min(i+CHUNK,clean.length)} de ${clean.length}</span><span>${pct}%</span></div><div class="progress-bar"><div class="progress-bar-fill" style="width:${pct}%"></div></div>`;
-        const {error}=await sb.from("catalogo").upsert(slice,{onConflict:"cod"});
-        if(error){err2+=slice.length;if(!firstErr)firstErr=error.message;console.error("[Cat lote]",error);}
-        else ok+=slice.length;
+
+        // Upsert catálogo
+        const {error:errCat}=await sb.from("catalogo").upsert(slice,{onConflict:"cod"});
+        if(errCat){err2+=slice.length;if(!firstErr)firstErr=errCat.message;console.error("[Cat lote]",errCat);}
+        else {
+          ok+=slice.length;
+          // Para cada material cargado, asegurar que exista en la tabla 'tubos' para ambas sedes (custom y mecaniza)
+          // Esto permite que luego solo tengan que ingresar el stock
+          for(const m of slice){
+            const sedes=["custom","mecaniza"];
+            for(const s of sedes){
+              const {data:ex}=await sb.from("tubos").select("id").eq("descripcion",m.descripcion).eq("altura_total",m.longitud).eq("sede",s).maybeSingle();
+              if(!ex){
+                await sb.from("tubos").insert({
+                  codigo_mat:m.cod,
+                  descripcion:m.descripcion,
+                  altura_total:m.longitud,
+                  sede:s
+                });
+              }
+            }
+          }
+        }
       }
       prog.innerHTML=`<div class="progress-info done"><span>✓ ${ok} cargados${err2?` · ${err2} con errores`:""}</span><span>100%</span></div><div class="progress-bar"><div class="progress-bar-fill" style="width:100%;background:#4caf8c"></div></div>${firstErr?`<div style="color:#e85a5a;font-size:11px;margin-top:4px">Primer error: ${firstErr}</div>`:""}`;
-      toast(`✓ Catálogo: ${ok} materiales cargados`,ok>0?"ok":"err");
+      toast(`✓ Catálogo: ${ok} materiales cargados y distribuidos en sedes`,ok>0?"ok":"err");
       console.log("[Cat] Resumen:",{ok,err2,total:clean.length});
       e.target.value="";
     }catch(err){console.error(err);toast("Error: "+err.message,"err");prog.style.display="none";}
@@ -2595,3 +3252,4 @@ document.getElementById("loginUser")?.addEventListener("keydown",e=>{if(e.key===
 
 </body>
 </html>
+
