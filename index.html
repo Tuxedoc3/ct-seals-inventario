@@ -11,10 +11,14 @@
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:#0d0f14;font-family:system-ui,sans-serif;color:#e8e8ee;min-height:100vh}
 
-/* TOPBAR LOADING */
-#topbar{position:fixed;top:0;left:0;right:0;height:3px;background:transparent;z-index:9999;pointer-events:none}
-#topbar.loading::after{content:'';position:absolute;left:0;top:0;height:100%;background:linear-gradient(90deg,#D32F2F,#f5a623,#D32F2F);background-size:200% 100%;animation:tbar 1.2s linear infinite;width:100%}
-@keyframes tbar{0%{background-position:200% 0}100%{background-position:-200% 0}}
+/* GLOBAL LOADING OVERLAY */
+#globalLoader{position:fixed;inset:0;background:rgba(13,15,20,.78);z-index:9999;display:none;align-items:center;justify-content:center;backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)}
+#globalLoader.show{display:flex;animation:fadeIn .15s ease-out}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.loader-card{background:#1a1d26;border:.5px solid #2e3042;border-radius:14px;padding:28px 36px;text-align:center;min-width:220px;max-width:340px;box-shadow:0 10px 40px rgba(0,0,0,.6)}
+.circular-spinner{width:54px;height:54px;border:4px solid #2e3042;border-top-color:#D32F2F;border-right-color:#D32F2F;border-radius:50%;animation:spin .85s linear infinite;margin:0 auto 16px}
+.loader-msg{font-size:13px;color:#f0f0f5;font-weight:500;margin-bottom:4px}
+.loader-sub{font-size:11px;color:#7a7d99}
 
 /* LOGIN */
 #loginScreen{position:fixed;inset:0;background:#0d0f14;z-index:998;display:flex;align-items:center;justify-content:center;padding:20px}
@@ -185,8 +189,14 @@ tbody tr:hover td{background:#1e2134}
 </head>
 <body>
 
-<!-- TOPBAR LOADING -->
-<div id="topbar"></div>
+<!-- GLOBAL LOADING OVERLAY -->
+<div id="globalLoader">
+  <div class="loader-card">
+    <div class="circular-spinner"></div>
+    <div class="loader-msg">Cargando...</div>
+    <div class="loader-sub">Procesando datos del sistema</div>
+  </div>
+</div>
 
 <!-- LOGIN SCREEN -->
 <div id="loginScreen">
@@ -266,10 +276,22 @@ tbody tr:hover td{background:#1e2134}
       </div>
     </div>
 
-    <!-- TUBOS -->
+    <!-- TUBOS / MATERIA PRIMA -->
     <div class="page" id="page-tubos">
       <div class="page-title"><i class="ti ti-cylinder" style="color:#D32F2F"></i>Tubos de Material</div>
       <div class="btn-row" id="tubosActions"></div>
+      <div class="kpi-grid" id="tubosKpis"></div>
+      <div class="card" id="tubosSearchCard" style="padding:10px 14px;margin-bottom:10px;display:none">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;align-items:center">
+          <input class="fi" id="tubosSearch" type="text" placeholder="Buscar material, código..." style="grid-column:span 2" autocomplete="off">
+          <select class="fi" id="tubosMatFilter"><option value="">Todos los materiales</option></select>
+          <select class="fi" id="tubosSubFamFilter"><option value="">Todas subfamilias</option></select>
+          <input class="fi" id="tubosFDi" type="text" placeholder="DI (ej: 25 o 20-30)" autocomplete="off">
+          <input class="fi" id="tubosFDe" type="text" placeholder="DE (ej: 52 o 50-60)" autocomplete="off">
+          <button class="btn btn-ghost" id="tubosBtnLimpiar" style="display:none" onclick="tubosLimpiarFiltros()"><i class="ti ti-x"></i>Limpiar</button>
+        </div>
+      </div>
+      <div id="tubos-header"></div>
       <div id="tubos-list"><div class="loading"><div class="spinner"></div>Cargando tubos...</div></div>
     </div>
 
@@ -488,7 +510,10 @@ tbody tr:hover td{background:#1e2134}
         <div class="upload-zone" onclick="document.getElementById('catInput').click()">
           <div style="font-size:32px;color:#D32F2F;margin-bottom:8px"><i class="ti ti-file-spreadsheet"></i></div>
           <div style="font-size:13px;font-weight:500;color:#f0f0f5;margin-bottom:4px">Cargar catálogo</div>
-          <button class="btn btn-red" onclick="event.stopPropagation();document.getElementById('catInput').click()"><i class="ti ti-upload"></i>Seleccionar</button>
+          <div style="display:flex;gap:6px;justify-content:center">
+            <button class="btn btn-red" onclick="event.stopPropagation();document.getElementById('catInput').click()"><i class="ti ti-upload"></i>Seleccionar</button>
+            <button class="btn btn-ghost" style="color:#e85a5a" onclick="event.stopPropagation();clearCatalog()"><i class="ti ti-trash"></i>Borrar Catálogo</button>
+          </div>
           <input type="file" id="catInput" style="display:none" accept=".xlsx,.xls" onchange="loadCatalogFile(event)">
         </div>
         <div id="catProgress" style="display:none"></div>
@@ -503,7 +528,10 @@ tbody tr:hover td{background:#1e2134}
         <div class="upload-zone" onclick="document.getElementById('stockInput').click()">
           <div style="font-size:32px;color:#5b9bd5;margin-bottom:8px"><i class="ti ti-table"></i></div>
           <div style="font-size:13px;font-weight:500;color:#f0f0f5;margin-bottom:4px">Cargar stock de tubos</div>
-          <button class="btn btn-blue" onclick="event.stopPropagation();document.getElementById('stockInput').click()"><i class="ti ti-upload"></i>Seleccionar</button>
+          <div style="display:flex;gap:6px;justify-content:center">
+            <button class="btn btn-blue" onclick="event.stopPropagation();document.getElementById('stockInput').click()"><i class="ti ti-upload"></i>Seleccionar</button>
+            <button class="btn btn-ghost" style="color:#e85a5a" onclick="event.stopPropagation();clearStock()"><i class="ti ti-trash"></i>Borrar Stock</button>
+          </div>
           <input type="file" id="stockInput" style="display:none" accept=".xlsx,.xls,.csv" onchange="loadStockFile(event)">
         </div>
         <div id="stockProgress" style="display:none"></div>
@@ -568,6 +596,76 @@ tbody tr:hover td{background:#1e2134}
           </div>
         </div>
       </div>
+      <div class="card" id="cfgDashboardCard">
+        <div class="card-title"><i class="ti ti-layout-dashboard"></i>Dashboard y Reportes <span style="font-size:9px;color:#7a7d99;text-transform:none;margin-left:6px">(solo admin)</span></div>
+        <div style="font-size:11px;color:#7a7d99;margin-bottom:12px">Personaliza qué widgets se muestran en el Dashboard y cómo se calculan reportes.</div>
+
+        <div style="font-size:10px;color:#7a7d99;text-transform:uppercase;letter-spacing:.5px;margin:14px 0 6px;padding-bottom:4px;border-bottom:.5px solid #2e3042">Widgets visibles</div>
+        <div class="cli-checks" style="flex-direction:column;gap:6px;align-items:flex-start">
+          <label class="cli-check"><input type="checkbox" id="cfgW_kpis" checked> KPIs básicos (totales, físicos, clientes)</label>
+          <label class="cli-check"><input type="checkbox" id="cfgW_consumos"> Consumos de material (top + sus medidas)</label>
+          <label class="cli-check"><input type="checkbox" id="cfgW_orings"> Top mercaderías (o-rings, wipers)</label>
+          <label class="cli-check"><input type="checkbox" id="cfgW_stockbajo"> Productos con poco stock</label>
+          <label class="cli-check"><input type="checkbox" id="cfgW_merma"> % Merma por mes</label>
+          <label class="cli-check"><input type="checkbox" id="cfgW_eficiencia"> Eficiencia (mm enviados vs devueltos)</label>
+          <label class="cli-check"><input type="checkbox" id="cfgW_opsmes"> OPs por mes</label>
+        </div>
+        <button class="btn btn-red" id="btnSaveDashCfg" onclick="saveDashboardConfig()" style="margin-top:10px"><i class="ti ti-check"></i>Guardar widgets</button>
+
+        <div style="font-size:10px;color:#7a7d99;text-transform:uppercase;letter-spacing:.5px;margin:18px 0 6px;padding-bottom:4px;border-bottom:.5px solid #2e3042">Rango y umbrales</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0">
+          <div>
+            <div style="font-size:13px;color:#c8cce0;font-weight:500">Rango por defecto</div>
+            <div style="font-size:11px;color:#5a5e7a">Período que se carga al abrir Dashboard</div>
+          </div>
+          <select class="form-input" id="cfgDashRange" style="width:180px" onchange="saveConfig('dashboard_range',this.value)">
+            <option value="1mo">Último mes</option>
+            <option value="3mo">Últimos 3 meses</option>
+            <option value="6mo">Últimos 6 meses</option>
+            <option value="12mo">Último año</option>
+            <option value="all">Todo</option>
+          </select>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-top:.5px solid #2e3042">
+          <div>
+            <div style="font-size:13px;color:#c8cce0;font-weight:500">Incluir registros históricos</div>
+            <div style="font-size:11px;color:#5a5e7a">¿Sumar consumos importados del Excel histórico?</div>
+          </div>
+          <div class="toggle" id="cfgDashHistTog" onclick="toggleConfig('dashboard_incl_historico','cfgDashHistTog')"></div>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-top:.5px solid #2e3042">
+          <div>
+            <div style="font-size:13px;color:#c8cce0;font-weight:500">Stock mínimo Mercaderías</div>
+            <div style="font-size:11px;color:#5a5e7a">Umbral global para alertar productos bajo mínimo</div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <input class="form-input" id="cfgMercMin" type="number" min="0" style="width:90px;text-align:right">
+            <button class="btn btn-green" onclick="saveConfig('stock_min_merc',document.getElementById('cfgMercMin').value)"><i class="ti ti-check"></i></button>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-top:.5px solid #2e3042">
+          <div>
+            <div style="font-size:13px;color:#c8cce0;font-weight:500">Stock mínimo Almacén Mecaniza</div>
+            <div style="font-size:11px;color:#5a5e7a">Umbral global para alertar productos bajo mínimo</div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <input class="form-input" id="cfgAlmMin" type="number" min="0" style="width:90px;text-align:right">
+            <button class="btn btn-green" onclick="saveConfig('stock_min_alm',document.getElementById('cfgAlmMin').value)"><i class="ti ti-check"></i></button>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-top:.5px solid #2e3042">
+          <div>
+            <div style="font-size:13px;color:#c8cce0;font-weight:500">Umbral alerta de merma</div>
+            <div style="font-size:11px;color:#5a5e7a">% de merma sobre total que dispara alerta crítica</div>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <input class="form-input" id="cfgMermaPct" type="number" min="0" max="100" style="width:80px;text-align:right">
+            <span style="color:#7a7d99">%</span>
+            <button class="btn btn-green" onclick="saveConfig('merma_alerta_pct',document.getElementById('cfgMermaPct').value)"><i class="ti ti-check"></i></button>
+          </div>
+        </div>
+      </div>
+
       <div class="card">
         <div class="card-title"><i class="ti ti-key"></i>Mi cuenta</div>
         <button class="btn btn-ghost" onclick="openChangePasswordModal(false)"><i class="ti ti-lock"></i>Cambiar mi contraseña</button>
@@ -645,41 +743,51 @@ tbody tr:hover td{background:#1e2134}
   </div>
 </div>
 
-<!-- MODAL: Nuevo consumo (registro diario) -->
+<!-- MODAL: Nuevo consumo (multi-línea con selectores jerárquicos) -->
 <div class="modal-overlay" id="modalConsumo" style="display:none" onclick="if(event.target===this)closeModal('modalConsumo')">
-  <div class="modal" style="max-width:640px">
+  <div class="modal" style="max-width:880px">
     <div class="modal-title"><i class="ti ti-clipboard-plus" style="color:#D32F2F"></i><span id="modalConsumoTitle">Nuevo registro de consumo</span></div>
+
+    <!-- Cabecera de la OP -->
     <div class="form-row-3">
-      <div class="form-group"><label class="form-label">Fecha <span class="req">*</span></label><input class="form-input" id="co_fecha" type="date"></div>
-      <div class="form-group"><label class="form-label">N° OP <span class="req">*</span></label><input class="form-input" id="co_op" placeholder="8837"></div>
-      <div class="form-group"><label class="form-label">Material <span class="req">*</span></label><input class="form-input" id="co_material" placeholder="PU RED, NBR..." list="consMatList"></div>
+      <div class="form-group">
+        <label class="form-label">Fecha <span class="req">*</span></label>
+        <input class="form-input" id="co_fecha" type="date">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Tipo <span class="req">*</span></label>
+        <select class="form-input" id="co_tipo_op" onchange="onTipoOpChange()">
+          <option value="externa">OP externa (cliente)</option>
+          <option value="interno">Consumo interno</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label" id="co_op_label">N° OP <span class="req">*</span></label>
+        <input class="form-input" id="co_op" placeholder="8837">
+      </div>
     </div>
-    <datalist id="consMatList"></datalist>
-    <div class="form-row-3">
-      <div class="form-group"><label class="form-label">DI (mm) <span class="req">*</span></label><input class="form-input" id="co_di" type="number" oninput="buscarTuboCons()"></div>
-      <div class="form-group"><label class="form-label">DE (mm) <span class="req">*</span></label><input class="form-input" id="co_de" type="number" oninput="buscarTuboCons()"></div>
-      <div class="form-group"><label class="form-label">LARGO (mm) <span class="req">*</span></label><input class="form-input" id="co_largo" type="number" oninput="buscarTuboCons()"></div>
+    <div class="form-group" id="co_cliente_box">
+      <label class="form-label">Cliente (opcional)</label>
+      <input class="form-input" id="co_cliente" placeholder="Buscar cliente..." list="consClientesList" autocomplete="off">
+      <datalist id="consClientesList"></datalist>
     </div>
-    <div id="co_tubo_match" style="background:#1a1d26;border:.5px solid #2e3042;border-radius:8px;padding:10px 12px;font-size:12px;color:#7a7d99;margin-bottom:10px">Ingresa medidas para buscar tubo en MP Custom...</div>
-    <div class="form-row">
-      <div class="form-group"><label class="form-label">ENVIADO (mm) <span class="req">*</span></label><input class="form-input" id="co_enviado" type="number" min="0" placeholder="Lo que sale del almacén"></div>
-      <div class="form-group"><label class="form-label">DEVUELTO (mm)</label><input class="form-input" id="co_devuelto" type="number" min="0" placeholder="(opcional, al cerrar OP)"></div>
+
+    <!-- Líneas de materiales -->
+    <div style="font-size:10px;color:#7a7d99;text-transform:uppercase;letter-spacing:.5px;margin:14px 0 6px;padding-bottom:4px;border-bottom:.5px solid #2e3042;display:flex;align-items:center;gap:6px">
+      <i class="ti ti-list"></i>Materiales a consumir
     </div>
-    <div class="form-row">
-      <div class="form-group"><label class="form-label">Observaciones</label><input class="form-input" id="co_observ" placeholder="MERMA, normal, etc."></div>
-      <div class="form-group"><label class="form-label">Material óptimo (sugerencia)</label><input class="form-input" id="co_optimo" placeholder="Opcional"></div>
-    </div>
+    <div id="co_lineas" style="display:flex;flex-direction:column;gap:10px;margin-bottom:10px"></div>
+    <button class="btn btn-ghost" id="btnAddLinea" onclick="addConsumoLine()" style="margin-bottom:10px"><i class="ti ti-plus"></i>Agregar otro material</button>
+
     <div style="background:#0f1e2e;border:.5px solid #1a4a7a;color:#5b9bd5;font-size:11px;padding:8px 12px;border-radius:8px;margin-bottom:10px">
-      <i class="ti ti-info-circle"></i> ENVIADO se descontará automáticamente del tubo seleccionado. Si llenas DEVUELTO ahora, ese material vuelve al stock.
+      <i class="ti ti-info-circle"></i> El total ENVIADO de cada material se descontará automáticamente del tubo seleccionado. Si más adelante quieres registrar el DEVUELTO, edita el registro desde la tabla.
     </div>
+    <div id="co_resumen" style="font-size:11px;color:#7a7d99;margin-bottom:10px"></div>
+
     <input type="hidden" id="co_id">
-    <input type="hidden" id="co_tubo_id">
-    <input type="hidden" id="co_tubo_inst_id">
-    <input type="hidden" id="co_enviado_original">
-    <input type="hidden" id="co_devuelto_original">
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modalConsumo')">Cancelar</button>
-      <button class="btn btn-red" id="btnSaveConsumo" onclick="saveConsumo()"><i class="ti ti-check"></i>Guardar registro</button>
+      <button class="btn btn-red" id="btnSaveConsumo" onclick="saveConsumo()"><i class="ti ti-check"></i><span id="btnSaveConsumoTxt">Guardar consumos</span></button>
     </div>
   </div>
 </div>
@@ -835,6 +943,50 @@ tbody tr:hover td{background:#1e2134}
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modalAlmMov')">Cancelar</button>
       <button class="btn btn-red" id="btnSaveAlmMov" onclick="saveAlmMov()"><i class="ti ti-check"></i>Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Historial de movimientos (Mercaderías / Almacén Mecaniza) -->
+<div class="modal-overlay" id="modalHistorial" style="display:none" onclick="if(event.target===this)closeModal('modalHistorial')">
+  <div class="modal" style="max-width:900px">
+    <div class="modal-title"><i class="ti ti-history" style="color:#5b9bd5"></i><span id="histTitle">Historial de movimientos</span></div>
+    <div id="histInfo" style="background:#1a1d26;border-radius:8px;padding:10px 12px;font-size:12px;color:#b0b3cc;margin-bottom:10px"></div>
+
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+      <div style="flex:1;min-width:120px"><label class="form-label">Desde</label><input class="form-input" id="histDesde" type="date" onchange="renderHistorial()"></div>
+      <div style="flex:1;min-width:120px"><label class="form-label">Hasta</label><input class="form-input" id="histHasta" type="date" onchange="renderHistorial()"></div>
+      <div style="flex:1;min-width:120px"><label class="form-label">Tipo</label>
+        <select class="form-input" id="histTipo" onchange="renderHistorial()">
+          <option value="">Todos</option>
+          <option value="entrada">Entradas</option>
+          <option value="salida">Salidas</option>
+          <option value="ajuste">Ajustes</option>
+        </select>
+      </div>
+      <div style="display:flex;align-items:flex-end;gap:6px">
+        <button class="btn btn-ghost" onclick="histLimpiarFiltros()"><i class="ti ti-refresh"></i></button>
+        <button class="btn btn-blue" onclick="exportHistorial()"><i class="ti ti-file-spreadsheet"></i>Excel</button>
+      </div>
+    </div>
+
+    <div id="histKpis" class="kpi-grid" style="margin-bottom:10px"></div>
+
+    <div class="card" style="padding:0;max-height:380px;overflow-y:auto">
+      <table>
+        <thead><tr>
+          <th>Fecha</th><th>Tipo</th><th style="text-align:right">Cantidad</th>
+          <th style="text-align:right">Precio</th><th>Proveedor / Cliente</th>
+          <th>OP</th><th>Motivo</th><th>Usuario</th>
+          <th style="text-align:right">Stock</th>
+        </tr></thead>
+        <tbody id="histTbody"><tr><td colspan="9" class="no-data"><div class="loading"><div class="spinner"></div>Cargando...</div></td></tr></tbody>
+      </table>
+    </div>
+    <input type="hidden" id="histTipo_alm">
+    <input type="hidden" id="histItem_id">
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modalHistorial')">Cerrar</button>
     </div>
   </div>
 </div>
@@ -1083,8 +1235,14 @@ function toast(msg,type="ok"){
   clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove("show"),3500);
 }
 function closeModal(id){document.getElementById(id).style.display="none";}
-function showLoading(on=true){
-  document.getElementById("topbar").classList.toggle("loading",on);
+function showLoading(on=true,msg="Cargando...",sub="Procesando datos del sistema"){
+  const el=document.getElementById("globalLoader");
+  if(!el) return;
+  if(on){
+    el.querySelector(".loader-msg").textContent=msg;
+    el.querySelector(".loader-sub").textContent=sub;
+  }
+  el.classList.toggle("show",on);
 }
 function setBtnLoading(btnId,on,labelLoading="Procesando..."){
   const b=document.getElementById(btnId);if(!b)return;
@@ -1263,6 +1421,19 @@ function loadConfigPage(){
   document.getElementById("cfgEur").value=cfg.tipo_cambio_eur_pen||3.8;
   document.getElementById("cfgUsd").value=cfg.tipo_cambio_usd_pen||3.78;
   document.getElementById("cfgStockMin").value=cfg.stock_minimo_default||2;
+  // Dashboard config (solo visible para admin)
+  const dashCard=document.getElementById("cfgDashboardCard");
+  if(dashCard) dashCard.style.display=CU?.rol==="admin"?"":"none";
+  if(CU?.rol==="admin"){
+    const widgets=getEnabledWidgets();
+    Object.entries(widgets).forEach(([k,v])=>{const el=document.getElementById("cfgW_"+k);if(el)el.checked=v;});
+    document.getElementById("cfgDashRange").value=cfg.dashboard_range||"3mo";
+    const inclHist=cfg.dashboard_incl_historico==="true"||cfg.dashboard_incl_historico===true;
+    document.getElementById("cfgDashHistTog").classList.toggle("on",inclHist);
+    document.getElementById("cfgMercMin").value=cfg.stock_min_merc||0;
+    document.getElementById("cfgAlmMin").value=cfg.stock_min_alm||0;
+    document.getElementById("cfgMermaPct").value=cfg.merma_alerta_pct||5;
+  }
 }
 async function saveConfig(clave,valor){
   if(!valor){toast("Ingresa un valor","err");return;}
@@ -1275,24 +1446,381 @@ async function saveConfig(clave,valor){
 }
 
 // ────────────────────────────────────────────────────────────────────────────
-//  DASHBOARD
+//  DASHBOARD (widgets configurables)
 // ────────────────────────────────────────────────────────────────────────────
+const DEFAULT_WIDGETS={kpis:true,consumos:false,orings:false,stockbajo:false,merma:false,eficiencia:false,opsmes:false};
+function getEnabledWidgets(){
+  try{
+    const raw=cfg.dashboard_widgets;
+    if(typeof raw==="string"&&raw.startsWith("{")) return {...DEFAULT_WIDGETS,...JSON.parse(raw)};
+  }catch(e){}
+  return DEFAULT_WIDGETS;
+}
+function getDashRangeStart(){
+  const r=cfg.dashboard_range||"3mo";
+  const d=new Date();
+  if(r==="1mo") d.setMonth(d.getMonth()-1);
+  else if(r==="3mo") d.setMonth(d.getMonth()-3);
+  else if(r==="6mo") d.setMonth(d.getMonth()-6);
+  else if(r==="12mo") d.setFullYear(d.getFullYear()-1);
+  else return null; // all
+  return d.toISOString().slice(0,10);
+}
+
 async function loadDashboard(){
   document.getElementById("dashTitle").textContent=`Dashboard — ${CU.nombre}`;
-  const [{count:totalCat},{count:totalTubos},{count:totalCli},{data:insts}]=await Promise.all([
-    sb.from("catalogo").select("*",{count:"exact",head:true}),
-    sb.from("tubos").select("*",{count:"exact",head:true}),
-    sb.from("clientes").select("*",{count:"exact",head:true}).eq("estado","activo"),
-    sb.from("tubo_instancias").select("estado").limit(99999)
+  const widgets=getEnabledWidgets();
+  const cont=document.getElementById("dashResumen");
+  document.getElementById("dashKpis").innerHTML=`<div class="kpi"><div class="loading" style="padding:10px"><div class="spinner"></div></div></div>`;
+  cont.innerHTML="";
+
+  // Botón de configuración (solo admin)
+  const configHint=CU.rol==="admin"
+    ?`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 4px;margin-bottom:8px">
+        <div style="font-size:11px;color:#7a7d99">Rango: <strong style="color:#c8cce0">${({"1mo":"último mes","3mo":"3 meses","6mo":"6 meses","12mo":"1 año","all":"todo"})[cfg.dashboard_range||"3mo"]}</strong>${cfg.dashboard_incl_historico==="true"||cfg.dashboard_incl_historico===true?" · incluye históricos":""}</div>
+        <button class="btn btn-ghost" style="font-size:11px;padding:5px 10px" onclick="goTo('config');setTimeout(()=>document.getElementById('cfgDashboardCard').scrollIntoView({behavior:'smooth'}),200)"><i class="ti ti-settings"></i>Configurar dashboard</button>
+      </div>`
+    :"";
+  cont.innerHTML=configHint;
+
+  // KPIs siempre (basicos)
+  if(widgets.kpis){
+    const [{count:totalCat},{count:totalTubos},{count:totalCli},{data:insts}]=await Promise.all([
+      sb.from("catalogo").select("*",{count:"exact",head:true}),
+      sb.from("tubos").select("*",{count:"exact",head:true}),
+      sb.from("clientes").select("*",{count:"exact",head:true}).eq("estado","activo"),
+      sb.from("tubo_instancias").select("estado").limit(99999)
+    ]);
+    const tubosDisp=(insts||[]).filter(i=>i.estado==="disponible").length;
+    const tubosTot=(insts||[]).length;
+    document.getElementById("dashKpis").innerHTML=`
+      <div class="kpi"><div class="kpi-label">Catálogo</div><div class="kpi-val white">${(totalCat||0).toLocaleString()}</div><div class="kpi-sub">materiales</div></div>
+      <div class="kpi"><div class="kpi-label">Tipos de tubo</div><div class="kpi-val blue">${(totalTubos||0).toLocaleString()}</div><div class="kpi-sub">medidas únicas</div></div>
+      <div class="kpi"><div class="kpi-label">Tubos físicos</div><div class="kpi-val green">${tubosDisp.toLocaleString()}</div><div class="kpi-sub">de ${tubosTot.toLocaleString()} totales</div></div>
+      <div class="kpi"><div class="kpi-label">Clientes activos</div><div class="kpi-val amber">${(totalCli||0).toLocaleString()}</div></div>`;
+  }else{
+    document.getElementById("dashKpis").innerHTML="";
+  }
+
+  // Widget: consumos
+  if(widgets.consumos){ cont.innerHTML+=await widgetConsumos(); }
+  // Widget: orings (mercaderias)
+  if(widgets.orings){ cont.innerHTML+=await widgetOrings(); }
+  // Widget: stock bajo (cruzando MP, Merc y Alm Mec)
+  if(widgets.stockbajo){ cont.innerHTML+=await widgetStockBajo(); }
+  // Widget: merma %
+  if(widgets.merma){ cont.innerHTML+=await widgetMerma(); }
+  // Widget: eficiencia
+  if(widgets.eficiencia){ cont.innerHTML+=await widgetEficiencia(); }
+  // Widget: OPs por mes
+  if(widgets.opsmes){ cont.innerHTML+=await widgetOpsMes(); }
+
+  if(!Object.values(widgets).some(v=>v)){
+    cont.innerHTML+=`<div class="card" style="text-align:center;padding:30px;color:#5a5e7a">
+      <i class="ti ti-layout-dashboard" style="font-size:32px;display:block;margin-bottom:10px;color:#3a3e5a"></i>
+      No hay widgets activos. ${CU.rol==="admin"?'Ve a <strong style="color:#D32F2F">Configuración → Dashboard y Reportes</strong> para activarlos.':"Pide al administrador que active los widgets."}
+    </div>`;
+  }
+}
+
+// ── Widgets del dashboard ──
+function barChart(items,maxVal,colorFn){
+  const max=maxVal||Math.max(...items.map(i=>i.val),1);
+  return items.map(i=>{
+    const pct=Math.round((i.val/max)*100);
+    const color=colorFn?colorFn(i):"#5b9bd5";
+    return `<div style="margin-bottom:8px">
+      <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px"><span style="color:#c8cce0">${i.label}</span><span style="color:${color};font-weight:600">${i.display||i.val}</span></div>
+      <div style="background:#111318;height:8px;border-radius:4px;overflow:hidden"><div style="height:100%;background:${color};width:${pct}%;transition:width .3s"></div></div>
+    </div>`;
+  }).join("");
+}
+
+async function widgetConsumos(){
+  const since=getDashRangeStart();
+  const inclHist=cfg.dashboard_incl_historico==="true"||cfg.dashboard_incl_historico===true;
+  let q=sb.from("consumos_ops").select("material,di,de,largo,consumido,enviado").limit(50000);
+  if(since) q=q.gte("fecha",since);
+  if(!inclHist) q=q.eq("es_historico",false);
+  const {data,error}=await q;
+  if(error) return `<div class="card"><div class="card-title"><i class="ti ti-alert-circle"></i>Consumos</div><div class="no-data">Error: ${error.message}</div></div>`;
+  if(!data?.length) return `<div class="card"><div class="card-title"><i class="ti ti-clipboard-list"></i>Consumos de Material</div><div class="no-data">Sin consumos en el período</div></div>`;
+  // Top por material+medidas
+  const map={};
+  data.forEach(c=>{
+    const key=`${c.material} · DI${c.di??"?"}/${c.de??"?"}/${c.largo??"?"}`;
+    map[key]=(map[key]||0)+(c.consumido||0);
+  });
+  const items=Object.entries(map).sort((a,b)=>b[1]-a[1]).slice(0,10).map(([k,v])=>({label:k,val:v,display:`${v.toFixed(0)} mm`}));
+  return `<div class="card">
+    <div class="card-title"><i class="ti ti-clipboard-list"></i>Top consumos de material (con sus medidas)</div>
+    ${barChart(items,null,()=>"#f5a623")}
+    <div style="font-size:10px;color:#5a5e7a;margin-top:8px;text-align:right">Total: ${data.length} consumos · ${data.reduce((a,c)=>a+(c.consumido||0),0).toFixed(0)} mm</div>
+  </div>`;
+}
+
+async function widgetOrings(){
+  const {data,error}=await sb.from("mercaderias").select("nombre,codigo,categoria,stock_actual,stock_minimo,di,de,grosor").eq("activo",true).limit(2000);
+  if(error) return `<div class="card"><div class="card-title">Mercaderías</div><div class="no-data">Error</div></div>`;
+  if(!data?.length) return `<div class="card"><div class="card-title"><i class="ti ti-circle-dot"></i>Mercaderías</div><div class="no-data">Sin productos registrados</div></div>`;
+  const top=data.filter(m=>m.stock_actual>0).sort((a,b)=>b.stock_actual-a.stock_actual).slice(0,10);
+  const items=top.map(m=>{
+    const med=[m.di,m.de,m.grosor].filter(x=>x!=null).join("×");
+    return {label:`${m.nombre}${med?` (${med})`:""}`,val:m.stock_actual,display:`${m.stock_actual}`};
+  });
+  return `<div class="card">
+    <div class="card-title"><i class="ti ti-circle-dot"></i>Top mercaderías por stock</div>
+    ${items.length?barChart(items,null,()=>"#5b9bd5"):'<div class="no-data">Sin stock disponible</div>'}
+  </div>`;
+}
+
+async function widgetStockBajo(){
+  const thrMerc=parseFloat(cfg.stock_min_merc)||0;
+  const thrAlm=parseFloat(cfg.stock_min_alm)||0;
+  const [merc,alm,tubos,inst]=await Promise.all([
+    sb.from("mercaderias").select("id,codigo,nombre,stock_actual,stock_minimo,unidad").eq("activo",true).limit(5000),
+    sb.from("alm_mecaniza_productos").select("id,codigo,nombre,stock_actual,stock_minimo,unidad").eq("activo",true).limit(5000),
+    sb.from("tubos").select("id,descripcion,stock_minimo,sede").limit(20000),
+    sb.from("tubo_instancias").select("tubo_id,estado").limit(99999)
   ]);
-  const tubosDisp=(insts||[]).filter(i=>i.estado==="disponible").length;
-  const tubosTot=(insts||[]).length;
-  document.getElementById("dashKpis").innerHTML=`
-    <div class="kpi"><div class="kpi-label">Catálogo</div><div class="kpi-val white">${(totalCat||0).toLocaleString()}</div><div class="kpi-sub">materiales</div></div>
-    <div class="kpi"><div class="kpi-label">Tipos de tubo</div><div class="kpi-val blue">${(totalTubos||0).toLocaleString()}</div><div class="kpi-sub">medidas únicas</div></div>
-    <div class="kpi"><div class="kpi-label">Tubos físicos</div><div class="kpi-val green">${tubosDisp.toLocaleString()}</div><div class="kpi-sub">de ${tubosTot.toLocaleString()} totales</div></div>
-    <div class="kpi"><div class="kpi-label">Clientes activos</div><div class="kpi-val amber">${(totalCli||0).toLocaleString()}</div></div>`;
-  document.getElementById("dashResumen").innerHTML=`<div style="color:#7a7d99;font-size:12px;padding:8px">Sistema CT Seals v2.0 con Supabase Auth.<br>Bienvenido, <strong style="color:#f0f0f5">${CU.nombre}</strong>. Tu rol es <strong style="color:${ROL_COLOR[CU.rol]}">${CU.rol}</strong>.</div>`;
+  const dispByTubo={};
+  (inst.data||[]).forEach(i=>{if(i.estado==="disponible") dispByTubo[i.tubo_id]=(dispByTubo[i.tubo_id]||0)+1;});
+
+  const mercBajos=(merc.data||[]).filter(m=>{const min=Math.max(m.stock_minimo||0,thrMerc);return min>0&&m.stock_actual<min;});
+  const almBajos=(alm.data||[]).filter(a=>{const min=Math.max(a.stock_minimo||0,thrAlm);return min>0&&a.stock_actual<min;});
+  const tubosBajos=(tubos.data||[]).filter(t=>{const disp=dispByTubo[t.id]||0;return (t.stock_minimo||0)>0&&disp<(t.stock_minimo||0);});
+
+  const total=mercBajos.length+almBajos.length+tubosBajos.length;
+  if(total===0) return `<div class="card">
+    <div class="card-title"><i class="ti ti-alert-triangle"></i>Productos con poco stock</div>
+    <div style="text-align:center;padding:20px;color:#4caf8c"><i class="ti ti-circle-check" style="font-size:24px"></i><div style="margin-top:8px">Todo el stock está sobre el mínimo ✓</div></div>
+  </div>`;
+
+  let html=`<div class="card"><div class="card-title"><i class="ti ti-alert-triangle" style="color:#e85a5a"></i>Productos con poco stock <span style="background:#2e1a1a;color:#e85a5a;padding:1px 8px;border-radius:10px;font-size:10px;margin-left:6px">${total}</span></div>`;
+  if(tubosBajos.length){
+    html+=`<div style="font-size:10px;color:#7a7d99;text-transform:uppercase;margin:8px 0 4px">Materia Prima — Tubos</div>`;
+    html+=tubosBajos.slice(0,10).map(t=>{
+      const disp=dispByTubo[t.id]||0;
+      return `<div style="display:flex;justify-content:space-between;padding:5px 8px;border-bottom:.5px solid #1e2134;font-size:11px"><span style="color:#c8cce0">${t.descripcion} <span style="color:#5a5e7a">(${t.sede})</span></span><span style="color:#e85a5a;font-weight:600">${disp} <span style="color:#5a5e7a">/ mín ${t.stock_minimo}</span></span></div>`;
+    }).join("");
+  }
+  if(mercBajos.length){
+    html+=`<div style="font-size:10px;color:#7a7d99;text-transform:uppercase;margin:8px 0 4px">Mercaderías</div>`;
+    html+=mercBajos.slice(0,10).map(m=>`<div style="display:flex;justify-content:space-between;padding:5px 8px;border-bottom:.5px solid #1e2134;font-size:11px"><span style="color:#c8cce0">${m.nombre} <span style="color:#5a5e7a">(${m.codigo})</span></span><span style="color:#e85a5a;font-weight:600">${m.stock_actual} ${m.unidad||""} <span style="color:#5a5e7a">/ mín ${Math.max(m.stock_minimo||0,thrMerc)}</span></span></div>`).join("");
+  }
+  if(almBajos.length){
+    html+=`<div style="font-size:10px;color:#7a7d99;text-transform:uppercase;margin:8px 0 4px">Almacén Mecaniza</div>`;
+    html+=almBajos.slice(0,10).map(a=>`<div style="display:flex;justify-content:space-between;padding:5px 8px;border-bottom:.5px solid #1e2134;font-size:11px"><span style="color:#c8cce0">${a.nombre} <span style="color:#5a5e7a">(${a.codigo})</span></span><span style="color:#e85a5a;font-weight:600">${a.stock_actual} ${a.unidad||""} <span style="color:#5a5e7a">/ mín ${Math.max(a.stock_minimo||0,thrAlm)}</span></span></div>`).join("");
+  }
+  html+=`</div>`;
+  return html;
+}
+
+async function widgetMerma(){
+  const since=getDashRangeStart();
+  const inclHist=cfg.dashboard_incl_historico==="true"||cfg.dashboard_incl_historico===true;
+  let q=sb.from("consumos_ops").select("fecha,es_merma,consumido").limit(50000);
+  if(since) q=q.gte("fecha",since);
+  if(!inclHist) q=q.eq("es_historico",false);
+  const {data}=await q;
+  if(!data?.length) return `<div class="card"><div class="card-title"><i class="ti ti-trash-x"></i>% Merma por mes</div><div class="no-data">Sin datos</div></div>`;
+  const byMonth={};
+  data.forEach(c=>{
+    const m=(c.fecha||"").slice(0,7);
+    byMonth[m]=byMonth[m]||{total:0,merma:0};
+    byMonth[m].total++;
+    if(c.es_merma) byMonth[m].merma++;
+  });
+  const thr=parseFloat(cfg.merma_alerta_pct)||5;
+  const items=Object.entries(byMonth).sort().map(([m,v])=>{
+    const pct=v.total>0?(v.merma/v.total)*100:0;
+    return {label:m,val:pct,display:`${pct.toFixed(1)}% (${v.merma}/${v.total})`,critico:pct>=thr};
+  });
+  return `<div class="card">
+    <div class="card-title"><i class="ti ti-trash-x"></i>% Merma por mes <span style="font-size:10px;color:#7a7d99;margin-left:6px;text-transform:none">umbral crítico: ${thr}%</span></div>
+    ${barChart(items,100,i=>i.critico?"#e85a5a":"#4caf8c")}
+  </div>`;
+}
+
+async function widgetEficiencia(){
+  const since=getDashRangeStart();
+  const inclHist=cfg.dashboard_incl_historico==="true"||cfg.dashboard_incl_historico===true;
+  let q=sb.from("consumos_ops").select("enviado,devuelto").limit(50000);
+  if(since) q=q.gte("fecha",since);
+  if(!inclHist) q=q.eq("es_historico",false);
+  const {data}=await q;
+  if(!data?.length) return `<div class="card"><div class="card-title"><i class="ti ti-recycle"></i>Eficiencia</div><div class="no-data">Sin datos</div></div>`;
+  const tEnv=data.reduce((a,c)=>a+(c.enviado||0),0);
+  const tDev=data.reduce((a,c)=>a+(c.devuelto||0),0);
+  const eff=tEnv>0?Math.round((tDev/tEnv)*100):0;
+  return `<div class="card">
+    <div class="card-title"><i class="ti ti-recycle"></i>Eficiencia: mm enviados vs devueltos</div>
+    <div style="display:flex;gap:14px;align-items:center;padding:10px 0">
+      <div style="flex:1">
+        <div style="font-size:11px;color:#7a7d99">Enviado</div>
+        <div style="font-size:22px;color:#5b9bd5;font-weight:500">${tEnv.toFixed(0)} <span style="font-size:11px;color:#5a5e7a">mm</span></div>
+      </div>
+      <div style="flex:1">
+        <div style="font-size:11px;color:#7a7d99">Devuelto</div>
+        <div style="font-size:22px;color:#4caf8c;font-weight:500">${tDev.toFixed(0)} <span style="font-size:11px;color:#5a5e7a">mm</span></div>
+      </div>
+      <div style="flex:1">
+        <div style="font-size:11px;color:#7a7d99">% Recuperado</div>
+        <div style="font-size:22px;color:${eff>30?'#4caf8c':eff>15?'#f5a623':'#e85a5a'};font-weight:500">${eff}%</div>
+      </div>
+    </div>
+    <div style="background:#111318;height:10px;border-radius:5px;overflow:hidden;position:relative">
+      <div style="height:100%;background:linear-gradient(90deg,#e85a5a,#f5a623,#4caf8c);width:${eff}%;transition:width .3s"></div>
+    </div>
+  </div>`;
+}
+
+async function widgetOpsMes(){
+  const since=getDashRangeStart();
+  const inclHist=cfg.dashboard_incl_historico==="true"||cfg.dashboard_incl_historico===true;
+  let q=sb.from("consumos_ops").select("fecha,op,consumido").limit(50000);
+  if(since) q=q.gte("fecha",since);
+  if(!inclHist) q=q.eq("es_historico",false);
+  const {data}=await q;
+  if(!data?.length) return `<div class="card"><div class="card-title"><i class="ti ti-calendar"></i>OPs por mes</div><div class="no-data">Sin datos</div></div>`;
+  const byMonth={};
+  data.forEach(c=>{
+    const m=(c.fecha||"").slice(0,7);
+    byMonth[m]=byMonth[m]||{ops:new Set(),mm:0};
+    if(c.op) byMonth[m].ops.add(c.op);
+    byMonth[m].mm+=c.consumido||0;
+  });
+  const items=Object.entries(byMonth).sort().map(([m,v])=>({label:m,val:v.ops.size,display:`${v.ops.size} OPs · ${v.mm.toFixed(0)}mm`}));
+  return `<div class="card">
+    <div class="card-title"><i class="ti ti-calendar"></i>OPs y consumo por mes</div>
+    ${barChart(items,null,()=>"#a78bfa")}
+  </div>`;
+}
+
+// ── CONFIG dashboard helpers ──
+function saveDashboardConfig(){
+  const widgets={
+    kpis:document.getElementById("cfgW_kpis").checked,
+    consumos:document.getElementById("cfgW_consumos").checked,
+    orings:document.getElementById("cfgW_orings").checked,
+    stockbajo:document.getElementById("cfgW_stockbajo").checked,
+    merma:document.getElementById("cfgW_merma").checked,
+    eficiencia:document.getElementById("cfgW_eficiencia").checked,
+    opsmes:document.getElementById("cfgW_opsmes").checked,
+  };
+  saveConfig("dashboard_widgets",JSON.stringify(widgets));
+}
+function toggleConfig(clave,togId){
+  const tog=document.getElementById(togId);
+  const newVal=!tog.classList.contains("on");
+  tog.classList.toggle("on",newVal);
+  saveConfig(clave,String(newVal));
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+//  HISTORIAL (Mercaderías + Almacén Mecaniza)
+// ────────────────────────────────────────────────────────────────────────────
+let _histState={tipo:"merc",itemId:null,itemName:"",itemCode:"",data:[]};
+
+async function openHistorial(tipo,itemId,itemName,itemCode){
+  _histState={tipo,itemId,itemName,itemCode,data:[]};
+  document.getElementById("histTitle").textContent=`Historial — ${tipo==="merc"?"Mercaderías":"Almacén Mecaniza"}`;
+  document.getElementById("histInfo").innerHTML=`<strong style="color:#f0f0f5">${itemName}</strong> <span style="color:#7a7d99">(${itemCode})</span>`;
+  document.getElementById("histDesde").value="";
+  document.getElementById("histHasta").value="";
+  document.getElementById("histTipo").value="";
+  document.getElementById("histTbody").innerHTML=`<tr><td colspan="9" class="no-data"><div class="loading"><div class="spinner"></div>Cargando movimientos...</div></td></tr>`;
+  document.getElementById("modalHistorial").style.display="flex";
+  showLoading(true);
+  const table=tipo==="merc"?"mercaderia_movimientos":"alm_mecaniza_movimientos";
+  const fk=tipo==="merc"?"mercaderia_id":"producto_id";
+  // Cargar movimientos en lotes
+  let all=[];
+  for(let from=0;;from+=1000){
+    const {data,error}=await sb.from(table).select("*").eq(fk,itemId).order("fecha",{ascending:false}).range(from,from+999);
+    if(error){toast("Error: "+error.message,"err");break;}
+    if(!data?.length) break;
+    all=all.concat(data);
+    if(data.length<1000) break;
+  }
+  // Cargar nombres de usuarios involucrados
+  const userIds=[...new Set(all.map(m=>m.usuario_id).filter(Boolean))];
+  const userMap={};
+  if(userIds.length){
+    const {data:users}=await sb.from("perfiles").select("id,nombre,username").in("id",userIds);
+    (users||[]).forEach(u=>userMap[u.id]=u);
+  }
+  showLoading(false);
+  _histState.data=all.map(m=>({...m,_usuario:userMap[m.usuario_id]}));
+  renderHistorial();
+}
+
+function histLimpiarFiltros(){
+  document.getElementById("histDesde").value="";
+  document.getElementById("histHasta").value="";
+  document.getElementById("histTipo").value="";
+  renderHistorial();
+}
+
+function renderHistorial(){
+  const desde=document.getElementById("histDesde")?.value||"";
+  const hasta=document.getElementById("histHasta")?.value||"";
+  const tipo=document.getElementById("histTipo")?.value||"";
+  let lista=_histState.data.filter(m=>{
+    const f=String(m.fecha||"").slice(0,10);
+    if(desde&&f<desde) return false;
+    if(hasta&&f>hasta) return false;
+    if(tipo&&!m.tipo.includes(tipo)) return false;
+    return true;
+  });
+
+  const totEnt=lista.filter(m=>m.tipo==="entrada"||m.tipo==="transferencia_in").reduce((a,m)=>a+(m.cantidad||0),0);
+  const totSal=lista.filter(m=>m.tipo==="salida"||m.tipo==="transferencia_out").reduce((a,m)=>a+(m.cantidad||0),0);
+  document.getElementById("histKpis").innerHTML=`
+    <div class="kpi"><div class="kpi-label">Movimientos</div><div class="kpi-val white">${lista.length}</div></div>
+    <div class="kpi"><div class="kpi-label">Entradas</div><div class="kpi-val green">+${totEnt.toFixed(1)}</div></div>
+    <div class="kpi"><div class="kpi-label">Salidas</div><div class="kpi-val amber">-${totSal.toFixed(1)}</div></div>
+    <div class="kpi"><div class="kpi-label">Balance</div><div class="kpi-val ${totEnt-totSal>=0?'green':'red'}">${(totEnt-totSal).toFixed(1)}</div></div>`;
+
+  document.getElementById("histTbody").innerHTML=lista.length?lista.map(m=>{
+    const tipoColor={entrada:"#4caf8c",salida:"#f5a623",ajuste:"#5b9bd5",transferencia_in:"#a78bfa",transferencia_out:"#a78bfa"}[m.tipo]||"#7a7d99";
+    const tipoLabel={entrada:"ENTRADA",salida:"SALIDA",ajuste:"AJUSTE",transferencia_in:"TRANS+",transferencia_out:"TRANS-"}[m.tipo]||m.tipo;
+    return `<tr>
+      <td style="font-size:11px;color:#b0b3cc">${new Date(m.fecha).toLocaleString("es-PE",{dateStyle:"short",timeStyle:"short"})}</td>
+      <td><span style="background:${tipoColor}22;color:${tipoColor};font-size:10px;padding:2px 8px;border-radius:10px;font-weight:500">${tipoLabel}</span></td>
+      <td style="text-align:right;color:${tipoColor};font-weight:500">${m.tipo==="salida"||m.tipo==="transferencia_out"?"-":"+"}${m.cantidad}</td>
+      <td style="text-align:right;color:#c8cce0">${m.precio_unitario!=null?`${m.precio_unitario} ${m.moneda||""}`:"—"}</td>
+      <td style="font-size:11px;color:#c8cce0">${m.proveedor||m.cliente_nombre||"—"}</td>
+      <td style="font-family:monospace;font-size:10px;color:#7a7d99">${m.op_numero||"—"}</td>
+      <td style="font-size:11px;color:#c8cce0">${m.motivo||""}</td>
+      <td style="font-size:10px;color:#7a7d99">${m._usuario?.nombre||"—"}</td>
+      <td style="text-align:right;font-size:10px;color:#7a7d99">${m.stock_antes??"?"} → <strong style="color:#c8cce0">${m.stock_despues??"?"}</strong></td>
+    </tr>`;
+  }).join(""):`<tr><td colspan="9" class="no-data">Sin movimientos con esos filtros</td></tr>`;
+}
+
+function exportHistorial(){
+  if(!_histState.data?.length){toast("Sin movimientos para exportar","err");return;}
+  const desde=document.getElementById("histDesde")?.value||"";
+  const hasta=document.getElementById("histHasta")?.value||"";
+  const tipo=document.getElementById("histTipo")?.value||"";
+  const lista=_histState.data.filter(m=>{
+    const f=String(m.fecha||"").slice(0,10);
+    if(desde&&f<desde) return false;
+    if(hasta&&f>hasta) return false;
+    if(tipo&&!m.tipo.includes(tipo)) return false;
+    return true;
+  });
+  const rows=[["Fecha","Tipo","Cantidad","Precio","Moneda","Proveedor","Cliente","OP","Motivo","Usuario","Stock antes","Stock después"]];
+  lista.forEach(m=>rows.push([
+    new Date(m.fecha).toLocaleString("es-PE"),m.tipo,m.cantidad,m.precio_unitario||"",m.moneda||"",
+    m.proveedor||"",m.cliente_nombre||"",m.op_numero||"",m.motivo||"",m._usuario?.nombre||"",m.stock_antes||"",m.stock_despues||""
+  ]));
+  const wb=XLSX.utils.book_new();
+  const ws=XLSX.utils.aoa_to_sheet(rows);
+  XLSX.utils.book_append_sheet(wb,"Historial",ws);
+  XLSX.writeFile(wb,`Historial_${_histState.tipo}_${_histState.itemCode}_${new Date().toISOString().slice(0,10)}.xlsx`);
+  toast("✓ Exportado","ok");
 }
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -1310,15 +1838,52 @@ function parseMedidas(desc){
   return m?{di:+m[1],de:+m[2],lon:+m[3]}:{di:null,de:null,lon:null};
 }
 
+// Wire-up del buscador estable (una sola vez)
+let _tubosSearchWired=false;
+function wireTubosSearch(){
+  if(_tubosSearchWired) return;
+  _tubosSearchWired=true;
+  let deb;
+  const onChange=(updateState)=>{
+    clearTimeout(deb);
+    deb=setTimeout(()=>{updateState();_tubosState.page=1;updateLimpiarBtn();renderTubosResumen();},180);
+  };
+  const wInput=(id,prop)=>{
+    const el=document.getElementById(id);if(!el)return;
+    el.addEventListener("input",()=>onChange(()=>_tubosState[prop]=el.value));
+  };
+  const wSelect=(id,prop)=>{
+    const el=document.getElementById(id);if(!el)return;
+    el.addEventListener("change",()=>onChange(()=>_tubosState[prop]=el.value));
+  };
+  wInput("tubosSearch","query");
+  wSelect("tubosMatFilter","fMat");
+  wSelect("tubosSubFamFilter","fSubFam");
+  wInput("tubosFDi","fDi");
+  wInput("tubosFDe","fDe");
+}
+function updateLimpiarBtn(){
+  const b=document.getElementById("tubosBtnLimpiar");
+  if(b) b.style.display=(_tubosState.query||_tubosState.fMat||_tubosState.fSubFam||_tubosState.fDi||_tubosState.fDe)?"inline-flex":"none";
+}
+function tubosLimpiarFiltros(){
+  _tubosState.query="";_tubosState.fMat="";_tubosState.fSubFam="";_tubosState.fDi="";_tubosState.fDe="";_tubosState.page=1;
+  ["tubosSearch","tubosFDi","tubosFDe"].forEach(id=>{const el=document.getElementById(id);if(el) el.value="";});
+  ["tubosMatFilter","tubosSubFamFilter"].forEach(id=>{const el=document.getElementById(id);if(el) el.value="";});
+  updateLimpiarBtn();
+  renderTubosResumen();
+}
+
 async function loadTubos(){
   _tubosState.detalleId=null;
   const sede=_tubosState.sede||"custom";
   const sedeLabel=sede==="custom"?"Custom":"Mecaniza";
   const sedeColor=sede==="custom"?"#D32F2F":"#f5a623";
   const perm=PERMISOS[CU.rol];
-  // Cambiar título de la página
+  // Título
   const titleEl=document.querySelector("#page-tubos .page-title");
   if(titleEl) titleEl.innerHTML=`<i class="ti ti-cylinder" style="color:${sedeColor}"></i>Materia Prima — <span style="color:${sedeColor}">Sede ${sedeLabel}</span>`;
+  // Botones
   const actRow=document.getElementById("tubosActions");
   actRow.innerHTML=perm.editarTubos
     ?`<button class="btn btn-red" onclick="openModalMaterial()"><i class="ti ti-plus"></i>Nuevo material</button>
@@ -1326,24 +1891,66 @@ async function loadTubos(){
       <button class="btn btn-ghost" onclick="loadTubos()"><i class="ti ti-refresh"></i>Actualizar</button>`
     :`<button class="btn btn-ghost" onclick="loadTubos()"><i class="ti ti-refresh"></i>Actualizar</button>`;
 
+  wireTubosSearch();
   document.getElementById("tubos-list").innerHTML=`<div class="loading"><div class="spinner"></div>Cargando tubos de sede ${sedeLabel}...</div>`;
+  document.getElementById("tubos-header").innerHTML="";
   showLoading(true);
-  const [tRes,iRes]=await Promise.all([
-    sb.from("tubos").select("*").eq("sede",sede).order("descripcion").range(0,9999),
-    sb.from("tubo_instancias").select("id,tubo_id,estado,altura_usada").range(0,99999)
-  ]);
-  showLoading(false);
-  if(tRes.error){document.getElementById("tubos-list").innerHTML=`<div class="no-data">Error al cargar tubos: ${tRes.error.message}</div>`;return;}
 
-  _tubosCache.tubos=tRes.data||[];
+  // Paginación en loop para evitar el límite de 1000 de Supabase
+  let allTubos=[];
+  for(let from=0;;from+=1000){
+    const {data,error}=await sb.from("tubos").select("*").eq("sede",sede).order("descripcion").range(from,from+999);
+    if(error){showLoading(false);document.getElementById("tubos-list").innerHTML=`<div class="no-data">Error: ${error.message}</div>`;return;}
+    if(!data?.length) break;
+    allTubos=allTubos.concat(data);
+    if(data.length<1000) break;
+  }
+  // Mismo loop para instancias (solo de los tubos cargados, en lotes para no exceder URL)
   const instByTubo={};
-  for(const i of (iRes.data||[])) (instByTubo[i.tubo_id]=instByTubo[i.tubo_id]||[]).push(i);
+  if(allTubos.length){
+    const tuboIds=allTubos.map(t=>t.id);
+    const BATCH=300;
+    for(let i=0;i<tuboIds.length;i+=BATCH){
+      const batch=tuboIds.slice(i,i+BATCH);
+      let from=0;
+      while(true){
+        const {data,error}=await sb.from("tubo_instancias").select("id,tubo_id,estado,altura_usada").in("tubo_id",batch).range(from,from+999);
+        if(error||!data?.length) break;
+        for(const ins of data) (instByTubo[ins.tubo_id]=instByTubo[ins.tubo_id]||[]).push(ins);
+        if(data.length<1000) break;
+        from+=1000;
+      }
+    }
+  }
+  showLoading(false);
+
+  _tubosCache.tubos=allTubos;
   _tubosCache.instByTubo=instByTubo;
 
-  if(!_tubosCache.tubos.length){
+  // Inicializar valores de los inputs estables con el estado guardado
+  const inp=document.getElementById("tubosSearch");if(inp) inp.value=_tubosState.query||"";
+  const fDi=document.getElementById("tubosFDi");if(fDi) fDi.value=_tubosState.fDi||"";
+  const fDe=document.getElementById("tubosFDe");if(fDe) fDe.value=_tubosState.fDe||"";
+  const selMat=document.getElementById("tubosMatFilter");
+  if(selMat){
+    const matsSet=new Set(allTubos.map(t=>parseMaterial(t.descripcion)));
+    selMat.innerHTML=`<option value="">Todos los materiales</option>`+[...matsSet].sort().map(m=>`<option value="${m}">${m}</option>`).join("");
+    selMat.value=_tubosState.fMat||"";
+  }
+  const selSub=document.getElementById("tubosSubFamFilter");
+  if(selSub){
+    const subSet=new Set(allTubos.map(t=>t.subfamilia).filter(Boolean));
+    selSub.innerHTML=`<option value="">Todas subfamilias</option>`+[...subSet].sort().map(s=>`<option value="${s}">${s}</option>`).join("");
+    selSub.value=_tubosState.fSubFam||"";
+  }
+  document.getElementById("tubosSearchCard").style.display=allTubos.length?"block":"none";
+  updateLimpiarBtn();
+
+  if(!allTubos.length){
     document.getElementById("tubos-list").innerHTML=`<div class="card" style="text-align:center;padding:30px;color:#5a5e7a">
       <i class="ti ti-cylinder" style="font-size:32px;display:block;margin-bottom:10px;color:#3a3e5a"></i>
-      No hay tubos registrados.${perm.editarTubos?' Usa <strong style="color:#D32F2F">Registrar entrada</strong> para comenzar.':''}</div>`;
+      No hay tubos en sede ${sedeLabel}.${perm.editarTubos?' Usa <strong style="color:#D32F2F">Nuevo material</strong> para comenzar.':''}</div>`;
+    document.getElementById("tubosKpis").innerHTML="";
     return;
   }
   renderTubosResumen();
@@ -1354,7 +1961,7 @@ function renderTubosResumen(){
   const q=(_tubosState.query||"").trim().toLowerCase();
   const fMat=_tubosState.fMat||"";
 
-  let resumen=tubos.filter(t=>(instByTubo[t.id]||[]).length>0).map(t=>{
+  let resumen=tubos.map(t=>{
     const insts=instByTubo[t.id]||[];
     const altTot=t.altura_total||0;
     const disp=insts.filter(i=>i.estado==="disponible").length;
@@ -1385,9 +1992,6 @@ function renderTubosResumen(){
   const totalAgo=resumen.reduce((a,r)=>a+r.ago,0);
   const totalMmRest=resumen.reduce((a,r)=>a+r.mmRest,0);
 
-  const matsSet=new Set(tubos.filter(t=>(instByTubo[t.id]||[]).length>0).map(t=>parseMaterial(t.descripcion)));
-  const matsOpts=`<option value="">Todos los materiales</option>`+[...matsSet].sort().map(m=>`<option value="${m}"${m===fMat?" selected":""}>${m}</option>`).join("");
-
   const per=_tubosState.perPage;
   const totalPg=Math.max(1,Math.ceil(totalTipos/per));
   if(_tubosState.page>totalPg) _tubosState.page=totalPg;
@@ -1395,29 +1999,12 @@ function renderTubosResumen(){
   const start=(_tubosState.page-1)*per;
   const visible=resumen.slice(start,start+per);
 
-  const kpisHtml=`<div class="kpi-grid" style="margin-bottom:14px">
+  // KPIs en su propio contenedor estable (no toca el buscador)
+  document.getElementById("tubosKpis").innerHTML=`
     <div class="kpi"><div class="kpi-label">Tipos</div><div class="kpi-val white">${totalTipos}</div><div class="kpi-sub">medidas únicas</div></div>
     <div class="kpi"><div class="kpi-label">Físicos</div><div class="kpi-val blue">${totalTubos}</div><div class="kpi-sub">${totalDisp} disponibles</div></div>
     <div class="kpi"><div class="kpi-label">mm restantes</div><div class="kpi-val green">${totalMmRest.toFixed(0)}</div></div>
-    <div class="kpi"><div class="kpi-label">Agotados/Merma</div><div class="kpi-val red">${totalAgo}</div></div>
-  </div>`;
-
-  const buscadorHtml=`<div class="card" style="padding:10px 14px;margin-bottom:10px">
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;align-items:center">
-      <input class="fi" type="text" placeholder="Buscar material, código..."
-        value="${(_tubosState.query||"").replace(/"/g,"&quot;")}"
-        oninput="_tubosState.query=this.value;_tubosState.page=1;renderTubosResumen()"
-        style="grid-column:span 2">
-      <select class="fi" onchange="_tubosState.fMat=this.value;_tubosState.page=1;renderTubosResumen()">${matsOpts}</select>
-      <select class="fi" onchange="_tubosState.fSubFam=this.value;_tubosState.page=1;renderTubosResumen()">
-        <option value="">Todas subfamilias</option>
-        ${[...new Set(tubos.map(t=>t.subfamilia))].filter(Boolean).sort().map(s=>`<option value="${s}"${_tubosState.fSubFam===s?" selected":""}>${s}</option>`).join("")}
-      </select>
-      <input class="fi" type="text" placeholder="DI (ej: 25 o 20-30)" value="${_tubosState.fDi}" oninput="_tubosState.fDi=this.value;_tubosState.page=1;renderTubosResumen()">
-      <input class="fi" type="text" placeholder="DE (ej: 52 o 50-60)" value="${_tubosState.fDe}" oninput="_tubosState.fDe=this.value;_tubosState.page=1;renderTubosResumen()">
-      ${(_tubosState.query||_tubosState.fMat||_tubosState.fSubFam||_tubosState.fDi||_tubosState.fDe)?`<button class="btn btn-ghost" onclick="_tubosState.query='';_tubosState.fMat='';_tubosState.fSubFam='';_tubosState.fDi='';_tubosState.fDe='';_tubosState.page=1;renderTubosResumen()"><i class="ti ti-x"></i>Limpiar</button>`:""}
-    </div>
-  </div>`;
+    <div class="kpi"><div class="kpi-label">Agotados/Merma</div><div class="kpi-val red">${totalAgo}</div></div>`;
 
   const filasHtml=visible.map(r=>{
     const {t,insts,disp,mmRest,mmTot,med}=r;
@@ -1461,7 +2048,8 @@ function renderTubosResumen(){
     </div>`:""}
   </div>`;
 
-  document.getElementById("tubos-list").innerHTML=kpisHtml+buscadorHtml+tablaHtml;
+  document.getElementById("tubos-header").innerHTML="";
+  document.getElementById("tubos-list").innerHTML=tablaHtml;
 }
 
 async function verDetalleTubo(tuboId){
@@ -1563,6 +2151,29 @@ async function deleteMovimiento(id, instId){
   setBtnLoading("btnSaveTubo",false);
   if(error){toast("Error al eliminar: "+error.message,"err");}
   else{toast("✓ Movimiento eliminado","ok");loadTubos();}
+}
+
+async function clearCatalog(){
+  if(!confirm("⚠️ ¿Estás seguro de que deseas ELIMINAR TODO EL CATÁLOGO de materiales? Esta acción no se puede deshacer.")){return;}
+  setBtnLoading("btnSaveMaterial",true,"Borrando...");
+  const {error}=await sb.from("catalogo").delete().neq("cod", ""); // Borra todo
+  setBtnLoading("btnSaveMaterial",false);
+  if(error){toast("Error al borrar catálogo: "+error.message,"err");}
+  else{toast("✓ Catálogo eliminado correctamente","ok");}
+}
+
+async function clearStock(){
+  if(!confirm("⚠️ ¡ADVERTENCIA! Vas a ELIMINAR TODO EL STOCK de tubos, instancias y movimientos. ¿Estás absolutamente seguro?")){return;}
+  setBtnLoading("btnSaveTubo",true,"Borrando stock...");
+
+  // El orden es importante por las llaves foráneas
+  await sb.from("movimientos").delete().neq("id", "");
+  await sb.from("tubo_instancias").delete().neq("id", "");
+  await sb.from("tubos").delete().neq("id", "");
+
+  setBtnLoading("btnSaveTubo",false);
+  toast("✓ Todo el stock y movimientos han sido eliminados","ok");
+  loadTubos();
 }
 
 function toggleTuboManual(){
@@ -2088,142 +2699,361 @@ function renderConsumos(){
     </div>`;
 }
 
-function openModalConsumo(id=null){
-  const c=id?_consCache.find(x=>x.id===id):null;
-  document.getElementById("modalConsumoTitle").textContent=c?(c.devuelto==null?`Cerrar OP ${c.op}`:`Editar registro ${c.op}`):"Nuevo registro de consumo";
-  const set=(k,v)=>{const el=document.getElementById(k);if(el)el.value=v??"";};
-  set("co_id",c?.id||"");
-  set("co_fecha",c?.fecha||new Date().toISOString().slice(0,10));
-  set("co_op",c?.op||"");
-  set("co_material",c?.material||"");
-  set("co_di",c?.di??"");
-  set("co_de",c?.de??"");
-  set("co_largo",c?.largo??"");
-  set("co_enviado",c?.enviado??"");
-  set("co_devuelto",c?.devuelto??"");
-  set("co_observ",c?.observaciones||"");
-  set("co_optimo",c?.material_optimo||"");
-  set("co_tubo_id",c?.tubo_id||"");
-  set("co_tubo_inst_id",c?.tubo_instancia_id||"");
-  set("co_enviado_original",c?.enviado??"");
-  set("co_devuelto_original",c?.devuelto??"");
-  document.getElementById("co_tubo_match").innerHTML=c?.tubo_id?
-    `<i class="ti ti-cylinder" style="color:#4caf8c"></i> Tubo ya vinculado (id ${c.tubo_id})`:
-    `Ingresa medidas para buscar tubo en MP Custom...`;
-  document.getElementById("modalConsumo").style.display="flex";
-  if(!c) buscarTuboCons();
+// Cache de materiales/tubos disponibles para los selectores
+let _consMatTuboCache=null; // {byMaterial: {mat: [{tubo, mmRest, instId}]}}
+
+async function loadConsMatTuboCache(force=false){
+  if(_consMatTuboCache&&!force) return _consMatTuboCache;
+  // Trae todos los tubos sede custom + sus instancias disponibles
+  let tubos=[];
+  for(let from=0;;from+=1000){
+    const {data,error}=await sb.from("tubos").select("*").eq("sede","custom").range(from,from+999);
+    if(error) break;
+    if(!data?.length) break;
+    tubos=tubos.concat(data);
+    if(data.length<1000) break;
+  }
+  let insts=[];
+  if(tubos.length){
+    const ids=tubos.map(t=>t.id);
+    const BATCH=300;
+    for(let i=0;i<ids.length;i+=BATCH){
+      const batch=ids.slice(i,i+BATCH);
+      let from=0;
+      while(true){
+        const {data,error}=await sb.from("tubo_instancias").select("*").in("tubo_id",batch).eq("estado","disponible").range(from,from+999);
+        if(error||!data?.length) break;
+        insts=insts.concat(data);
+        if(data.length<1000) break;
+        from+=1000;
+      }
+    }
+  }
+  const tuboMap=Object.fromEntries(tubos.map(t=>[t.id,t]));
+  // Agrupar por material parseado
+  const byMaterial={};
+  for(const t of tubos){
+    const mat=parseMaterial(t.descripcion);
+    const myInsts=insts.filter(i=>i.tubo_id===t.id);
+    if(!myInsts.length) continue; // solo materiales con stock
+    if(!byMaterial[mat]) byMaterial[mat]=[];
+    byMaterial[mat].push({tubo:t,instancias:myInsts});
+  }
+  _consMatTuboCache={byMaterial,tuboMap};
+  return _consMatTuboCache;
 }
 
-async function buscarTuboCons(){
-  const di=parseFloat(document.getElementById("co_di").value);
-  const de=parseFloat(document.getElementById("co_de").value);
-  const largo=parseFloat(document.getElementById("co_largo").value);
-  const matchEl=document.getElementById("co_tubo_match");
-  if(isNaN(di)||isNaN(de)||isNaN(largo)){
-    matchEl.innerHTML=`Ingresa medidas DI, DE y LARGO para buscar tubo...`;
-    document.getElementById("co_tubo_id").value="";
-    document.getElementById("co_tubo_inst_id").value="";
+function onTipoOpChange(){
+  const tipo=document.getElementById("co_tipo_op").value;
+  const isInt=tipo==="interno";
+  document.getElementById("co_op_label").innerHTML=isInt?'Identificador <span class="req">*</span>':'N° OP <span class="req">*</span>';
+  document.getElementById("co_op").placeholder=isInt?"Ej: INT-2026-001":"8837";
+  document.getElementById("co_cliente_box").style.display=isInt?"none":"";
+}
+
+async function openModalConsumo(id=null){
+  const c=id?_consCache.find(x=>x.id===id):null;
+  document.getElementById("modalConsumoTitle").textContent=c?`Editar registro · OP ${c.op}`:"Nuevo registro de consumo";
+  document.getElementById("btnSaveConsumoTxt").textContent=c?"Guardar cambios":"Guardar consumos";
+  document.getElementById("co_id").value=c?.id||"";
+  document.getElementById("co_fecha").value=c?.fecha||new Date().toISOString().slice(0,10);
+  document.getElementById("co_op").value=c?.op||"";
+  // Detectar si es consumo interno por prefijo INT- u OBS
+  const esInterno=c?String(c.op||"").toUpperCase().startsWith("INT-")||(c.observaciones||"").toUpperCase().includes("INTERNO"):false;
+  document.getElementById("co_tipo_op").value=esInterno?"interno":"externa";
+  document.getElementById("co_cliente").value=c?.cliente_nombre||"";
+  onTipoOpChange();
+
+  // Llenar autocomplete de clientes
+  if(_clientesCache.length===0){
+    const {data}=await sb.from("clientes").select("nombre").eq("estado","activo").limit(1000);
+    document.getElementById("consClientesList").innerHTML=(data||[]).map(c=>`<option value="${(c.nombre||"").replace(/"/g,"&quot;")}"></option>`).join("");
+  }else{
+    document.getElementById("consClientesList").innerHTML=_clientesCache.filter(c=>c.ind_cli||c.estado==="activo").map(c=>`<option value="${(c.nombre||"").replace(/"/g,"&quot;")}"></option>`).join("");
+  }
+
+  // Reset líneas y pre-llenar
+  document.getElementById("co_lineas").innerHTML="";
+  document.getElementById("btnAddLinea").style.display=c?"none":"inline-flex"; // edición = una sola línea
+
+  document.getElementById("modalConsumo").style.display="flex";
+  showLoading(true,"Cargando materiales disponibles...","Buscando en MP Custom");
+  await loadConsMatTuboCache(true);
+  showLoading(false);
+
+  if(c){
+    // Edición de un registro existente: una sola línea con sus datos
+    addConsumoLine(c);
+  }else{
+    addConsumoLine();
+  }
+  updateConsumoResumen();
+}
+
+function addConsumoLine(prefill=null){
+  const cont=document.getElementById("co_lineas");
+  const idx=cont.children.length;
+  const div=document.createElement("div");
+  div.className="card";
+  div.style.cssText="padding:10px 12px;margin:0;background:#1a1d26;border:.5px solid #2e3042;position:relative";
+  div.dataset.idx=idx;
+  div.innerHTML=`
+    <div style="position:absolute;top:8px;right:8px;display:flex;gap:4px">
+      <span style="font-size:10px;color:#5a5e7a;padding:3px 8px;background:#111318;border-radius:10px">#${idx+1}</span>
+      <button class="btn btn-ghost" style="padding:2px 6px;font-size:10px;color:#e85a5a" onclick="removeConsumoLine(this)" title="Eliminar"><i class="ti ti-trash"></i></button>
+    </div>
+    <div style="font-size:10px;color:#7a7d99;text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px">Línea ${idx+1}</div>
+    <div class="form-row-3" style="margin-bottom:6px">
+      <div class="form-group" style="margin:0">
+        <label class="form-label">Material <span class="req">*</span></label>
+        <select class="form-input cl-material" onchange="onLineMaterialChange(this)"></select>
+      </div>
+      <div class="form-group" style="margin:0;grid-column:span 2">
+        <label class="form-label">Tubo específico <span class="req">*</span></label>
+        <select class="form-input cl-tubo" onchange="onLineTuboChange(this)" disabled><option value="">— Primero elige material —</option></select>
+      </div>
+    </div>
+    <div class="form-row" style="margin-bottom:6px">
+      <div class="form-group" style="margin:0">
+        <label class="form-label">ENVIADO (mm) <span class="req">*</span></label>
+        <input class="form-input cl-enviado" type="number" min="0" placeholder="50" oninput="updateConsumoResumen()">
+        <div class="cl-tubo-info" style="font-size:10px;color:#5a5e7a;margin-top:3px"></div>
+      </div>
+      <div class="form-group" style="margin:0">
+        <label class="form-label">DEVUELTO (mm)</label>
+        <input class="form-input cl-devuelto" type="number" min="0" placeholder="(opcional)" oninput="updateConsumoResumen()">
+      </div>
+    </div>
+    <div class="form-row" style="margin-bottom:0">
+      <div class="form-group" style="margin:0">
+        <label class="form-label">Observaciones</label>
+        <input class="form-input cl-observ" placeholder="MERMA, normal, etc.">
+      </div>
+      <div class="form-group" style="margin:0">
+        <label class="form-label">Material óptimo (sugerencia)</label>
+        <input class="form-input cl-optimo" placeholder="Opcional">
+      </div>
+    </div>
+  `;
+  cont.appendChild(div);
+
+  // Llenar dropdown de materiales
+  const matSel=div.querySelector(".cl-material");
+  const mats=Object.keys(_consMatTuboCache?.byMaterial||{}).sort();
+  matSel.innerHTML=`<option value="">— Selecciona material —</option>`+mats.map(m=>{
+    const totalTubos=_consMatTuboCache.byMaterial[m].length;
+    const totalInst=_consMatTuboCache.byMaterial[m].reduce((a,g)=>a+g.instancias.length,0);
+    return `<option value="${m}">${m} (${totalTubos} medida${totalTubos>1?"s":""} · ${totalInst} tubo${totalInst>1?"s":""})</option>`;
+  }).join("");
+
+  if(prefill){
+    // Modo edición — pre-llenar
+    const mat=parseMaterial(prefill.material||"");
+    matSel.value=mat;
+    onLineMaterialChange(matSel);
+    const tuboSel=div.querySelector(".cl-tubo");
+    if(prefill.tubo_id){
+      tuboSel.value=prefill.tubo_id;
+      onLineTuboChange(tuboSel);
+    }
+    div.querySelector(".cl-enviado").value=prefill.enviado??"";
+    div.querySelector(".cl-devuelto").value=prefill.devuelto??"";
+    div.querySelector(".cl-observ").value=prefill.observaciones||"";
+    div.querySelector(".cl-optimo").value=prefill.material_optimo||"";
+    // Guardar valores originales para calcular delta al actualizar stock
+    div.dataset.enviadoOrig=prefill.enviado||0;
+    div.dataset.devueltoOrig=prefill.devuelto??"";
+    div.dataset.tuboInstIdOrig=prefill.tubo_instancia_id||"";
+  }
+  updateConsumoResumen();
+}
+
+function removeConsumoLine(btn){
+  const card=btn.closest(".card");
+  if(document.querySelectorAll("#co_lineas .card").length<=1){
+    toast("Debe haber al menos una línea","err");return;
+  }
+  card.remove();
+  // Renumerar etiquetas
+  document.querySelectorAll("#co_lineas .card").forEach((c,i)=>{
+    const lbl=c.querySelector("div > span");if(lbl) lbl.textContent=`#${i+1}`;
+    const titleDiv=c.children[1];if(titleDiv) titleDiv.textContent=`Línea ${i+1}`;
+  });
+  updateConsumoResumen();
+}
+
+function onLineMaterialChange(sel){
+  const card=sel.closest(".card");
+  const tuboSel=card.querySelector(".cl-tubo");
+  const mat=sel.value;
+  if(!mat){
+    tuboSel.innerHTML=`<option value="">— Primero elige material —</option>`;
+    tuboSel.disabled=true;
+    card.querySelector(".cl-tubo-info").innerHTML="";
     return;
   }
-  matchEl.innerHTML=`<div class="spin" style="display:inline-block;width:10px;height:10px;border:2px solid #5b9bd5;border-top-color:transparent;border-radius:50%;vertical-align:middle"></div> Buscando...`;
-  // Buscar tubos con esas medidas exactas en sede custom
-  const {data:tubos}=await sb.from("tubos").select("*").eq("sede","custom").eq("di",di).eq("de",de).eq("altura_total",largo);
-  if(!tubos?.length){
-    matchEl.innerHTML=`<span style="color:#e85a5a"><i class="ti ti-alert-circle"></i> No hay tubos con DI ${di} · DE ${de} · L ${largo} en MP Custom</span>`;
-    document.getElementById("co_tubo_id").value="";
-    document.getElementById("co_tubo_inst_id").value="";
-    return;
-  }
-  // Para cada tubo, ver instancias disponibles
-  const ids=tubos.map(t=>t.id);
-  const {data:insts}=await sb.from("tubo_instancias").select("*").in("tubo_id",ids).eq("estado","disponible");
-  if(!insts?.length){
-    matchEl.innerHTML=`<span style="color:#f5a623"><i class="ti ti-alert-triangle"></i> Hay materiales con esas medidas pero sin tubos disponibles</span>`;
-    document.getElementById("co_tubo_id").value="";
-    document.getElementById("co_tubo_inst_id").value="";
-    return;
-  }
-  // Tomar el primer tubo con instancia disponible
-  const first=insts[0];
-  const tubo=tubos.find(t=>t.id===first.tubo_id);
-  const mmRest=(tubo.altura_total||0)-(first.altura_usada||0);
-  document.getElementById("co_tubo_id").value=tubo.id;
-  document.getElementById("co_tubo_inst_id").value=first.id;
-  matchEl.innerHTML=`<span style="color:#4caf8c"><i class="ti ti-check"></i> <strong>${tubo.descripcion}</strong> · ${insts.length} tubo${insts.length>1?"s":""} disponible${insts.length>1?"s":""} · ${mmRest}mm en T1 (de donde se descontará)</span>`;
+  const grupos=_consMatTuboCache.byMaterial[mat]||[];
+  tuboSel.disabled=false;
+  tuboSel.innerHTML=`<option value="">— Selecciona tubo específico —</option>`+grupos.map(g=>{
+    const med=parseMedidas(g.tubo.descripcion);
+    const medStr=med.di!=null?`DI ${med.di}·DE ${med.de}·L ${med.lon}`:`${g.tubo.altura_total}mm`;
+    const totalMm=g.instancias.reduce((a,i)=>a+Math.max(0,(g.tubo.altura_total||0)-(i.altura_usada||0)),0);
+    return `<option value="${g.tubo.id}">${g.tubo.descripcion} · ${medStr} · ${g.instancias.length} disp · ${totalMm}mm total</option>`;
+  }).join("");
+  card.querySelector(".cl-tubo-info").innerHTML="";
+}
+
+function onLineTuboChange(sel){
+  const card=sel.closest(".card");
+  const tuboId=parseInt(sel.value);
+  if(!tuboId){card.querySelector(".cl-tubo-info").innerHTML="";return;}
+  const matSel=card.querySelector(".cl-material");
+  const mat=matSel.value;
+  const grupo=(_consMatTuboCache.byMaterial[mat]||[]).find(g=>g.tubo.id===tuboId);
+  if(!grupo){card.querySelector(".cl-tubo-info").innerHTML="";return;}
+  // Tomar primera instancia disponible y mostrar info
+  const inst=grupo.instancias[0];
+  const mmRest=(grupo.tubo.altura_total||0)-(inst.altura_usada||0);
+  card.querySelector(".cl-tubo-info").innerHTML=`<span style="color:#4caf8c"><i class="ti ti-check"></i> Se descontará de T1 · ${mmRest}mm disponibles</span>`;
+  card.dataset.instId=inst.id;
+}
+
+function updateConsumoResumen(){
+  const lineas=document.querySelectorAll("#co_lineas .card");
+  let totalEnv=0,totalDev=0,n=0;
+  lineas.forEach(c=>{
+    const env=parseFloat(c.querySelector(".cl-enviado").value)||0;
+    const dev=parseFloat(c.querySelector(".cl-devuelto").value)||0;
+    if(env>0){totalEnv+=env;totalDev+=dev;n++;}
+  });
+  const r=document.getElementById("co_resumen");
+  if(n===0){r.innerHTML="";return;}
+  r.innerHTML=`<strong style="color:#c8cce0">Resumen:</strong> ${n} línea${n>1?"s":""} · ${totalEnv.toFixed(0)}mm enviados · ${totalDev.toFixed(0)}mm devueltos · <span style="color:#f5a623">${(totalEnv-totalDev).toFixed(0)}mm consumidos</span>`;
 }
 
 async function saveConsumo(){
-  const v=k=>document.getElementById(k).value.trim();
-  const num=k=>{const x=parseFloat(document.getElementById(k).value);return isNaN(x)?null:x;};
-  const fecha=v("co_fecha"),op=v("co_op"),material=v("co_material");
-  const di=num("co_di"),de=num("co_de"),largo=num("co_largo");
-  const enviado=num("co_enviado");
-  const devuelto=num("co_devuelto");
-  if(!fecha||!op||!material||di==null||de==null||largo==null||enviado==null){
-    toast("Completa Fecha, OP, Material, medidas y ENVIADO","err");return;
-  }
-  if(devuelto!=null&&devuelto>enviado){
-    toast("DEVUELTO no puede ser mayor que ENVIADO","err");return;
-  }
-  setBtnLoading("btnSaveConsumo",true,"Guardando...");
-  const tuboId=parseInt(document.getElementById("co_tubo_id").value)||null;
-  const tuboInstId=parseInt(document.getElementById("co_tubo_inst_id").value)||null;
-  const enviadoOrig=parseFloat(document.getElementById("co_enviado_original").value)||0;
-  const devueltoOrig=parseFloat(document.getElementById("co_devuelto_original").value);
-  const id=v("co_id");
+  const fecha=document.getElementById("co_fecha").value.trim();
+  const tipoOp=document.getElementById("co_tipo_op").value;
+  let op=document.getElementById("co_op").value.trim();
+  const cliente=document.getElementById("co_cliente").value.trim();
+  const id=document.getElementById("co_id").value;
 
-  // Calcular delta neto a aplicar al tubo: (enviado - devuelto) - (enviadoOrig - devueltoOrig)
-  // Si es nuevo: delta = enviado - (devuelto||0)
-  // Si edita: delta = (enviado - devuelto) - (enviadoOrig - devueltoOrig)
-  const consumoNuevo=enviado-(devuelto||0);
-  const consumoOrig=id?(enviadoOrig-(isNaN(devueltoOrig)?0:devueltoOrig)):0;
-  const delta=consumoNuevo-consumoOrig; // positivo = más consumo, negativo = devuelve
-
-  // Aplicar al tubo si está vinculado
-  if(tuboInstId&&delta!==0){
-    const {data:inst}=await sb.from("tubo_instancias").select("*").eq("id",tuboInstId).single();
-    const {data:tubo}=await sb.from("tubos").select("altura_total").eq("id",tuboId).single();
-    if(!inst||!tubo){setBtnLoading("btnSaveConsumo",false);toast("Tubo no encontrado","err");return;}
-    const altTot=tubo.altura_total||0;
-    const nuevoUsado=Math.max(0,(inst.altura_usada||0)+delta);
-    if(nuevoUsado>altTot){
-      setBtnLoading("btnSaveConsumo",false);
-      toast(`Stock insuficiente: el tubo solo tiene ${altTot-(inst.altura_usada||0)}mm restantes`,"err");return;
+  if(!fecha){toast("Fecha es obligatoria","err");return;}
+  if(!op){
+    if(tipoOp==="interno"){
+      op="INT-"+new Date().getTime().toString(36).toUpperCase();
+    }else{
+      toast("N° OP es obligatorio para OP externa","err");return;
     }
-    const nuevoEstado=nuevoUsado>=altTot?"agotado":(nuevoUsado>0?"en_uso":"disponible");
-    const {error:eU}=await sb.from("tubo_instancias").update({altura_usada:nuevoUsado,estado:nuevoEstado}).eq("id",tuboInstId);
-    if(eU){setBtnLoading("btnSaveConsumo",false);toast("Error stock: "+eU.message,"err");return;}
-    // Movimiento
-    await sb.from("movimientos").insert({
-      tubo_id:tuboId,tubo_instancia_id:tuboInstId,
-      tipo:delta>0?"consumo":"ajuste",
-      altura_usada:Math.abs(delta),op_numero:op,usuario_id:CU?.id,
-      nota:`Consumo OP ${op}: ${delta>0?"-":"+"}${Math.abs(delta)}mm`
+  }
+
+  // Recolectar líneas
+  const cards=Array.from(document.querySelectorAll("#co_lineas .card"));
+  if(!cards.length){toast("Agrega al menos un material","err");return;}
+
+  const lineas=[];
+  for(const card of cards){
+    const matSel=card.querySelector(".cl-material");
+    const tuboSel=card.querySelector(".cl-tubo");
+    const material=matSel.value;
+    const tuboId=parseInt(tuboSel.value);
+    const enviado=parseFloat(card.querySelector(".cl-enviado").value);
+    const devVal=card.querySelector(".cl-devuelto").value.trim();
+    const devuelto=devVal===""?null:parseFloat(devVal);
+    const observ=card.querySelector(".cl-observ").value.trim();
+    const optimo=card.querySelector(".cl-optimo").value.trim();
+    const instId=parseInt(card.dataset.instId)||null;
+
+    if(!material||!tuboId){toast(`Línea ${lineas.length+1}: falta material o tubo`,"err");return;}
+    if(isNaN(enviado)||enviado<=0){toast(`Línea ${lineas.length+1}: ENVIADO inválido`,"err");return;}
+    if(devuelto!=null&&devuelto>enviado){toast(`Línea ${lineas.length+1}: DEVUELTO > ENVIADO`,"err");return;}
+
+    const grupo=(_consMatTuboCache.byMaterial[material]||[]).find(g=>g.tubo.id===tuboId);
+    if(!grupo){toast(`Línea ${lineas.length+1}: tubo no encontrado en cache`,"err");return;}
+
+    const med=parseMedidas(grupo.tubo.descripcion);
+    lineas.push({
+      tuboId, instId,
+      tubo: grupo.tubo,
+      instancia: grupo.instancias.find(i=>i.id===instId)||grupo.instancias[0],
+      material,
+      di: med.di, de: med.de, largo: grupo.tubo.altura_total||med.lon,
+      enviado, devuelto, observaciones: observ||null, material_optimo: optimo||null,
+      // valores originales si edita
+      enviadoOrig: parseFloat(card.dataset.enviadoOrig)||0,
+      devueltoOrig: card.dataset.devueltoOrig===""?null:(parseFloat(card.dataset.devueltoOrig)||0),
+      tuboInstIdOrig: parseInt(card.dataset.tuboInstIdOrig)||null,
     });
   }
 
-  // Persistir el registro
-  const observ=v("co_observ");
-  const payload={
-    fecha,op,material,
-    tubo_id:tuboId,tubo_instancia_id:tuboInstId,
-    di,de,largo,enviado,
-    devuelto:devuelto!=null?devuelto:null,
-    observaciones:observ||null,
-    material_optimo:v("co_optimo")||null,
-    es_merma:false,
-    es_historico:false,
-    sede:"custom",
-    usuario_id:CU?.id,
-  };
-  let res;
-  if(id){res=await sb.from("consumos_ops").update(payload).eq("id",id);}
-  else{res=await sb.from("consumos_ops").insert(payload);}
+  setBtnLoading("btnSaveConsumo",true,"Guardando...");
+  showLoading(true,"Procesando consumos...","Descontando stock");
+
+  let okCount=0,errors=[];
+  for(let i=0;i<lineas.length;i++){
+    const L=lineas[i];
+    try{
+      // 1) Calcular delta para descuento de tubo
+      const consumoNuevo=L.enviado-(L.devuelto||0);
+      const consumoOrig=id?(L.enviadoOrig-(L.devueltoOrig||0)):0;
+      const delta=consumoNuevo-consumoOrig;
+
+      // 2) Aplicar al tubo (instancia)
+      if(L.instancia&&delta!==0){
+        const altTot=L.tubo.altura_total||0;
+        const nuevoUsado=Math.max(0,(L.instancia.altura_usada||0)+delta);
+        if(nuevoUsado>altTot){
+          errors.push(`Línea ${i+1} (${L.material}): solo hay ${altTot-(L.instancia.altura_usada||0)}mm disponibles`);
+          continue;
+        }
+        const nuevoEstado=nuevoUsado>=altTot?"agotado":(nuevoUsado>0?"en_uso":"disponible");
+        const {error:eU}=await sb.from("tubo_instancias").update({altura_usada:nuevoUsado,estado:nuevoEstado}).eq("id",L.instancia.id);
+        if(eU){errors.push(`Línea ${i+1}: ${eU.message}`);continue;}
+        // Actualizar cache local
+        L.instancia.altura_usada=nuevoUsado;
+        L.instancia.estado=nuevoEstado;
+        // Movimiento
+        await sb.from("movimientos").insert({
+          tubo_id:L.tuboId, tubo_instancia_id:L.instancia.id,
+          tipo:delta>0?"consumo":"ajuste",
+          altura_usada:Math.abs(delta), op_numero:op, usuario_id:CU?.id,
+          nota:`Consumo ${tipoOp==="interno"?"interno":""} OP ${op}: ${delta>0?"-":"+"}${Math.abs(delta)}mm de ${L.material}`
+        });
+      }
+
+      // 3) Persistir consumo
+      const payload={
+        fecha, op, material:L.material,
+        tubo_id:L.tuboId, tubo_instancia_id:L.instancia?.id||null,
+        di:L.di, de:L.de, largo:L.largo, enviado:L.enviado,
+        devuelto:L.devuelto, observaciones:L.observaciones,
+        material_optimo:L.material_optimo, es_merma:false, es_historico:false,
+        sede:"custom", usuario_id:CU?.id,
+        cliente_nombre: tipoOp==="interno"?null:(cliente||null),
+      };
+      let res;
+      if(id&&lineas.length===1){
+        res=await sb.from("consumos_ops").update(payload).eq("id",id);
+      }else{
+        res=await sb.from("consumos_ops").insert(payload);
+      }
+      if(res.error){errors.push(`Línea ${i+1}: ${res.error.message}`);continue;}
+      okCount++;
+    }catch(err){
+      errors.push(`Línea ${i+1}: ${err.message}`);
+    }
+  }
+
   setBtnLoading("btnSaveConsumo",false);
-  if(res.error){toast("Error: "+res.error.message,"err");return;}
-  closeModal("modalConsumo");
-  toast(id?"✓ Registro actualizado":"✓ Consumo registrado y stock descontado","ok");
-  loadConsumos();
+  showLoading(false);
+  if(okCount>0){
+    closeModal("modalConsumo");
+    toast(`✓ ${okCount} consumo${okCount>1?"s":""} guardado${okCount>1?"s":""}${errors.length?` · ${errors.length} con error`:""}`,"ok");
+    if(errors.length) console.warn("[Consumos] Errores:",errors);
+    loadConsumos();
+  }else{
+    toast(`Error: ${errors[0]||"falló el guardado"}`,"err");
+  }
 }
 
 function openMermaModal(consumoId){
@@ -2439,6 +3269,7 @@ function renderMercaderias(){
         ${perm.editarMerc?`<button class="btn btn-green" style="padding:3px 7px;font-size:10px" onclick="openMercMov(${m.id},'entrada')" title="Entrada"><i class="ti ti-arrow-down"></i></button>
         <button class="btn btn-amber" style="padding:3px 7px;font-size:10px" onclick="openMercMov(${m.id},'salida')" title="Salida"><i class="ti ti-arrow-up"></i></button>
         <button class="btn btn-ghost" style="padding:3px 7px;font-size:10px" onclick="openModalMerc(${m.id})" title="Editar"><i class="ti ti-edit"></i></button>`:`<button class="btn btn-ghost" style="padding:3px 7px;font-size:10px" onclick="openModalMerc(${m.id})"><i class="ti ti-eye"></i></button>`}
+        <button class="btn btn-blue" style="padding:3px 7px;font-size:10px" onclick="openHistorial('merc',${m.id},'${(m.nombre||'').replace(/'/g,"\\'")}','${m.codigo}')" title="Historial"><i class="ti ti-history"></i></button>
       </td>
     </tr>`;
   }).join(""):`<tr><td colspan="8" class="no-data">Sin resultados</td></tr>`;
@@ -2649,6 +3480,7 @@ function renderAlmMecaniza(){
         ${perm.editarAlmMec?`<button class="btn btn-green" style="padding:3px 7px;font-size:10px" onclick="openAlmMov(${a.id},'entrada')" title="Entrada"><i class="ti ti-arrow-down"></i></button>
         <button class="btn btn-amber" style="padding:3px 7px;font-size:10px" onclick="openAlmMov(${a.id},'salida')" title="Salida"><i class="ti ti-arrow-up"></i></button>
         <button class="btn btn-ghost" style="padding:3px 7px;font-size:10px" onclick="openModalAlm(${a.id})" title="Editar"><i class="ti ti-edit"></i></button>`:`<button class="btn btn-ghost" style="padding:3px 7px;font-size:10px" onclick="openModalAlm(${a.id})"><i class="ti ti-eye"></i></button>`}
+        <button class="btn btn-blue" style="padding:3px 7px;font-size:10px" onclick="openHistorial('alm',${a.id},'${(a.nombre||'').replace(/'/g,"\\'")}','${a.codigo}')" title="Historial"><i class="ti ti-history"></i></button>
       </td>
     </tr>`;
   }).join(""):`<tr><td colspan="8" class="no-data">Sin resultados</td></tr>`;
@@ -3252,4 +4084,3 @@ document.getElementById("loginUser")?.addEventListener("keydown",e=>{if(e.key===
 
 </body>
 </html>
-
