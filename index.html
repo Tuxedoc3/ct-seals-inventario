@@ -331,6 +331,97 @@ tbody tr:hover td{background:#1e2134}
       </div>
     </div>
 
+    <!-- MERCADERÍAS -->
+    <div class="page" id="page-mercaderias">
+      <div class="page-title"><i class="ti ti-circle-dot" style="color:#5b9bd5"></i>Mercaderías — O-rings, Wipers y otros</div>
+      <div class="kpi-grid" id="mercKpis"></div>
+      <div class="card">
+        <div class="card-title"><i class="ti ti-filter"></i>Búsqueda y filtros</div>
+        <div class="filters-grid">
+          <div class="filter-group" style="grid-column:span 2">
+            <label class="filter-label">Búsqueda</label>
+            <input class="fi" id="mercQ" type="text" placeholder="Nombre, código, material..." oninput="renderMercaderias()">
+          </div>
+          <div class="filter-group">
+            <label class="filter-label">Categoría</label>
+            <select class="fi" id="mercCat" onchange="renderMercaderias()">
+              <option value="">Todas</option>
+              <option value="oring">O-rings</option>
+              <option value="wiper_fab">Wipers / Rascadores</option>
+              <option value="otro">Otros</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label class="filter-label">Stock</label>
+            <select class="fi" id="mercStock" onchange="renderMercaderias()">
+              <option value="">Todos</option>
+              <option value="bajo">Bajo mínimo</option>
+              <option value="cero">Sin stock</option>
+              <option value="ok">Con stock</option>
+            </select>
+          </div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-ghost" onclick="resetFiltrosMerc()"><i class="ti ti-refresh"></i>Limpiar</button>
+          <button class="btn btn-red" id="btnNuevoMerc" onclick="openModalMerc()"><i class="ti ti-plus"></i>Nuevo producto</button>
+        </div>
+      </div>
+      <div class="card" style="padding:0">
+        <div class="tbl-wrap" style="max-height:none">
+          <table>
+            <thead><tr>
+              <th>Código</th><th>Nombre</th><th>Categoría</th>
+              <th>Medidas</th><th style="text-align:right">Stock</th><th style="text-align:right">Precio</th>
+              <th>Ubicación</th><th>Acciones</th>
+            </tr></thead>
+            <tbody id="merc-tbody"><tr><td colspan="8" class="no-data"><div class="loading"><div class="spinner"></div>Cargando...</div></td></tr></tbody>
+          </table>
+        </div>
+        <div class="tbl-footer" id="mercFooter"></div>
+      </div>
+    </div>
+
+    <!-- ALMACÉN MECANIZA -->
+    <div class="page" id="page-alm_mecaniza">
+      <div class="page-title"><i class="ti ti-box" style="color:#a78bfa"></i>Almacén Mecaniza — Productos varios</div>
+      <div class="kpi-grid" id="almKpis"></div>
+      <div class="card">
+        <div class="card-title"><i class="ti ti-filter"></i>Búsqueda y filtros</div>
+        <div class="filters-grid">
+          <div class="filter-group" style="grid-column:span 2">
+            <label class="filter-label">Búsqueda</label>
+            <input class="fi" id="almQ" type="text" placeholder="Nombre, código..." oninput="renderAlmMecaniza()">
+          </div>
+          <div class="filter-group">
+            <label class="filter-label">Stock</label>
+            <select class="fi" id="almStock" onchange="renderAlmMecaniza()">
+              <option value="">Todos</option>
+              <option value="bajo">Bajo mínimo</option>
+              <option value="cero">Sin stock</option>
+              <option value="ok">Con stock</option>
+            </select>
+          </div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-ghost" onclick="resetFiltrosAlm()"><i class="ti ti-refresh"></i>Limpiar</button>
+          <button class="btn btn-red" id="btnNuevoAlm" onclick="openModalAlm()"><i class="ti ti-plus"></i>Nuevo producto</button>
+        </div>
+      </div>
+      <div class="card" style="padding:0">
+        <div class="tbl-wrap" style="max-height:none">
+          <table>
+            <thead><tr>
+              <th>Código</th><th>Nombre</th><th>Marca</th>
+              <th style="text-align:right">Stock</th><th>Unidad</th><th style="text-align:right">Precio</th>
+              <th>Ubicación</th><th>Acciones</th>
+            </tr></thead>
+            <tbody id="alm-tbody"><tr><td colspan="8" class="no-data"><div class="loading"><div class="spinner"></div>Cargando...</div></td></tr></tbody>
+          </table>
+        </div>
+        <div class="tbl-footer" id="almFooter"></div>
+      </div>
+    </div>
+
     <!-- CARGA EXCEL -->
     <div class="page" id="page-carga">
       <div class="page-title"><i class="ti ti-upload" style="color:#D32F2F"></i>Cargar Excel</div>
@@ -498,6 +589,215 @@ tbody tr:hover td{background:#1e2134}
   </div>
 </div>
 
+<!-- MODAL: Mercadería (CRUD producto) -->
+<div class="modal-overlay" id="modalMerc" style="display:none" onclick="if(event.target===this)closeModal('modalMerc')">
+  <div class="modal" style="max-width:640px">
+    <div class="modal-title"><i class="ti ti-circle-dot" style="color:#5b9bd5"></i><span id="modalMercTitle">Nuevo producto</span></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Código <span class="req">*</span></label><input class="form-input" id="m_codigo"></div>
+      <div class="form-group"><label class="form-label">Categoría <span class="req">*</span></label>
+        <select class="form-input" id="m_categoria">
+          <option value="oring">O-ring</option>
+          <option value="wiper_fab">Wiper / Rascador</option>
+          <option value="otro">Otro</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group"><label class="form-label">Nombre <span class="req">*</span></label><input class="form-input" id="m_nombre"></div>
+    <div class="form-group"><label class="form-label">Descripción</label><input class="form-input" id="m_descripcion"></div>
+    <div class="form-row-3">
+      <div class="form-group"><label class="form-label">Material</label><input class="form-input" id="m_material" placeholder="NBR, FPM..."></div>
+      <div class="form-group"><label class="form-label">Dureza</label><input class="form-input" id="m_dureza" placeholder="Shore A 70"></div>
+      <div class="form-group"><label class="form-label">Color</label><input class="form-input" id="m_color"></div>
+    </div>
+    <div class="form-row-3">
+      <div class="form-group"><label class="form-label">DI (mm)</label><input class="form-input" id="m_di" type="number" step="0.01"></div>
+      <div class="form-group"><label class="form-label">DE (mm)</label><input class="form-input" id="m_de" type="number" step="0.01"></div>
+      <div class="form-group"><label class="form-label">Grosor (mm)</label><input class="form-input" id="m_grosor" type="number" step="0.01"></div>
+    </div>
+    <div class="form-row-3">
+      <div class="form-group"><label class="form-label">Unidad</label><input class="form-input" id="m_unidad" value="unidad"></div>
+      <div class="form-group"><label class="form-label">Stock actual</label><input class="form-input" id="m_stock_actual" type="number" min="0" value="0"></div>
+      <div class="form-group"><label class="form-label">Stock mínimo</label><input class="form-input" id="m_stock_minimo" type="number" min="0" value="0"></div>
+    </div>
+    <div class="form-row-3">
+      <div class="form-group"><label class="form-label">Precio</label><input class="form-input" id="m_precio" type="number" step="0.01"></div>
+      <div class="form-group"><label class="form-label">Moneda</label><select class="form-input" id="m_moneda"><option value="PEN">PEN S/</option><option value="USD">USD $</option><option value="EUR">EUR €</option></select></div>
+      <div class="form-group"><label class="form-label">Marca</label><input class="form-input" id="m_marca"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Proveedor</label><input class="form-input" id="m_proveedor"></div>
+      <div class="form-group"><label class="form-label">Ubicación</label><input class="form-input" id="m_ubicacion"></div>
+    </div>
+    <div class="form-group"><label class="form-label">Notas</label><input class="form-input" id="m_notas"></div>
+    <input type="hidden" id="m_id">
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modalMerc')">Cancelar</button>
+      <button class="btn btn-red" id="btnSaveMerc" onclick="saveMerc()"><i class="ti ti-check"></i>Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Movimiento Mercadería (entrada/salida) -->
+<div class="modal-overlay" id="modalMercMov" style="display:none" onclick="if(event.target===this)closeModal('modalMercMov')">
+  <div class="modal">
+    <div class="modal-title"><i class="ti ti-arrows-transfer-up" id="modalMercMovIcon"></i><span id="modalMercMovTitle">Entrada</span></div>
+    <div id="mercMovInfo" style="background:#1a1d26;border-radius:8px;padding:10px 12px;font-size:12px;color:#b0b3cc;margin-bottom:12px"></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Cantidad <span class="req">*</span></label><input class="form-input" id="mm_cant" type="number" min="0.01" step="0.01"></div>
+      <div class="form-group"><label class="form-label">Precio unitario</label><input class="form-input" id="mm_precio" type="number" step="0.01"></div>
+    </div>
+    <div class="form-row" id="mm_prov_box">
+      <div class="form-group"><label class="form-label">Proveedor</label><input class="form-input" id="mm_proveedor"></div>
+      <div class="form-group"><label class="form-label">N° OP</label><input class="form-input" id="mm_op"></div>
+    </div>
+    <div class="form-row" id="mm_cli_box" style="display:none">
+      <div class="form-group"><label class="form-label">Cliente</label><input class="form-input" id="mm_cliente"></div>
+      <div class="form-group"><label class="form-label">N° OP</label><input class="form-input" id="mm_op_sal"></div>
+    </div>
+    <div class="form-group"><label class="form-label">Motivo <span class="req">*</span></label><input class="form-input" id="mm_motivo" placeholder="Ej: compra, venta, ajuste..."></div>
+    <input type="hidden" id="mm_id">
+    <input type="hidden" id="mm_tipo">
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modalMercMov')">Cancelar</button>
+      <button class="btn btn-red" id="btnSaveMercMov" onclick="saveMercMov()"><i class="ti ti-check"></i>Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Almacén Mecaniza producto -->
+<div class="modal-overlay" id="modalAlm" style="display:none" onclick="if(event.target===this)closeModal('modalAlm')">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-title"><i class="ti ti-box" style="color:#a78bfa"></i><span id="modalAlmTitle">Nuevo producto</span></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Código <span class="req">*</span></label><input class="form-input" id="a_codigo"></div>
+      <div class="form-group"><label class="form-label">Unidad</label><input class="form-input" id="a_unidad" value="unidad"></div>
+    </div>
+    <div class="form-group"><label class="form-label">Nombre <span class="req">*</span></label><input class="form-input" id="a_nombre"></div>
+    <div class="form-group"><label class="form-label">Descripción</label><input class="form-input" id="a_descripcion"></div>
+    <div class="form-row-3">
+      <div class="form-group"><label class="form-label">Marca</label><input class="form-input" id="a_marca"></div>
+      <div class="form-group"><label class="form-label">Stock actual</label><input class="form-input" id="a_stock_actual" type="number" min="0" value="0"></div>
+      <div class="form-group"><label class="form-label">Stock mínimo</label><input class="form-input" id="a_stock_minimo" type="number" min="0" value="0"></div>
+    </div>
+    <div class="form-row-3">
+      <div class="form-group"><label class="form-label">Precio</label><input class="form-input" id="a_precio" type="number" step="0.01"></div>
+      <div class="form-group"><label class="form-label">Moneda</label><select class="form-input" id="a_moneda"><option value="PEN">PEN S/</option><option value="USD">USD $</option><option value="EUR">EUR €</option></select></div>
+      <div class="form-group"><label class="form-label">Ubicación</label><input class="form-input" id="a_ubicacion"></div>
+    </div>
+    <div class="form-group"><label class="form-label">Proveedor</label><input class="form-input" id="a_proveedor"></div>
+    <div class="form-group"><label class="form-label">Notas</label><input class="form-input" id="a_notas"></div>
+    <input type="hidden" id="a_id">
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modalAlm')">Cancelar</button>
+      <button class="btn btn-red" id="btnSaveAlm" onclick="saveAlm()"><i class="ti ti-check"></i>Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Movimiento Almacén Mecaniza -->
+<div class="modal-overlay" id="modalAlmMov" style="display:none" onclick="if(event.target===this)closeModal('modalAlmMov')">
+  <div class="modal">
+    <div class="modal-title"><i class="ti ti-arrows-transfer-up" id="modalAlmMovIcon"></i><span id="modalAlmMovTitle">Entrada</span></div>
+    <div id="almMovInfo" style="background:#1a1d26;border-radius:8px;padding:10px 12px;font-size:12px;color:#b0b3cc;margin-bottom:12px"></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Cantidad <span class="req">*</span></label><input class="form-input" id="am_cant" type="number" min="0.01" step="0.01"></div>
+      <div class="form-group"><label class="form-label">Precio unitario</label><input class="form-input" id="am_precio" type="number" step="0.01"></div>
+    </div>
+    <div class="form-row" id="am_prov_box">
+      <div class="form-group"><label class="form-label">Proveedor</label><input class="form-input" id="am_proveedor"></div>
+      <div class="form-group"><label class="form-label">N° OP</label><input class="form-input" id="am_op"></div>
+    </div>
+    <div class="form-row" id="am_cli_box" style="display:none">
+      <div class="form-group"><label class="form-label">Cliente</label><input class="form-input" id="am_cliente"></div>
+      <div class="form-group"><label class="form-label">N° OP</label><input class="form-input" id="am_op_sal"></div>
+    </div>
+    <div class="form-group"><label class="form-label">Motivo <span class="req">*</span></label><input class="form-input" id="am_motivo"></div>
+    <input type="hidden" id="am_id">
+    <input type="hidden" id="am_tipo">
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modalAlmMov')">Cancelar</button>
+      <button class="btn btn-red" id="btnSaveAlmMov" onclick="saveAlmMov()"><i class="ti ti-check"></i>Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Nuevo material (completo, 17 campos) -->
+<div class="modal-overlay" id="modalMaterial" style="display:none" onclick="if(event.target===this)closeModal('modalMaterial')">
+  <div class="modal" style="max-width:680px">
+    <div class="modal-title"><i class="ti ti-package" style="color:#D32F2F"></i><span id="modalMaterialTitle">Nuevo material</span></div>
+    <div class="cli-section"><i class="ti ti-tag"></i>Identificación</div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Material (descripción) <span class="req">*</span></label><input class="form-input" id="mat_desc" placeholder="Ej: PU RED U500 - 0/25/150"></div>
+      <div class="form-group"><label class="form-label">Código interno</label><input class="form-input" id="mat_cod" placeholder="PUU5000001"></div>
+    </div>
+    <div class="form-row-3">
+      <div class="form-group"><label class="form-label">Familia</label>
+        <select class="form-input" id="mat_familia">
+          <option value="">—</option>
+          <option value="PU">PU — Poliuretano</option>
+          <option value="EL">EL — Elastómero</option>
+          <option value="PL">PL — Plástico</option>
+          <option value="MN">MN — Mat. Nacional</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">Subfamilia</label><input class="form-input" id="mat_subfam" placeholder="U500, N107..."></div>
+      <div class="form-group"><label class="form-label">Dureza</label><input class="form-input" id="mat_dureza" placeholder="Shore A 95"></div>
+    </div>
+
+    <div class="cli-section"><i class="ti ti-ruler"></i>Medidas <span style="color:#5a5e7a;font-weight:normal;text-transform:none">(en mm)</span></div>
+    <div class="form-row-3">
+      <div class="form-group"><label class="form-label">DI <span class="req">*</span></label><input class="form-input" id="mat_di" type="number" min="0" placeholder="0"></div>
+      <div class="form-group"><label class="form-label">DE <span class="req">*</span></label><input class="form-input" id="mat_de" type="number" min="0" placeholder="25"></div>
+      <div class="form-group"><label class="form-label">Longitud <span class="req">*</span></label><input class="form-input" id="mat_lon" type="number" min="1" placeholder="150"></div>
+    </div>
+
+    <div class="cli-section"><i class="ti ti-currency-dollar"></i>Precio y proveedor</div>
+    <div class="form-row-3">
+      <div class="form-group"><label class="form-label">Precio unitario</label><input class="form-input" id="mat_precio" type="number" step="0.01" placeholder="20.00"></div>
+      <div class="form-group"><label class="form-label">Moneda</label>
+        <select class="form-input" id="mat_moneda">
+          <option value="USD">USD $</option>
+          <option value="PEN" selected>PEN S/</option>
+          <option value="EUR">EUR €</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">Origen</label>
+        <select class="form-input" id="mat_origen">
+          <option value="">—</option>
+          <option value="nacional">Nacional</option>
+          <option value="importado">Importado</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Marca / Fabricante</label><input class="form-input" id="mat_marca" placeholder="Seal Maker, etc."></div>
+      <div class="form-group"><label class="form-label">Proveedor</label><input class="form-input" id="mat_proveedor"></div>
+    </div>
+
+    <div class="cli-section"><i class="ti ti-palette"></i>Atributos adicionales</div>
+    <div class="form-row-3">
+      <div class="form-group"><label class="form-label">Color</label><input class="form-input" id="mat_color" placeholder="Rojo, Negro..."></div>
+      <div class="form-group"><label class="form-label">Stock mínimo</label><input class="form-input" id="mat_stock_min" type="number" min="0" value="2"></div>
+      <div class="form-group"><label class="form-label">Ubicación física</label><input class="form-input" id="mat_ubicacion" placeholder="Rack A-3"></div>
+    </div>
+    <div class="form-group"><label class="form-label">Notas</label><input class="form-input" id="mat_notas" placeholder="Observaciones, condiciones especiales..."></div>
+
+    <div class="cli-section"><i class="ti ti-cylinder"></i>Stock inicial <span style="color:#5a5e7a;font-weight:normal;text-transform:none">(opcional)</span></div>
+    <label class="cli-check" style="margin-bottom:8px"><input type="checkbox" id="mat_with_stock" onchange="document.getElementById('mat_stock_init_box').style.display=this.checked?'grid':'none'"> Agregar tubos físicos iniciales</label>
+    <div class="form-row" id="mat_stock_init_box" style="display:none">
+      <div class="form-group"><label class="form-label">Cantidad de tubos</label><input class="form-input" id="mat_init_cant" type="number" min="1" placeholder="5"></div>
+      <div class="form-group"><label class="form-label">Altura por tubo (mm)</label><input class="form-input" id="mat_init_altura" type="number" min="1" placeholder="usa la Longitud de arriba si vacío"></div>
+    </div>
+
+    <input type="hidden" id="mat_id">
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modalMaterial')">Cancelar</button>
+      <button class="btn btn-red" id="btnSaveMaterial" onclick="saveMaterial()"><i class="ti ti-check"></i>Guardar material</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL: Tubo -->
 <div class="modal-overlay" id="modalTubo" style="display:none" onclick="if(event.target===this)closeModal('modalTubo')">
   <div class="modal">
@@ -610,22 +910,28 @@ let cfg={tipo_cambio_eur_pen:3.8,tipo_cambio_usd_pen:3.78,stock_minimo_default:2
 
 // ── PERMISOS POR ROL ─────────────────────────────────────────────────────────
 const PERMISOS={
-  admin:    {nav:["dashboard","tubos","clientes","carga","usuarios","config"],editarCat:true,editarTubos:true,editarClientes:true,verPrecios:true,canConsumir:true},
-  gerente:  {nav:["dashboard","tubos","clientes","config"],editarCat:false,editarTubos:false,editarClientes:false,verPrecios:true,canConsumir:false},
-  supervisor:{nav:["dashboard","tubos","clientes","config"],editarCat:true,editarTubos:true,editarClientes:true,verPrecios:true,canConsumir:true},
-  almacen:  {nav:["dashboard","tubos","carga","config"],editarCat:true,editarTubos:true,editarClientes:false,verPrecios:true,canConsumir:true},
-  produccion:{nav:["dashboard","tubos","config"],editarCat:false,editarTubos:false,editarClientes:false,verPrecios:false,canConsumir:true},
-  vendedor: {nav:["dashboard","tubos","clientes","config"],editarCat:false,editarTubos:false,editarClientes:true,verPrecios:true,canConsumir:false},
+  admin:    {nav:["dashboard","mp_custom","mp_mecaniza","mercaderias","alm_mecaniza","clientes","carga","usuarios","config"],editarCat:true,editarTubos:true,editarClientes:true,editarMerc:true,editarAlmMec:true,verPrecios:true,canConsumir:true},
+  gerente:  {nav:["dashboard","mp_custom","mp_mecaniza","mercaderias","alm_mecaniza","clientes","config"],editarCat:false,editarTubos:false,editarClientes:false,editarMerc:false,editarAlmMec:false,verPrecios:true,canConsumir:false},
+  supervisor:{nav:["dashboard","mp_custom","mp_mecaniza","mercaderias","alm_mecaniza","clientes","config"],editarCat:true,editarTubos:true,editarClientes:true,editarMerc:true,editarAlmMec:true,verPrecios:true,canConsumir:true},
+  almacen:  {nav:["dashboard","mp_custom","mp_mecaniza","mercaderias","alm_mecaniza","carga","config"],editarCat:true,editarTubos:true,editarClientes:false,editarMerc:true,editarAlmMec:true,verPrecios:true,canConsumir:true},
+  produccion:{nav:["dashboard","mp_custom","mp_mecaniza","mercaderias","alm_mecaniza","config"],editarCat:false,editarTubos:false,editarClientes:false,editarMerc:false,editarAlmMec:false,verPrecios:false,canConsumir:true},
+  vendedor: {nav:["dashboard","mp_custom","mp_mecaniza","mercaderias","alm_mecaniza","clientes","config"],editarCat:false,editarTubos:false,editarClientes:true,editarMerc:false,editarAlmMec:false,verPrecios:true,canConsumir:false},
 };
 
 const NAV_ITEMS={
-  dashboard:{icon:"ti-layout-dashboard",label:"Dashboard",sec:"Principal"},
-  tubos:    {icon:"ti-cylinder",label:"Tubos",sec:"Principal"},
-  clientes: {icon:"ti-users",label:"Clientes",sec:"Principal"},
-  carga:    {icon:"ti-upload",label:"Cargar Excel",sec:"Datos"},
-  usuarios: {icon:"ti-user-cog",label:"Usuarios",sec:"Administración"},
-  config:   {icon:"ti-settings",label:"Configuración",sec:"Administración"},
+  dashboard:    {icon:"ti-layout-dashboard",label:"Dashboard",sec:"Principal"},
+  mp_custom:    {icon:"ti-cylinder",label:"Mat. Prima — Custom",sec:"Almacenes"},
+  mp_mecaniza:  {icon:"ti-cylinder",label:"Mat. Prima — Mecaniza",sec:"Almacenes"},
+  mercaderias:  {icon:"ti-circle-dot",label:"Mercaderías",sec:"Almacenes"},
+  alm_mecaniza: {icon:"ti-box",label:"Almacén Mecaniza",sec:"Almacenes"},
+  clientes:     {icon:"ti-users",label:"Clientes",sec:"Principal"},
+  carga:        {icon:"ti-upload",label:"Cargar Excel",sec:"Datos"},
+  usuarios:     {icon:"ti-user-cog",label:"Usuarios",sec:"Administración"},
+  config:       {icon:"ti-settings",label:"Configuración",sec:"Administración"},
 };
+
+// Mapa de sede para páginas de materia prima
+const SEDE_BY_PAGE={mp_custom:"custom",mp_mecaniza:"mecaniza"};
 
 const ROL_COLOR={admin:"#D32F2F",gerente:"#5b9bd5",supervisor:"#f5a623",almacen:"#4caf8c",produccion:"#a78bfa",vendedor:"#fb923c"};
 
@@ -796,10 +1102,14 @@ function goTo(page){
   if(!perm.nav.includes(page)) return;
   document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
   document.querySelectorAll(".nav-item").forEach(n=>n.classList.remove("active"));
-  document.getElementById("page-"+page)?.classList.add("active");
+  // Las dos páginas de MP comparten el mismo DOM #page-tubos, solo cambia la sede
+  const pageId=(page==="mp_custom"||page==="mp_mecaniza")?"tubos":page;
+  document.getElementById("page-"+pageId)?.classList.add("active");
   document.getElementById("nav-"+page)?.classList.add("active");
   if(page==="dashboard") loadDashboard();
-  if(page==="tubos") loadTubos();
+  if(page==="mp_custom"||page==="mp_mecaniza"){_tubosState.sede=SEDE_BY_PAGE[page];loadTubos();}
+  if(page==="mercaderias") loadMercaderias();
+  if(page==="alm_mecaniza") loadAlmMecaniza();
   if(page==="clientes") loadClientes();
   if(page==="usuarios") loadUsuarios();
   if(page==="config") loadConfigPage();
@@ -848,7 +1158,7 @@ async function loadDashboard(){
 // ────────────────────────────────────────────────────────────────────────────
 //  TUBOS
 // ────────────────────────────────────────────────────────────────────────────
-let _tubosState={detalleId:null,page:1,perPage:30,query:"",fMat:""};
+let _tubosState={detalleId:null,page:1,perPage:30,query:"",fMat:"",sede:"custom"};
 let _tubosCache={tubos:[],instByTubo:{}};
 
 function parseMaterial(desc){
@@ -862,17 +1172,24 @@ function parseMedidas(desc){
 
 async function loadTubos(){
   _tubosState.detalleId=null;
+  const sede=_tubosState.sede||"custom";
+  const sedeLabel=sede==="custom"?"Custom":"Mecaniza";
+  const sedeColor=sede==="custom"?"#D32F2F":"#f5a623";
   const perm=PERMISOS[CU.rol];
+  // Cambiar título de la página
+  const titleEl=document.querySelector("#page-tubos .page-title");
+  if(titleEl) titleEl.innerHTML=`<i class="ti ti-cylinder" style="color:${sedeColor}"></i>Materia Prima — <span style="color:${sedeColor}">Sede ${sedeLabel}</span>`;
   const actRow=document.getElementById("tubosActions");
   actRow.innerHTML=perm.editarTubos
-    ?`<button class="btn btn-red" onclick="openModalTubo()"><i class="ti ti-plus"></i>Registrar entrada</button>
+    ?`<button class="btn btn-red" onclick="openModalMaterial()"><i class="ti ti-plus"></i>Nuevo material</button>
+      <button class="btn btn-ghost" onclick="openModalTubo()"><i class="ti ti-plus"></i>Agregar tubos</button>
       <button class="btn btn-ghost" onclick="loadTubos()"><i class="ti ti-refresh"></i>Actualizar</button>`
     :`<button class="btn btn-ghost" onclick="loadTubos()"><i class="ti ti-refresh"></i>Actualizar</button>`;
 
-  document.getElementById("tubos-list").innerHTML=`<div class="loading"><div class="spinner"></div>Cargando tubos...</div>`;
+  document.getElementById("tubos-list").innerHTML=`<div class="loading"><div class="spinner"></div>Cargando tubos de sede ${sedeLabel}...</div>`;
   showLoading(true);
   const [tRes,iRes]=await Promise.all([
-    sb.from("tubos").select("*").order("descripcion").range(0,9999),
+    sb.from("tubos").select("*").eq("sede",sede).order("descripcion").range(0,9999),
     sb.from("tubo_instancias").select("id,tubo_id,estado,altura_usada").range(0,99999)
   ]);
   showLoading(false);
@@ -1079,24 +1396,24 @@ async function saveTubo(){
   const desc=document.getElementById("t_desc").value.trim();
   const altura=parseFloat(document.getElementById("t_altura").value);
   const cant=parseInt(document.getElementById("t_cantidad").value);
+  const sede=_tubosState.sede||"custom";
   if(!desc||!altura||!cant||cant<=0){toast("Completa todos los campos obligatorios","err");return;}
   setBtnLoading("btnSaveTubo",true,"Guardando...");
-  // Buscar o crear
-  const {data:ex}=await sb.from("tubos").select("id").eq("descripcion",desc).eq("altura_total",altura).eq("sede","custom").maybeSingle();
+  const {data:ex}=await sb.from("tubos").select("id").eq("descripcion",desc).eq("altura_total",altura).eq("sede",sede).maybeSingle();
   let tuboId;
   if(ex){tuboId=ex.id;}
   else{
-    const {data:nv,error}=await sb.from("tubos").insert({codigo_mat:cod,descripcion:desc,altura_total:altura,sede:"custom"}).select().single();
+    const {data:nv,error}=await sb.from("tubos").insert({codigo_mat:cod,descripcion:desc,altura_total:altura,sede}).select().single();
     if(error){setBtnLoading("btnSaveTubo",false);toast("Error: "+error.message,"err");return;}
     tuboId=nv.id;
   }
   const insts=Array.from({length:cant},()=>({tubo_id:tuboId,altura_usada:0,estado:"disponible"}));
   const {error:ei}=await sb.from("tubo_instancias").insert(insts);
   if(ei){setBtnLoading("btnSaveTubo",false);toast("Error: "+ei.message,"err");return;}
-  await sb.from("movimientos").insert({tubo_id:tuboId,tipo:"entrada",cantidad:cant,usuario_id:CU?.id,nota:`Carga manual: ${cant} tubos`});
+  await sb.from("movimientos").insert({tubo_id:tuboId,tipo:"entrada",cantidad:cant,usuario_id:CU?.id,nota:`Manual sede ${sede}: ${cant} tubos`});
   setBtnLoading("btnSaveTubo",false);
   closeModal("modalTubo");
-  toast(`✓ ${cant} tubo${cant>1?"s":""} registrado${cant>1?"s":""}`,"ok");
+  toast(`✓ ${cant} tubo${cant>1?"s":""} registrado${cant>1?"s":""} en sede ${sede}`,"ok");
   loadTubos();
 }
 
@@ -1298,6 +1615,526 @@ async function saveCliente(){
 }
 
 // ────────────────────────────────────────────────────────────────────────────
+//  MATERIAL — Modal completo (Nuevo material en MP Custom/Mecaniza)
+// ────────────────────────────────────────────────────────────────────────────
+function openModalMaterial(id=null){
+  document.getElementById("modalMaterialTitle").textContent=id?"Editar material":`Nuevo material — Sede ${(_tubosState.sede||"custom").toUpperCase()}`;
+  ["mat_id","mat_cod","mat_desc","mat_subfam","mat_dureza","mat_color","mat_marca","mat_proveedor","mat_precio","mat_di","mat_de","mat_lon","mat_ubicacion","mat_notas","mat_init_cant","mat_init_altura"].forEach(k=>{const el=document.getElementById(k);if(el)el.value="";});
+  document.getElementById("mat_familia").value="";
+  document.getElementById("mat_origen").value="";
+  document.getElementById("mat_moneda").value="PEN";
+  document.getElementById("mat_stock_min").value=2;
+  document.getElementById("mat_with_stock").checked=false;
+  document.getElementById("mat_stock_init_box").style.display="none";
+  if(id){
+    const t=_tubosCache.tubos.find(x=>x.id===id);
+    if(t){
+      document.getElementById("mat_id").value=t.id;
+      document.getElementById("mat_cod").value=t.codigo_mat||"";
+      document.getElementById("mat_desc").value=t.descripcion||"";
+      document.getElementById("mat_familia").value=t.familia||"";
+      document.getElementById("mat_subfam").value=t.subfamilia||"";
+      document.getElementById("mat_dureza").value=t.dureza||"";
+      document.getElementById("mat_color").value=t.color||"";
+      document.getElementById("mat_marca").value=t.marca||"";
+      document.getElementById("mat_proveedor").value=t.proveedor||"";
+      document.getElementById("mat_precio").value=t.precio||"";
+      document.getElementById("mat_moneda").value=t.moneda||"PEN";
+      document.getElementById("mat_origen").value=t.origen||"";
+      document.getElementById("mat_di").value=t.di??"";
+      document.getElementById("mat_de").value=t.de??"";
+      document.getElementById("mat_lon").value=t.altura_total||"";
+      document.getElementById("mat_stock_min").value=t.stock_minimo??2;
+      document.getElementById("mat_ubicacion").value=t.ubicacion||"";
+      document.getElementById("mat_notas").value=t.notas||"";
+    }
+  }
+  document.getElementById("modalMaterial").style.display="flex";
+}
+
+async function saveMaterial(){
+  const v=k=>document.getElementById(k).value.trim();
+  const num=k=>{const x=parseFloat(document.getElementById(k).value);return isNaN(x)?null:x;};
+  const sede=_tubosState.sede||"custom";
+  const desc=v("mat_desc");
+  const di=num("mat_di"),de=num("mat_de"),lon=num("mat_lon");
+  if(!desc||lon==null||di==null||de==null){toast("Descripción, DI, DE y Longitud son obligatorios","err");return;}
+  setBtnLoading("btnSaveMaterial",true,"Guardando...");
+  const payload={
+    descripcion:desc,
+    codigo_mat:v("mat_cod")||null,
+    familia:v("mat_familia")||null,
+    subfamilia:v("mat_subfam")||null,
+    dureza:v("mat_dureza")||null,
+    color:v("mat_color")||null,
+    marca:v("mat_marca")||null,
+    proveedor:v("mat_proveedor")||null,
+    precio:num("mat_precio"),
+    moneda:v("mat_moneda")||"PEN",
+    origen:v("mat_origen")||null,
+    di,de,
+    altura_total:lon,
+    stock_minimo:parseInt(document.getElementById("mat_stock_min").value)||2,
+    ubicacion:v("mat_ubicacion")||null,
+    notas:v("mat_notas")||null,
+    sede,
+  };
+  const id=document.getElementById("mat_id").value;
+  let tuboId;
+  if(id){
+    const {error}=await sb.from("tubos").update(payload).eq("id",id);
+    if(error){setBtnLoading("btnSaveMaterial",false);toast("Error: "+error.message,"err");return;}
+    tuboId=parseInt(id);
+  }else{
+    // Verificar duplicado
+    const {data:ex}=await sb.from("tubos").select("id").eq("descripcion",desc).eq("altura_total",lon).eq("sede",sede).maybeSingle();
+    if(ex){
+      setBtnLoading("btnSaveMaterial",false);
+      toast("Ya existe un material con esa descripción y altura en esta sede","err");
+      return;
+    }
+    const {data:nv,error}=await sb.from("tubos").insert(payload).select().single();
+    if(error){setBtnLoading("btnSaveMaterial",false);toast("Error: "+error.message,"err");return;}
+    tuboId=nv.id;
+  }
+  // Stock inicial opcional
+  if(document.getElementById("mat_with_stock").checked){
+    const cant=parseInt(document.getElementById("mat_init_cant").value);
+    const altura=parseFloat(document.getElementById("mat_init_altura").value)||lon;
+    if(cant&&cant>0){
+      // Si la altura por tubo difiere de la longitud nominal del material, igual usamos altura del material
+      const insts=Array.from({length:cant},()=>({tubo_id:tuboId,altura_usada:0,estado:"disponible"}));
+      await sb.from("tubo_instancias").insert(insts);
+      await sb.from("movimientos").insert({tubo_id:tuboId,tipo:"entrada",cantidad:cant,usuario_id:CU?.id,nota:`Stock inicial: ${cant} tubos de ${altura}mm`});
+    }
+  }
+  setBtnLoading("btnSaveMaterial",false);
+  closeModal("modalMaterial");
+  toast(`✓ Material ${id?"actualizado":"creado"} en sede ${sede}`,"ok");
+  loadTubos();
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+//  MERCADERÍAS (O-rings, Wipers, etc.)
+// ────────────────────────────────────────────────────────────────────────────
+let _mercState={page:1,perPage:30,query:"",cat:"",stock:""};
+let _mercCache=[];
+
+async function loadMercaderias(){
+  const perm=PERMISOS[CU.rol];
+  document.getElementById("btnNuevoMerc").style.display=perm.editarMerc?"inline-flex":"none";
+  document.getElementById("merc-tbody").innerHTML=`<tr><td colspan="8" class="no-data"><div class="loading"><div class="spinner"></div>Cargando mercaderías...</div></td></tr>`;
+  showLoading(true);
+  let all=[];
+  for(let from=0;;from+=1000){
+    const {data,error}=await sb.from("mercaderias").select("*").order("nombre").range(from,from+999);
+    if(error){toast("Error: "+error.message,"err");break;}
+    if(!data?.length) break;
+    all=all.concat(data);
+    if(data.length<1000) break;
+  }
+  showLoading(false);
+  _mercCache=all;
+  renderMercaderias();
+}
+
+function resetFiltrosMerc(){
+  document.getElementById("mercQ").value="";
+  document.getElementById("mercCat").value="";
+  document.getElementById("mercStock").value="";
+  _mercState={page:1,perPage:30,query:"",cat:"",stock:""};
+  renderMercaderias();
+}
+
+function renderMercaderias(){
+  const perm=PERMISOS[CU.rol];
+  _mercState.query=document.getElementById("mercQ")?.value.toLowerCase()||"";
+  _mercState.cat=document.getElementById("mercCat")?.value||"";
+  _mercState.stock=document.getElementById("mercStock")?.value||"";
+  let lista=_mercCache.filter(m=>{
+    if(_mercState.cat&&m.categoria!==_mercState.cat) return false;
+    if(_mercState.stock==="bajo"&&!(m.stock_actual<(m.stock_minimo||0))) return false;
+    if(_mercState.stock==="cero"&&m.stock_actual>0) return false;
+    if(_mercState.stock==="ok"&&m.stock_actual<=0) return false;
+    if(_mercState.query){
+      const hay=`${m.codigo} ${m.nombre} ${m.material||""} ${m.marca||""}`.toLowerCase();
+      if(!hay.includes(_mercState.query)) return false;
+    }
+    return true;
+  });
+
+  const totOR=_mercCache.filter(m=>m.categoria==="oring").length;
+  const totWP=_mercCache.filter(m=>m.categoria==="wiper_fab").length;
+  const totOT=_mercCache.filter(m=>m.categoria==="otro").length;
+  const totBajo=_mercCache.filter(m=>m.stock_actual<(m.stock_minimo||0)).length;
+  document.getElementById("mercKpis").innerHTML=`
+    <div class="kpi"><div class="kpi-label">Total productos</div><div class="kpi-val white">${_mercCache.length}</div></div>
+    <div class="kpi"><div class="kpi-label">O-rings</div><div class="kpi-val blue">${totOR}</div></div>
+    <div class="kpi"><div class="kpi-label">Wipers</div><div class="kpi-val green">${totWP}</div></div>
+    <div class="kpi"><div class="kpi-label">Stock bajo</div><div class="kpi-val ${totBajo>0?'red':'green'}">${totBajo}</div></div>`;
+
+  const per=_mercState.perPage;
+  const total=lista.length;
+  const totalPg=Math.max(1,Math.ceil(total/per));
+  if(_mercState.page>totalPg) _mercState.page=totalPg;
+  if(_mercState.page<1) _mercState.page=1;
+  const start=(_mercState.page-1)*per;
+  const visible=lista.slice(start,start+per);
+
+  const catBadge=c=>{
+    const map={oring:["#0f1e2e","#5b9bd5","O-ring"],wiper_fab:["#1a3a2a","#4caf8c","Wiper"],otro:["#22253a","#7a7d99","Otro"]};
+    const [bg,fg,lbl]=map[c]||["#22253a","#7a7d99",c];
+    return `<span class="rol-badge" style="background:${bg};color:${fg}">${lbl}</span>`;
+  };
+
+  document.getElementById("merc-tbody").innerHTML=visible.length?visible.map(m=>{
+    const med=[m.di,m.de,m.grosor].filter(x=>x!=null).join(" × ")||"—";
+    const colorStock=m.stock_actual<=0?"#e85a5a":m.stock_actual<(m.stock_minimo||0)?"#f5a623":"#4caf8c";
+    return `<tr>
+      <td style="font-family:monospace;font-size:10px;color:#7a7d99">${m.codigo}</td>
+      <td><div style="color:#f0f0f5;font-weight:500">${m.nombre}</div>${m.material?`<div style="font-size:10px;color:#5a5e7a">${m.material}${m.dureza?` · ${m.dureza}`:""}</div>`:""}</td>
+      <td>${catBadge(m.categoria)}</td>
+      <td style="color:#b0b3cc;font-size:10px">${med}</td>
+      <td style="text-align:right"><span style="color:${colorStock};font-weight:600">${m.stock_actual}</span><span style="color:#5a5e7a;font-size:10px"> ${m.unidad||""}</span>${(m.stock_minimo||0)>0?`<div style="font-size:9px;color:#5a5e7a">mín ${m.stock_minimo}</div>`:""}</td>
+      <td style="text-align:right;color:#c8cce0">${m.precio_unitario!=null?`${m.precio_unitario} <span style="font-size:9px;color:#5a5e7a">${m.moneda||""}</span>`:"—"}</td>
+      <td style="font-size:10px;color:#7a7d99">${m.ubicacion||"—"}</td>
+      <td style="white-space:nowrap">
+        ${perm.editarMerc?`<button class="btn btn-green" style="padding:3px 7px;font-size:10px" onclick="openMercMov(${m.id},'entrada')" title="Entrada"><i class="ti ti-arrow-down"></i></button>
+        <button class="btn btn-amber" style="padding:3px 7px;font-size:10px" onclick="openMercMov(${m.id},'salida')" title="Salida"><i class="ti ti-arrow-up"></i></button>
+        <button class="btn btn-ghost" style="padding:3px 7px;font-size:10px" onclick="openModalMerc(${m.id})" title="Editar"><i class="ti ti-edit"></i></button>`:`<button class="btn btn-ghost" style="padding:3px 7px;font-size:10px" onclick="openModalMerc(${m.id})"><i class="ti ti-eye"></i></button>`}
+      </td>
+    </tr>`;
+  }).join(""):`<tr><td colspan="8" class="no-data">Sin resultados</td></tr>`;
+
+  document.getElementById("mercFooter").innerHTML=`
+    <div class="row-info">Mostrando ${total?start+1:0}–${Math.min(start+per,total)} de ${total}</div>
+    <div class="pag">
+      <button class="pag-btn" ${_mercState.page<=1?"disabled":""} onclick="_mercState.page--;renderMercaderias()">‹</button>
+      <span class="pag-btn active">${_mercState.page} / ${totalPg}</span>
+      <button class="pag-btn" ${_mercState.page>=totalPg?"disabled":""} onclick="_mercState.page++;renderMercaderias()">›</button>
+    </div>`;
+}
+
+function openModalMerc(id=null){
+  const perm=PERMISOS[CU.rol];
+  const m=id?_mercCache.find(x=>x.id===id):null;
+  document.getElementById("modalMercTitle").textContent=m?`Editar — ${m.nombre}`:"Nuevo producto";
+  const set=(k,v)=>{const el=document.getElementById(k);if(el)el.value=v??"";};
+  set("m_id",m?.id||"");
+  set("m_codigo",m?.codigo||"");
+  set("m_categoria",m?.categoria||"oring");
+  set("m_nombre",m?.nombre||"");
+  set("m_descripcion",m?.descripcion||"");
+  set("m_material",m?.material||"");
+  set("m_dureza",m?.dureza||"");
+  set("m_color",m?.color||"");
+  set("m_di",m?.di??"");
+  set("m_de",m?.de??"");
+  set("m_grosor",m?.grosor??"");
+  set("m_unidad",m?.unidad||"unidad");
+  set("m_stock_actual",m?.stock_actual??0);
+  set("m_stock_minimo",m?.stock_minimo??0);
+  set("m_precio",m?.precio_unitario??"");
+  set("m_moneda",m?.moneda||"PEN");
+  set("m_marca",m?.marca||"");
+  set("m_proveedor",m?.proveedor||"");
+  set("m_ubicacion",m?.ubicacion||"");
+  set("m_notas",m?.notas||"");
+  const editable=perm.editarMerc;
+  document.querySelectorAll("#modalMerc .form-input").forEach(el=>el.disabled=!editable);
+  document.getElementById("btnSaveMerc").style.display=editable?"inline-flex":"none";
+  document.getElementById("modalMerc").style.display="flex";
+}
+
+async function saveMerc(){
+  if(!PERMISOS[CU.rol].editarMerc){toast("Sin permiso","err");return;}
+  const v=k=>document.getElementById(k).value.trim();
+  const num=k=>{const x=parseFloat(document.getElementById(k).value);return isNaN(x)?null:x;};
+  const codigo=v("m_codigo"),nombre=v("m_nombre");
+  if(!codigo||!nombre){toast("Código y nombre son obligatorios","err");return;}
+  setBtnLoading("btnSaveMerc",true,"Guardando...");
+  const payload={
+    codigo,nombre,
+    categoria:v("m_categoria")||"otro",
+    descripcion:v("m_descripcion")||null,
+    material:v("m_material")||null,
+    dureza:v("m_dureza")||null,
+    color:v("m_color")||null,
+    di:num("m_di"),de:num("m_de"),grosor:num("m_grosor"),
+    unidad:v("m_unidad")||"unidad",
+    stock_actual:num("m_stock_actual")||0,
+    stock_minimo:num("m_stock_minimo")||0,
+    precio_unitario:num("m_precio"),
+    moneda:v("m_moneda")||"PEN",
+    marca:v("m_marca")||null,
+    proveedor:v("m_proveedor")||null,
+    ubicacion:v("m_ubicacion")||null,
+    notas:v("m_notas")||null,
+    fec_act:new Date().toISOString(),
+    user_act:CU?.id,
+  };
+  const id=document.getElementById("m_id").value;
+  let res;
+  if(id){res=await sb.from("mercaderias").update(payload).eq("id",id);}
+  else{payload.user_crea=CU?.id;res=await sb.from("mercaderias").insert(payload);}
+  setBtnLoading("btnSaveMerc",false);
+  if(res.error){toast("Error: "+res.error.message,"err");return;}
+  closeModal("modalMerc");
+  toast("✓ Producto guardado","ok");
+  loadMercaderias();
+}
+
+function openMercMov(id,tipo){
+  const m=_mercCache.find(x=>x.id===id);if(!m)return;
+  document.getElementById("modalMercMovTitle").textContent=tipo==="entrada"?"Entrada de mercadería":"Salida de mercadería";
+  document.getElementById("modalMercMovIcon").className=tipo==="entrada"?"ti ti-arrow-down":"ti ti-arrow-up";
+  document.getElementById("modalMercMovIcon").style.color=tipo==="entrada"?"#4caf8c":"#f5a623";
+  document.getElementById("mercMovInfo").innerHTML=`<strong style="color:#f0f0f5">${m.nombre}</strong> <span style="color:#7a7d99">(${m.codigo})</span><br>Stock actual: <strong style="color:${m.stock_actual<=0?'#e85a5a':'#4caf8c'}">${m.stock_actual} ${m.unidad||""}</strong>`;
+  document.getElementById("mm_id").value=id;
+  document.getElementById("mm_tipo").value=tipo;
+  document.getElementById("mm_cant").value="";
+  document.getElementById("mm_precio").value=m.precio_unitario||"";
+  document.getElementById("mm_proveedor").value=m.proveedor||"";
+  document.getElementById("mm_op").value="";
+  document.getElementById("mm_cliente").value="";
+  document.getElementById("mm_op_sal").value="";
+  document.getElementById("mm_motivo").value=tipo==="entrada"?"Compra":"";
+  document.getElementById("mm_prov_box").style.display=tipo==="entrada"?"grid":"none";
+  document.getElementById("mm_cli_box").style.display=tipo==="salida"?"grid":"none";
+  document.getElementById("modalMercMov").style.display="flex";
+}
+
+async function saveMercMov(){
+  const id=parseInt(document.getElementById("mm_id").value);
+  const tipo=document.getElementById("mm_tipo").value;
+  const cant=parseFloat(document.getElementById("mm_cant").value);
+  const motivo=document.getElementById("mm_motivo").value.trim();
+  if(!cant||cant<=0){toast("Cantidad inválida","err");return;}
+  if(!motivo){toast("Motivo obligatorio","err");return;}
+  const m=_mercCache.find(x=>x.id===id);if(!m)return;
+  const stockAntes=m.stock_actual;
+  const stockDespues=tipo==="entrada"?stockAntes+cant:stockAntes-cant;
+  if(stockDespues<0){toast(`Stock insuficiente (disponible: ${stockAntes})`,"err");return;}
+  setBtnLoading("btnSaveMercMov",true,"Procesando...");
+  const mov={
+    mercaderia_id:id,tipo,cantidad:cant,
+    precio_unitario:parseFloat(document.getElementById("mm_precio").value)||null,
+    moneda:m.moneda,motivo,
+    proveedor:tipo==="entrada"?(document.getElementById("mm_proveedor").value.trim()||null):null,
+    cliente_nombre:tipo==="salida"?(document.getElementById("mm_cliente").value.trim()||null):null,
+    op_numero:tipo==="entrada"?(document.getElementById("mm_op").value.trim()||null):(document.getElementById("mm_op_sal").value.trim()||null),
+    stock_antes:stockAntes,stock_despues:stockDespues,
+    usuario_id:CU?.id,
+  };
+  const {error:e1}=await sb.from("mercaderia_movimientos").insert(mov);
+  if(e1){setBtnLoading("btnSaveMercMov",false);toast("Error mov: "+e1.message,"err");return;}
+  const {error:e2}=await sb.from("mercaderias").update({stock_actual:stockDespues,fec_act:new Date().toISOString(),user_act:CU?.id}).eq("id",id);
+  if(e2){setBtnLoading("btnSaveMercMov",false);toast("Error stock: "+e2.message,"err");return;}
+  setBtnLoading("btnSaveMercMov",false);
+  closeModal("modalMercMov");
+  toast(`✓ ${tipo==="entrada"?"Entrada":"Salida"} registrada · stock: ${stockDespues}`,"ok");
+  loadMercaderias();
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+//  ALMACÉN MECANIZA (productos varios)
+// ────────────────────────────────────────────────────────────────────────────
+let _almState={page:1,perPage:30,query:"",stock:""};
+let _almCache=[];
+
+async function loadAlmMecaniza(){
+  const perm=PERMISOS[CU.rol];
+  document.getElementById("btnNuevoAlm").style.display=perm.editarAlmMec?"inline-flex":"none";
+  document.getElementById("alm-tbody").innerHTML=`<tr><td colspan="8" class="no-data"><div class="loading"><div class="spinner"></div>Cargando...</div></td></tr>`;
+  showLoading(true);
+  let all=[];
+  for(let from=0;;from+=1000){
+    const {data,error}=await sb.from("alm_mecaniza_productos").select("*").order("nombre").range(from,from+999);
+    if(error){toast("Error: "+error.message,"err");break;}
+    if(!data?.length) break;
+    all=all.concat(data);
+    if(data.length<1000) break;
+  }
+  showLoading(false);
+  _almCache=all;
+  renderAlmMecaniza();
+}
+
+function resetFiltrosAlm(){
+  document.getElementById("almQ").value="";
+  document.getElementById("almStock").value="";
+  _almState={page:1,perPage:30,query:"",stock:""};
+  renderAlmMecaniza();
+}
+
+function renderAlmMecaniza(){
+  const perm=PERMISOS[CU.rol];
+  _almState.query=document.getElementById("almQ")?.value.toLowerCase()||"";
+  _almState.stock=document.getElementById("almStock")?.value||"";
+  let lista=_almCache.filter(a=>{
+    if(_almState.stock==="bajo"&&!(a.stock_actual<(a.stock_minimo||0))) return false;
+    if(_almState.stock==="cero"&&a.stock_actual>0) return false;
+    if(_almState.stock==="ok"&&a.stock_actual<=0) return false;
+    if(_almState.query){
+      const hay=`${a.codigo} ${a.nombre} ${a.marca||""}`.toLowerCase();
+      if(!hay.includes(_almState.query)) return false;
+    }
+    return true;
+  });
+
+  const totBajo=_almCache.filter(a=>a.stock_actual<(a.stock_minimo||0)).length;
+  const totSin=_almCache.filter(a=>a.stock_actual<=0).length;
+  document.getElementById("almKpis").innerHTML=`
+    <div class="kpi"><div class="kpi-label">Total productos</div><div class="kpi-val white">${_almCache.length}</div></div>
+    <div class="kpi"><div class="kpi-label">Con stock</div><div class="kpi-val green">${_almCache.length-totSin}</div></div>
+    <div class="kpi"><div class="kpi-label">Stock bajo</div><div class="kpi-val ${totBajo>0?'amber':'green'}">${totBajo}</div></div>
+    <div class="kpi"><div class="kpi-label">Sin stock</div><div class="kpi-val ${totSin>0?'red':'green'}">${totSin}</div></div>`;
+
+  const per=_almState.perPage;
+  const total=lista.length;
+  const totalPg=Math.max(1,Math.ceil(total/per));
+  if(_almState.page>totalPg) _almState.page=totalPg;
+  if(_almState.page<1) _almState.page=1;
+  const start=(_almState.page-1)*per;
+  const visible=lista.slice(start,start+per);
+
+  document.getElementById("alm-tbody").innerHTML=visible.length?visible.map(a=>{
+    const colorStock=a.stock_actual<=0?"#e85a5a":a.stock_actual<(a.stock_minimo||0)?"#f5a623":"#4caf8c";
+    return `<tr>
+      <td style="font-family:monospace;font-size:10px;color:#7a7d99">${a.codigo}</td>
+      <td><div style="color:#f0f0f5;font-weight:500">${a.nombre}</div>${a.descripcion?`<div style="font-size:10px;color:#5a5e7a">${a.descripcion}</div>`:""}</td>
+      <td style="color:#b0b3cc">${a.marca||"—"}</td>
+      <td style="text-align:right"><span style="color:${colorStock};font-weight:600">${a.stock_actual}</span>${(a.stock_minimo||0)>0?`<div style="font-size:9px;color:#5a5e7a">mín ${a.stock_minimo}</div>`:""}</td>
+      <td style="color:#7a7d99;font-size:10px">${a.unidad||""}</td>
+      <td style="text-align:right;color:#c8cce0">${a.precio_unitario!=null?`${a.precio_unitario} <span style="font-size:9px;color:#5a5e7a">${a.moneda||""}</span>`:"—"}</td>
+      <td style="font-size:10px;color:#7a7d99">${a.ubicacion||"—"}</td>
+      <td style="white-space:nowrap">
+        ${perm.editarAlmMec?`<button class="btn btn-green" style="padding:3px 7px;font-size:10px" onclick="openAlmMov(${a.id},'entrada')" title="Entrada"><i class="ti ti-arrow-down"></i></button>
+        <button class="btn btn-amber" style="padding:3px 7px;font-size:10px" onclick="openAlmMov(${a.id},'salida')" title="Salida"><i class="ti ti-arrow-up"></i></button>
+        <button class="btn btn-ghost" style="padding:3px 7px;font-size:10px" onclick="openModalAlm(${a.id})" title="Editar"><i class="ti ti-edit"></i></button>`:`<button class="btn btn-ghost" style="padding:3px 7px;font-size:10px" onclick="openModalAlm(${a.id})"><i class="ti ti-eye"></i></button>`}
+      </td>
+    </tr>`;
+  }).join(""):`<tr><td colspan="8" class="no-data">Sin resultados</td></tr>`;
+
+  document.getElementById("almFooter").innerHTML=`
+    <div class="row-info">Mostrando ${total?start+1:0}–${Math.min(start+per,total)} de ${total}</div>
+    <div class="pag">
+      <button class="pag-btn" ${_almState.page<=1?"disabled":""} onclick="_almState.page--;renderAlmMecaniza()">‹</button>
+      <span class="pag-btn active">${_almState.page} / ${totalPg}</span>
+      <button class="pag-btn" ${_almState.page>=totalPg?"disabled":""} onclick="_almState.page++;renderAlmMecaniza()">›</button>
+    </div>`;
+}
+
+function openModalAlm(id=null){
+  const perm=PERMISOS[CU.rol];
+  const a=id?_almCache.find(x=>x.id===id):null;
+  document.getElementById("modalAlmTitle").textContent=a?`Editar — ${a.nombre}`:"Nuevo producto";
+  const set=(k,v)=>{const el=document.getElementById(k);if(el)el.value=v??"";};
+  set("a_id",a?.id||"");
+  set("a_codigo",a?.codigo||"");
+  set("a_nombre",a?.nombre||"");
+  set("a_descripcion",a?.descripcion||"");
+  set("a_marca",a?.marca||"");
+  set("a_unidad",a?.unidad||"unidad");
+  set("a_stock_actual",a?.stock_actual??0);
+  set("a_stock_minimo",a?.stock_minimo??0);
+  set("a_precio",a?.precio_unitario??"");
+  set("a_moneda",a?.moneda||"PEN");
+  set("a_proveedor",a?.proveedor||"");
+  set("a_ubicacion",a?.ubicacion||"");
+  set("a_notas",a?.notas||"");
+  const editable=perm.editarAlmMec;
+  document.querySelectorAll("#modalAlm .form-input").forEach(el=>el.disabled=!editable);
+  document.getElementById("btnSaveAlm").style.display=editable?"inline-flex":"none";
+  document.getElementById("modalAlm").style.display="flex";
+}
+
+async function saveAlm(){
+  if(!PERMISOS[CU.rol].editarAlmMec){toast("Sin permiso","err");return;}
+  const v=k=>document.getElementById(k).value.trim();
+  const num=k=>{const x=parseFloat(document.getElementById(k).value);return isNaN(x)?null:x;};
+  const codigo=v("a_codigo"),nombre=v("a_nombre");
+  if(!codigo||!nombre){toast("Código y nombre son obligatorios","err");return;}
+  setBtnLoading("btnSaveAlm",true,"Guardando...");
+  const payload={
+    codigo,nombre,
+    descripcion:v("a_descripcion")||null,
+    marca:v("a_marca")||null,
+    unidad:v("a_unidad")||"unidad",
+    stock_actual:num("a_stock_actual")||0,
+    stock_minimo:num("a_stock_minimo")||0,
+    precio_unitario:num("a_precio"),
+    moneda:v("a_moneda")||"PEN",
+    proveedor:v("a_proveedor")||null,
+    ubicacion:v("a_ubicacion")||null,
+    notas:v("a_notas")||null,
+    fec_act:new Date().toISOString(),
+    user_act:CU?.id,
+  };
+  const id=document.getElementById("a_id").value;
+  let res;
+  if(id){res=await sb.from("alm_mecaniza_productos").update(payload).eq("id",id);}
+  else{payload.user_crea=CU?.id;res=await sb.from("alm_mecaniza_productos").insert(payload);}
+  setBtnLoading("btnSaveAlm",false);
+  if(res.error){toast("Error: "+res.error.message,"err");return;}
+  closeModal("modalAlm");
+  toast("✓ Producto guardado","ok");
+  loadAlmMecaniza();
+}
+
+function openAlmMov(id,tipo){
+  const a=_almCache.find(x=>x.id===id);if(!a)return;
+  document.getElementById("modalAlmMovTitle").textContent=tipo==="entrada"?"Entrada — Almacén Mecaniza":"Salida — Almacén Mecaniza";
+  document.getElementById("modalAlmMovIcon").className=tipo==="entrada"?"ti ti-arrow-down":"ti ti-arrow-up";
+  document.getElementById("modalAlmMovIcon").style.color=tipo==="entrada"?"#4caf8c":"#f5a623";
+  document.getElementById("almMovInfo").innerHTML=`<strong style="color:#f0f0f5">${a.nombre}</strong> <span style="color:#7a7d99">(${a.codigo})</span><br>Stock actual: <strong style="color:${a.stock_actual<=0?'#e85a5a':'#4caf8c'}">${a.stock_actual} ${a.unidad||""}</strong>`;
+  document.getElementById("am_id").value=id;
+  document.getElementById("am_tipo").value=tipo;
+  document.getElementById("am_cant").value="";
+  document.getElementById("am_precio").value=a.precio_unitario||"";
+  document.getElementById("am_proveedor").value=a.proveedor||"";
+  document.getElementById("am_op").value="";
+  document.getElementById("am_cliente").value="";
+  document.getElementById("am_op_sal").value="";
+  document.getElementById("am_motivo").value=tipo==="entrada"?"Compra":"";
+  document.getElementById("am_prov_box").style.display=tipo==="entrada"?"grid":"none";
+  document.getElementById("am_cli_box").style.display=tipo==="salida"?"grid":"none";
+  document.getElementById("modalAlmMov").style.display="flex";
+}
+
+async function saveAlmMov(){
+  const id=parseInt(document.getElementById("am_id").value);
+  const tipo=document.getElementById("am_tipo").value;
+  const cant=parseFloat(document.getElementById("am_cant").value);
+  const motivo=document.getElementById("am_motivo").value.trim();
+  if(!cant||cant<=0){toast("Cantidad inválida","err");return;}
+  if(!motivo){toast("Motivo obligatorio","err");return;}
+  const a=_almCache.find(x=>x.id===id);if(!a)return;
+  const stockAntes=a.stock_actual;
+  const stockDespues=tipo==="entrada"?stockAntes+cant:stockAntes-cant;
+  if(stockDespues<0){toast(`Stock insuficiente (disponible: ${stockAntes})`,"err");return;}
+  setBtnLoading("btnSaveAlmMov",true,"Procesando...");
+  const mov={
+    producto_id:id,tipo,cantidad:cant,
+    precio_unitario:parseFloat(document.getElementById("am_precio").value)||null,
+    moneda:a.moneda,motivo,
+    proveedor:tipo==="entrada"?(document.getElementById("am_proveedor").value.trim()||null):null,
+    cliente_nombre:tipo==="salida"?(document.getElementById("am_cliente").value.trim()||null):null,
+    op_numero:tipo==="entrada"?(document.getElementById("am_op").value.trim()||null):(document.getElementById("am_op_sal").value.trim()||null),
+    stock_antes:stockAntes,stock_despues:stockDespues,
+    usuario_id:CU?.id,
+  };
+  const {error:e1}=await sb.from("alm_mecaniza_movimientos").insert(mov);
+  if(e1){setBtnLoading("btnSaveAlmMov",false);toast("Error: "+e1.message,"err");return;}
+  const {error:e2}=await sb.from("alm_mecaniza_productos").update({stock_actual:stockDespues,fec_act:new Date().toISOString(),user_act:CU?.id}).eq("id",id);
+  if(e2){setBtnLoading("btnSaveAlmMov",false);toast("Error: "+e2.message,"err");return;}
+  setBtnLoading("btnSaveAlmMov",false);
+  closeModal("modalAlmMov");
+  toast(`✓ ${tipo==="entrada"?"Entrada":"Salida"} registrada · stock: ${stockDespues}`,"ok");
+  loadAlmMecaniza();
+}
+
+// ────────────────────────────────────────────────────────────────────────────
 //  USUARIOS (CRUD con Supabase Auth)
 // ────────────────────────────────────────────────────────────────────────────
 async function loadUsuarios(){
@@ -1465,28 +2302,89 @@ async function loadCatalogFile(e){
   r.onload=async ev=>{
     try{
       const wb=XLSX.read(ev.target.result,{type:"array"});
-      const ws=wb.Sheets[wb.SheetNames[0]];
-      const rows=XLSX.utils.sheet_to_json(ws,{defval:""});
-      if(!rows.length){toast("Archivo vacío","err");prog.style.display="none";showLoading(false);return;}
-      const clean=rows.map(r=>{
-        const get=k=>{for(const kk of Object.keys(r)){if(kk.toUpperCase().trim()===k) return r[kk];}return"";};
-        return{
-          cod:String(get("COD")||get("CODIGO")||"").trim(),
-          descripcion:String(get("DESCRIPCION")||"").trim(),
-          familia:String(get("FAMILIA")||"").trim()||null,
-          des_familia:String(get("DES_FAMILIA")||get("DESCRIPCION FAMILIA")||"").trim()||null,
-          subfamilia:String(get("SUBFAMILIA")||"").trim()||null,
-          des_subfam:String(get("DES_SUBFAM")||get("DESCRIPCION SUBFAMILIA")||"").trim()||null,
-          dureza:String(get("DUREZA")||"").trim()||null,
-          di:parseFloat(get("DI"))||null,
-          de:parseFloat(get("DE"))||null,
-          longitud:parseFloat(get("LONGITUD"))||parseFloat(get("LARGO"))||null,
-          precio:parseFloat(get("PRECIO"))||null,
-          moneda:String(get("MONEDA")||"EUR").trim().toUpperCase(),
-          proveedor:String(get("PROVEEDOR")||"").trim()||null,
-          notas:String(get("NOTAS")||"").trim()||null,
-        };
-      }).filter(c=>c.cod);
+      // 1) Construir mapa subfamilia → {familia, des_fam, dureza, des_subfam} desde hoja FAMILIA
+      const famMap={};
+      const wsFam=wb.Sheets["FAMILIA"]||wb.Sheets["Familia"]||wb.Sheets["familia"];
+      if(wsFam){
+        const famRows=XLSX.utils.sheet_to_json(wsFam,{header:1,defval:""});
+        for(const r of famRows){
+          if(!r||!r[0]) continue;
+          const fam=String(r[0]).trim();
+          if(fam==="FAMILIA"||fam==="DES_FAM") continue;
+          const subKey=String(r[2]||"").trim();
+          if(!subKey) continue;
+          famMap[subKey.toUpperCase()]={
+            familia:fam,
+            des_familia:String(r[1]||"").trim()||null,
+            des_subfam:String(r[3]||"").trim()||null,
+            dureza:String(r[4]||"").trim()||null,
+          };
+        }
+      }
+      // 2) Encontrar hoja con materiales (busca "MATERIALES" o cualquier hoja con CODIGO+DESCRIPCION)
+      let wsMat=wb.Sheets["MATERIALES"]||wb.Sheets["Materiales"]||wb.Sheets["materiales"];
+      if(!wsMat){
+        for(const n of wb.SheetNames){
+          if(n.toUpperCase().includes("FAMILIA")) continue;
+          const test=XLSX.utils.sheet_to_json(wb.Sheets[n],{header:1,defval:""});
+          for(let i=0;i<Math.min(5,test.length);i++){
+            const flat=test[i].map(v=>String(v||"").toUpperCase()).join("|");
+            if(flat.includes("CODIGO")&&flat.includes("DESCRIPCION")){wsMat=wb.Sheets[n];break;}
+          }
+          if(wsMat) break;
+        }
+      }
+      if(!wsMat){toast("No se encontró hoja MATERIALES","err");prog.style.display="none";showLoading(false);return;}
+
+      // 3) Leer materiales como array de arrays
+      const aoa=XLSX.utils.sheet_to_json(wsMat,{header:1,defval:""});
+      // Detectar fila de encabezados
+      let hdrRow=-1,colCod=-1,colDesc=-1,colLon=-1;
+      for(let i=0;i<Math.min(10,aoa.length);i++){
+        const r=aoa[i]||[];
+        for(let j=0;j<r.length;j++){
+          const v=String(r[j]||"").trim().toUpperCase();
+          if(v==="CODIGO"||v==="COD"){hdrRow=i;colCod=j;}
+          if(v==="DESCRIPCION"||v==="DESC") colDesc=j;
+          if(v==="LONGITUD"||v==="LARGO"||v==="LARGO_MM") colLon=j;
+        }
+        if(hdrRow>=0&&colCod>=0&&colDesc>=0) break;
+      }
+      if(hdrRow<0||colCod<0){toast("No se encontraron columnas CODIGO/DESCRIPCION en el archivo","err");prog.style.display="none";showLoading(false);return;}
+
+      const clean=[];
+      for(let i=hdrRow+1;i<aoa.length;i++){
+        const r=aoa[i]||[];
+        const cod=String(r[colCod]||"").trim();
+        if(!cod) continue;
+        const desc=String(r[colDesc]||"").trim();
+        const longitud=colLon>=0?(parseFloat(r[colLon])||null):null;
+        // Parsear DI/DE de la descripción "... 0 / 25 / 150"
+        let di=null,de=null;
+        const m=desc.match(/-\s*(\d+(?:\.\d+)?)\s*[\/Xx]\s*(\d+(?:\.\d+)?)\s*[\/Xx]\s*(\d+(?:\.\d+)?)/);
+        if(m){di=parseFloat(m[1]);de=parseFloat(m[2]);}
+        // Familia/subfamilia desde el código (ej: PUU5000001 → fam=PU, sub=U500)
+        let familia=null,subfamilia=null;
+        if(cod.length>=6){
+          familia=cod.substring(0,2).toUpperCase();
+          subfamilia=cod.substring(2,6).toUpperCase();
+        }
+        const famInfo=famMap[subfamilia]||{};
+        clean.push({
+          cod,
+          descripcion:desc,
+          familia:famInfo.familia||familia,
+          des_familia:famInfo.des_familia||null,
+          subfamilia:subfamilia,
+          des_subfam:famInfo.des_subfam||null,
+          dureza:famInfo.dureza||null,
+          di,de,longitud,
+          moneda:"EUR"
+        });
+      }
+      if(!clean.length){toast("Sin códigos válidos","err");prog.style.display="none";showLoading(false);return;}
+
+      // 4) Upsert en lotes de 500
       const CHUNK=500;
       let ok=0,err2=0,firstErr=null;
       for(let i=0;i<clean.length;i+=CHUNK){
@@ -1494,13 +2392,14 @@ async function loadCatalogFile(e){
         const pct=Math.round((i/clean.length)*100);
         prog.innerHTML=`<div class="progress-info"><span>Subiendo ${i+1}–${Math.min(i+CHUNK,clean.length)} de ${clean.length}</span><span>${pct}%</span></div><div class="progress-bar"><div class="progress-bar-fill" style="width:${pct}%"></div></div>`;
         const {error}=await sb.from("catalogo").upsert(slice,{onConflict:"cod"});
-        if(error){err2+=slice.length;if(!firstErr)firstErr=error.message;console.error(error);}
+        if(error){err2+=slice.length;if(!firstErr)firstErr=error.message;console.error("[Cat lote]",error);}
         else ok+=slice.length;
       }
       prog.innerHTML=`<div class="progress-info done"><span>✓ ${ok} cargados${err2?` · ${err2} con errores`:""}</span><span>100%</span></div><div class="progress-bar"><div class="progress-bar-fill" style="width:100%;background:#4caf8c"></div></div>${firstErr?`<div style="color:#e85a5a;font-size:11px;margin-top:4px">Primer error: ${firstErr}</div>`:""}`;
       toast(`✓ Catálogo: ${ok} materiales cargados`,ok>0?"ok":"err");
+      console.log("[Cat] Resumen:",{ok,err2,total:clean.length});
       e.target.value="";
-    }catch(err){toast("Error: "+err.message,"err");prog.style.display="none";}
+    }catch(err){console.error(err);toast("Error: "+err.message,"err");prog.style.display="none";}
     showLoading(false);
   };
   r.readAsArrayBuffer(f);
@@ -1569,6 +2468,7 @@ async function loadStockFile(e){
         if(ex){tuboId=ex.id;}
         else{
           const {data:nv,error}=await sb.from("tubos").insert({codigo_mat:cod,descripcion:desc,altura_total:altura,sede:"custom"}).select().single();
+          // (carga masiva por Excel siempre va a 'custom' por ahora; usa el botón "Nuevo material" dentro de cada sede para crear en mecaniza)
           if(error){err2++;continue;}
           tuboId=nv.id;
         }
