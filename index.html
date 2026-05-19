@@ -1235,7 +1235,11 @@ function toast(msg,type="ok"){
   clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove("show"),3500);
 }
 function closeModal(id){document.getElementById(id).style.display="none";}
+// showLoading: ahora es no-op. Usar progress bars/spinners locales para feedback.
+// Si quieres re-habilitar el modal global, pon SHOW_GLOBAL_LOADER=true.
+const SHOW_GLOBAL_LOADER=false;
 function showLoading(on=true,msg="Cargando...",sub="Procesando datos del sistema"){
+  if(!SHOW_GLOBAL_LOADER) return;
   const el=document.getElementById("globalLoader");
   if(!el) return;
   if(on){
@@ -1243,6 +1247,58 @@ function showLoading(on=true,msg="Cargando...",sub="Procesando datos del sistema
     el.querySelector(".loader-sub").textContent=sub;
   }
   el.classList.toggle("show",on);
+}
+
+// ── LISTA LIVIANA DE CLIENTES (id, nombre, ind_cli) — para autocompletes ─────
+// Carga TODOS los clientes activos con campos mínimos (~5832 nombres) y cachea 1 hora.
+async function getClientesList(forceReload=false){
+  const TTL=60*60*1000; // 1 hora
+  if(!forceReload){
+    const cached=getCached("clientes_list",TTL);
+    if(cached) return cached;
+  }
+  let all=[];
+  for(let from=0;;from+=1000){
+    const {data,error}=await sb.from("clientes").select("id,nombre,ind_cli").eq("estado","activo").order("nombre").range(from,from+999);
+    if(error||!data?.length) break;
+    all=all.concat(data);
+    if(data.length<1000) break;
+  }
+  setCached("clientes_list",all);
+  return all;
+}
+
+// ── SANITIZACIÓN XSS: escapar caracteres peligrosos antes de innerHTML ───────
+const _ESC_MAP={"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"};
+function esc(v){
+  if(v==null) return "";
+  return String(v).replace(/[&<>"']/g,c=>_ESC_MAP[c]);
+}
+function escAttr(v){return esc(v).replace(/`/g,"&#96;");}
+
+// ── CACHE EN MEMORIA CON TTL (evita refetch al cambiar entre páginas) ────────
+const _cacheStore={};
+const CACHE_TTL_MS=5*60*1000; // 5 minutos
+function getCached(key,ttl=CACHE_TTL_MS){
+  const c=_cacheStore[key];
+  if(!c) return null;
+  if(Date.now()-c.ts>ttl) {delete _cacheStore[key]; return null;}
+  return c.data;
+}
+function setCached(key,data){_cacheStore[key]={data,ts:Date.now()};}
+function clearCache(key){
+  if(key===undefined){for(const k of Object.keys(_cacheStore)) delete _cacheStore[k];}
+  else delete _cacheStore[key];
+}
+function cacheAge(key){
+  const c=_cacheStore[key];
+  return c?Date.now()-c.ts:null;
+}
+function cacheAgeLabel(key){
+  const ms=cacheAge(key);if(ms==null) return "";
+  const s=Math.floor(ms/1000);
+  if(s<60) return `hace ${s}s`;
+  return `hace ${Math.floor(s/60)}m`;
 }
 function setBtnLoading(btnId,on,labelLoading="Procesando..."){
   const b=document.getElementById(btnId);if(!b)return;
@@ -1530,7 +1586,7 @@ function barChart(items,maxVal,colorFn){
     const pct=Math.round((i.val/max)*100);
     const color=colorFn?colorFn(i):"#5b9bd5";
     return `<div style="margin-bottom:8px">
-      <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px"><span style="color:#c8cce0">${i.label}</span><span style="color:${color};font-weight:600">${i.display||i.val}</span></div>
+      <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px"><span style="color:#c8cce0">${esc(i.label)}</span><span style="color:${color};font-weight:600">${esc(i.display)||i.val}</span></div>
       <div style="background:#111318;height:8px;border-radius:4px;overflow:hidden"><div style="height:100%;background:${color};width:${pct}%;transition:width .3s"></div></div>
     </div>`;
   }).join("");
@@ -1601,16 +1657,16 @@ async function widgetStockBajo(){
     html+=`<div style="font-size:10px;color:#7a7d99;text-transform:uppercase;margin:8px 0 4px">Materia Prima — Tubos</div>`;
     html+=tubosBajos.slice(0,10).map(t=>{
       const disp=dispByTubo[t.id]||0;
-      return `<div style="display:flex;justify-content:space-between;padding:5px 8px;border-bottom:.5px solid #1e2134;font-size:11px"><span style="color:#c8cce0">${t.descripcion} <span style="color:#5a5e7a">(${t.sede})</span></span><span style="color:#e85a5a;font-weight:600">${disp} <span style="color:#5a5e7a">/ mín ${t.stock_minimo}</span></span></div>`;
+      return `<div style="display:flex;justify-content:space-between;padding:5px 8px;border-bottom:.5px solid #1e2134;font-size:11px"><span style="color:#c8cce0">${esc(t.descripcion)} <span style="color:#5a5e7a">(${esc(t.sede)})</span></span><span style="color:#e85a5a;font-weight:600">${disp} <span style="color:#5a5e7a">/ mín ${t.stock_minimo}</span></span></div>`;
     }).join("");
   }
   if(mercBajos.length){
     html+=`<div style="font-size:10px;color:#7a7d99;text-transform:uppercase;margin:8px 0 4px">Mercaderías</div>`;
-    html+=mercBajos.slice(0,10).map(m=>`<div style="display:flex;justify-content:space-between;padding:5px 8px;border-bottom:.5px solid #1e2134;font-size:11px"><span style="color:#c8cce0">${m.nombre} <span style="color:#5a5e7a">(${m.codigo})</span></span><span style="color:#e85a5a;font-weight:600">${m.stock_actual} ${m.unidad||""} <span style="color:#5a5e7a">/ mín ${Math.max(m.stock_minimo||0,thrMerc)}</span></span></div>`).join("");
+    html+=mercBajos.slice(0,10).map(m=>`<div style="display:flex;justify-content:space-between;padding:5px 8px;border-bottom:.5px solid #1e2134;font-size:11px"><span style="color:#c8cce0">${esc(m.nombre)} <span style="color:#5a5e7a">(${esc(m.codigo)})</span></span><span style="color:#e85a5a;font-weight:600">${m.stock_actual} ${esc(m.unidad)} <span style="color:#5a5e7a">/ mín ${Math.max(m.stock_minimo||0,thrMerc)}</span></span></div>`).join("");
   }
   if(almBajos.length){
     html+=`<div style="font-size:10px;color:#7a7d99;text-transform:uppercase;margin:8px 0 4px">Almacén Mecaniza</div>`;
-    html+=almBajos.slice(0,10).map(a=>`<div style="display:flex;justify-content:space-between;padding:5px 8px;border-bottom:.5px solid #1e2134;font-size:11px"><span style="color:#c8cce0">${a.nombre} <span style="color:#5a5e7a">(${a.codigo})</span></span><span style="color:#e85a5a;font-weight:600">${a.stock_actual} ${a.unidad||""} <span style="color:#5a5e7a">/ mín ${Math.max(a.stock_minimo||0,thrAlm)}</span></span></div>`).join("");
+    html+=almBajos.slice(0,10).map(a=>`<div style="display:flex;justify-content:space-between;padding:5px 8px;border-bottom:.5px solid #1e2134;font-size:11px"><span style="color:#c8cce0">${esc(a.nombre)} <span style="color:#5a5e7a">(${esc(a.codigo)})</span></span><span style="color:#e85a5a;font-weight:600">${a.stock_actual} ${esc(a.unidad)} <span style="color:#5a5e7a">/ mín ${Math.max(a.stock_minimo||0,thrAlm)}</span></span></div>`).join("");
   }
   html+=`</div>`;
   return html;
@@ -1722,10 +1778,14 @@ function toggleConfig(clave,togId){
 // ────────────────────────────────────────────────────────────────────────────
 let _histState={tipo:"merc",itemId:null,itemName:"",itemCode:"",data:[]};
 
-async function openHistorial(tipo,itemId,itemName,itemCode){
+async function openHistorial(tipo,itemId){
+  // Buscar item en el cache correspondiente para obtener nombre/código de forma segura
+  const item=tipo==="merc"?_mercCache.find(x=>x.id===itemId):_almCache.find(x=>x.id===itemId);
+  const itemName=item?.nombre||"";
+  const itemCode=item?.codigo||"";
   _histState={tipo,itemId,itemName,itemCode,data:[]};
   document.getElementById("histTitle").textContent=`Historial — ${tipo==="merc"?"Mercaderías":"Almacén Mecaniza"}`;
-  document.getElementById("histInfo").innerHTML=`<strong style="color:#f0f0f5">${itemName}</strong> <span style="color:#7a7d99">(${itemCode})</span>`;
+  document.getElementById("histInfo").innerHTML=`<strong style="color:#f0f0f5">${esc(itemName)}</strong> <span style="color:#7a7d99">(${esc(itemCode)})</span>`;
   document.getElementById("histDesde").value="";
   document.getElementById("histHasta").value="";
   document.getElementById("histTipo").value="";
@@ -1789,11 +1849,11 @@ function renderHistorial(){
       <td style="font-size:11px;color:#b0b3cc">${new Date(m.fecha).toLocaleString("es-PE",{dateStyle:"short",timeStyle:"short"})}</td>
       <td><span style="background:${tipoColor}22;color:${tipoColor};font-size:10px;padding:2px 8px;border-radius:10px;font-weight:500">${tipoLabel}</span></td>
       <td style="text-align:right;color:${tipoColor};font-weight:500">${m.tipo==="salida"||m.tipo==="transferencia_out"?"-":"+"}${m.cantidad}</td>
-      <td style="text-align:right;color:#c8cce0">${m.precio_unitario!=null?`${m.precio_unitario} ${m.moneda||""}`:"—"}</td>
-      <td style="font-size:11px;color:#c8cce0">${m.proveedor||m.cliente_nombre||"—"}</td>
-      <td style="font-family:monospace;font-size:10px;color:#7a7d99">${m.op_numero||"—"}</td>
-      <td style="font-size:11px;color:#c8cce0">${m.motivo||""}</td>
-      <td style="font-size:10px;color:#7a7d99">${m._usuario?.nombre||"—"}</td>
+      <td style="text-align:right;color:#c8cce0">${m.precio_unitario!=null?`${m.precio_unitario} ${esc(m.moneda)}`:"—"}</td>
+      <td style="font-size:11px;color:#c8cce0">${esc(m.proveedor||m.cliente_nombre)||"—"}</td>
+      <td style="font-family:monospace;font-size:10px;color:#7a7d99">${esc(m.op_numero)||"—"}</td>
+      <td style="font-size:11px;color:#c8cce0">${esc(m.motivo)}</td>
+      <td style="font-size:10px;color:#7a7d99">${esc(m._usuario?.nombre)||"—"}</td>
       <td style="text-align:right;font-size:10px;color:#7a7d99">${m.stock_antes??"?"} → <strong style="color:#c8cce0">${m.stock_despues??"?"}</strong></td>
     </tr>`;
   }).join(""):`<tr><td colspan="9" class="no-data">Sin movimientos con esos filtros</td></tr>`;
@@ -1874,7 +1934,7 @@ function tubosLimpiarFiltros(){
   renderTubosResumen();
 }
 
-async function loadTubos(){
+async function loadTubos(forceReload=false){
   _tubosState.detalleId=null;
   const sede=_tubosState.sede||"custom";
   const sedeLabel=sede==="custom"?"Custom":"Mecaniza";
@@ -1885,40 +1945,75 @@ async function loadTubos(){
   if(titleEl) titleEl.innerHTML=`<i class="ti ti-cylinder" style="color:${sedeColor}"></i>Materia Prima — <span style="color:${sedeColor}">Sede ${sedeLabel}</span>`;
   // Botones
   const actRow=document.getElementById("tubosActions");
+  const cacheLbl=cacheAgeLabel(`tubos_${sede}`);
+  const cacheBadge=cacheLbl?`<span style="font-size:10px;color:#5a5e7a;margin-left:6px">📦 ${cacheLbl}</span>`:"";
   actRow.innerHTML=perm.editarTubos
     ?`<button class="btn btn-red" onclick="openModalMaterial()"><i class="ti ti-plus"></i>Nuevo material</button>
       <button class="btn btn-ghost" onclick="openModalTubo()"><i class="ti ti-plus"></i>Agregar tubos</button>
-      <button class="btn btn-ghost" onclick="loadTubos()"><i class="ti ti-refresh"></i>Actualizar</button>`
-    :`<button class="btn btn-ghost" onclick="loadTubos()"><i class="ti ti-refresh"></i>Actualizar</button>`;
+      <button class="btn btn-ghost" onclick="loadTubos(true)"><i class="ti ti-refresh"></i>Actualizar</button>${cacheBadge}`
+    :`<button class="btn btn-ghost" onclick="loadTubos(true)"><i class="ti ti-refresh"></i>Actualizar</button>${cacheBadge}`;
 
   wireTubosSearch();
+
+  // CACHE: si hay datos cacheados y no es reload forzado, usa cache
+  const cacheKey=`tubos_${sede}`;
+  if(!forceReload){
+    const cached=getCached(cacheKey);
+    if(cached){
+      _tubosCache.tubos=cached.tubos;
+      _tubosCache.instByTubo=cached.instByTubo;
+      _tubosCache.usingView=cached.usingView;
+      // Inicializar inputs + dropdowns desde el cache
+      hydrateTubosUI(cached.tubos);
+      if(!cached.tubos.length){
+        document.getElementById("tubos-list").innerHTML=`<div class="card" style="text-align:center;padding:30px;color:#5a5e7a">
+          <i class="ti ti-cylinder" style="font-size:32px;display:block;margin-bottom:10px;color:#3a3e5a"></i>
+          No hay tubos en sede ${sedeLabel}.${perm.editarTubos?' Usa <strong style="color:#D32F2F">Nuevo material</strong> para comenzar.':''}</div>`;
+        document.getElementById("tubosKpis").innerHTML="";
+      }else renderTubosResumen();
+      return;
+    }
+  }
+
   document.getElementById("tubos-list").innerHTML=`<div class="loading"><div class="spinner"></div>Cargando tubos de sede ${sedeLabel}...</div>`;
   document.getElementById("tubos-header").innerHTML="";
-  showLoading(true);
+  showLoading(true,"Cargando inventario...",`Sede ${sedeLabel}`);
 
-  // Paginación en loop para evitar el límite de 1000 de Supabase
+  // INTENTAR USAR LA VIEW v_tubos_resumen (agregación server-side, 1 query)
   let allTubos=[];
+  let usingView=true;
   for(let from=0;;from+=1000){
-    const {data,error}=await sb.from("tubos").select("*").eq("sede",sede).order("descripcion").range(from,from+999);
-    if(error){showLoading(false);document.getElementById("tubos-list").innerHTML=`<div class="no-data">Error: ${error.message}</div>`;return;}
+    const {data,error}=await sb.from("v_tubos_resumen").select("*").eq("sede",sede).order("descripcion").range(from,from+999);
+    if(error){usingView=false;console.warn("[Tubos] view no disponible, fallback a fetch manual:",error.message);break;}
     if(!data?.length) break;
     allTubos=allTubos.concat(data);
     if(data.length<1000) break;
   }
-  // Mismo loop para instancias (solo de los tubos cargados, en lotes para no exceder URL)
+
   const instByTubo={};
-  if(allTubos.length){
-    const tuboIds=allTubos.map(t=>t.id);
-    const BATCH=300;
-    for(let i=0;i<tuboIds.length;i+=BATCH){
-      const batch=tuboIds.slice(i,i+BATCH);
-      let from=0;
-      while(true){
-        const {data,error}=await sb.from("tubo_instancias").select("id,tubo_id,estado,altura_usada").in("tubo_id",batch).range(from,from+999);
-        if(error||!data?.length) break;
-        for(const ins of data) (instByTubo[ins.tubo_id]=instByTubo[ins.tubo_id]||[]).push(ins);
-        if(data.length<1000) break;
-        from+=1000;
+  if(!usingView){
+    // FALLBACK: comportamiento anterior (más lento)
+    allTubos=[];
+    for(let from=0;;from+=1000){
+      const {data,error}=await sb.from("tubos").select("*").eq("sede",sede).order("descripcion").range(from,from+999);
+      if(error){showLoading(false);document.getElementById("tubos-list").innerHTML=`<div class="no-data">Error: ${error.message}</div>`;return;}
+      if(!data?.length) break;
+      allTubos=allTubos.concat(data);
+      if(data.length<1000) break;
+    }
+    if(allTubos.length){
+      const tuboIds=allTubos.map(t=>t.id);
+      const BATCH=300;
+      for(let i=0;i<tuboIds.length;i+=BATCH){
+        const batch=tuboIds.slice(i,i+BATCH);
+        let from=0;
+        while(true){
+          const {data,error}=await sb.from("tubo_instancias").select("id,tubo_id,estado,altura_usada").in("tubo_id",batch).range(from,from+999);
+          if(error||!data?.length) break;
+          for(const ins of data) (instByTubo[ins.tubo_id]=instByTubo[ins.tubo_id]||[]).push(ins);
+          if(data.length<1000) break;
+          from+=1000;
+        }
       }
     }
   }
@@ -1926,8 +2021,22 @@ async function loadTubos(){
 
   _tubosCache.tubos=allTubos;
   _tubosCache.instByTubo=instByTubo;
+  _tubosCache.usingView=usingView;
+  setCached(cacheKey,{tubos:allTubos,instByTubo,usingView});
 
-  // Inicializar valores de los inputs estables con el estado guardado
+  hydrateTubosUI(allTubos);
+
+  if(!allTubos.length){
+    document.getElementById("tubos-list").innerHTML=`<div class="card" style="text-align:center;padding:30px;color:#5a5e7a">
+      <i class="ti ti-cylinder" style="font-size:32px;display:block;margin-bottom:10px;color:#3a3e5a"></i>
+      No hay tubos en sede ${sedeLabel}.${perm.editarTubos?' Usa <strong style="color:#D32F2F">Nuevo material</strong> para comenzar.':''}</div>`;
+    document.getElementById("tubosKpis").innerHTML="";
+    return;
+  }
+  renderTubosResumen();
+}
+
+function hydrateTubosUI(allTubos){
   const inp=document.getElementById("tubosSearch");if(inp) inp.value=_tubosState.query||"";
   const fDi=document.getElementById("tubosFDi");if(fDi) fDi.value=_tubosState.fDi||"";
   const fDe=document.getElementById("tubosFDe");if(fDe) fDe.value=_tubosState.fDe||"";
@@ -1945,29 +2054,32 @@ async function loadTubos(){
   }
   document.getElementById("tubosSearchCard").style.display=allTubos.length?"block":"none";
   updateLimpiarBtn();
-
-  if(!allTubos.length){
-    document.getElementById("tubos-list").innerHTML=`<div class="card" style="text-align:center;padding:30px;color:#5a5e7a">
-      <i class="ti ti-cylinder" style="font-size:32px;display:block;margin-bottom:10px;color:#3a3e5a"></i>
-      No hay tubos en sede ${sedeLabel}.${perm.editarTubos?' Usa <strong style="color:#D32F2F">Nuevo material</strong> para comenzar.':''}</div>`;
-    document.getElementById("tubosKpis").innerHTML="";
-    return;
-  }
-  renderTubosResumen();
 }
 
 function renderTubosResumen(){
-  const {tubos,instByTubo}=_tubosCache;
+  const {tubos,instByTubo,usingView}=_tubosCache;
   const q=(_tubosState.query||"").trim().toLowerCase();
   const fMat=_tubosState.fMat||"";
 
   let resumen=tubos.map(t=>{
-    const insts=instByTubo[t.id]||[];
     const altTot=t.altura_total||0;
-    const disp=insts.filter(i=>i.estado==="disponible").length;
-    const ago=insts.filter(i=>i.estado==="agotado"||i.estado==="merma").length;
-    const mmRest=insts.reduce((a,i)=>a+Math.max(0,altTot-(i.altura_usada||0)),0);
-    const mmTot=altTot*insts.length;
+    let disp,ago,mmRest,total;
+    if(usingView){
+      // Stats agregados server-side desde la SQL view (sin fetch de instancias)
+      disp=t.disponibles||0;
+      ago=t.agotados||0;
+      mmRest=parseFloat(t.mm_restantes)||0;
+      total=t.total_insts||0;
+    }else{
+      // Fallback: stats calculados en cliente desde instancias en memoria
+      const insts=instByTubo[t.id]||[];
+      disp=insts.filter(i=>i.estado==="disponible").length;
+      ago=insts.filter(i=>i.estado==="agotado"||i.estado==="merma").length;
+      mmRest=insts.reduce((a,i)=>a+Math.max(0,altTot-(i.altura_usada||0)),0);
+      total=insts.length;
+    }
+    const insts={length:total};
+    const mmTot=altTot*total;
     const med=parseMedidas(t.descripcion);
     const mat=parseMaterial(t.descripcion);
     return {t,insts,disp,ago,mmRest,mmTot,med,mat};
@@ -2012,8 +2124,8 @@ function renderTubosResumen(){
     const medStr=(med.di!=null)?`DI ${med.di} · DE ${med.de} · L ${med.lon}`:(t.altura_total?`${t.altura_total} mm`:"—");
     const colorDisp=disp===0?"#e85a5a":disp<=2?"#f5a623":"#4caf8c";
     return `<tr>
-      <td><div style="font-weight:500;color:#f0f0f5">${t.descripcion||""}</div>
-        <div style="font-size:10px;color:#5a5e7a">${t.codigo_mat||"—"}</div></td>
+      <td><div style="font-weight:500;color:#f0f0f5">${esc(t.descripcion)}</div>
+        <div style="font-size:10px;color:#5a5e7a">${esc(t.codigo_mat)||"—"}</div></td>
       <td style="color:#b0b3cc;white-space:nowrap">${medStr}</td>
       <td style="text-align:center"><span style="color:${colorDisp};font-weight:600;font-size:13px">${disp}</span><span style="color:#5a5e7a"> / ${insts.length}</span></td>
       <td style="text-align:right;color:#5b9bd5;font-weight:500;white-space:nowrap">${mmRest.toFixed(0)}<span style="color:#5a5e7a;font-size:10px"> mm</span></td>
@@ -2093,7 +2205,7 @@ async function verDetalleTubo(tuboId){
   }).join("");
 
   const movsHtml=movs.slice(0,10).map(m=>`<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:.5px solid #1e2134;font-size:11px">
-    <div style="flex:1;color:#c8cce0">${m.tipo}${m.altura_usada?` · ${m.altura_usada}mm`:""}${m.op_numero?` · OP ${m.op_numero}`:""}${m.nota?` · ${m.nota}`:""}</div>
+    <div style="flex:1;color:#c8cce0">${esc(m.tipo)}${m.altura_usada?` · ${m.altura_usada}mm`:""}${m.op_numero?` · OP ${esc(m.op_numero)}`:""}${m.nota?` · ${esc(m.nota)}`:""}</div>
       <div style="display:flex;align-items:center;gap:8px">
         <span style="color:#3a3e5a;font-size:10px">${new Date(m.fecha).toLocaleDateString("es-PE")}</span>
         ${perm.editarTubos?`<button class="btn-ghost" style="padding:2px 5px;border-radius:4px;color:#e85a5a" onclick="deleteMovimiento(${m.id},${m.tubo_instancia_id||"null"})" title="Eliminar"><i class="ti ti-trash" style="font-size:12px"></i></button>`:""}
@@ -2102,7 +2214,7 @@ async function verDetalleTubo(tuboId){
 
   const headerHtml=`<div class="btn-row">
     <button class="btn btn-ghost" onclick="loadTubos()"><i class="ti ti-arrow-left"></i>Volver al resumen</button>
-    ${perm.editarTubos?`<button class="btn btn-ghost" onclick="openModalTuboFor('${t.codigo_mat||""}','${(t.descripcion||"").replace(/'/g,"\\'")}')"><i class="ti ti-plus"></i>Agregar tubos</button>`:""}
+    ${perm.editarTubos?`<button class="btn btn-ghost" onclick="openModalTuboFor(${t.id})"><i class="ti ti-plus"></i>Agregar tubos</button>`:""}
   </div>`;
 
   document.getElementById("tubos-list").innerHTML=headerHtml+`<div class="tubo-card">
@@ -2150,7 +2262,7 @@ async function deleteMovimiento(id, instId){
   const {error}=await sb.from("movimientos").delete().eq("id",id);
   setBtnLoading("btnSaveTubo",false);
   if(error){toast("Error al eliminar: "+error.message,"err");}
-  else{toast("✓ Movimiento eliminado","ok");loadTubos();}
+  else{toast("✓ Movimiento eliminado","ok");loadTubos(true);}
 }
 
 async function clearCatalog(){
@@ -2173,7 +2285,8 @@ async function clearStock(){
 
   setBtnLoading("btnSaveTubo",false);
   toast("✓ Todo el stock y movimientos han sido eliminados","ok");
-  loadTubos();
+  clearCache("tubos_custom");clearCache("tubos_mecaniza");
+  loadTubos(true);
 }
 
 function toggleTuboManual(){
@@ -2225,10 +2338,13 @@ function openModalTubo(){
 
   document.getElementById("modalTubo").style.display="flex";
 }
-function openModalTuboFor(cod,desc){
-  document.getElementById("modalTuboTitle").textContent="Agregar tubos — "+(cod||desc);
-  document.getElementById("t_cod").value=cod;
-  document.getElementById("t_desc").value=desc;
+function openModalTuboFor(tuboId){
+  // Buscar tubo en cache para evitar inyección desde onclick
+  const t=_tubosCache.tubos.find(x=>x.id===tuboId);
+  if(!t){toast("Tubo no encontrado","err");return;}
+  document.getElementById("modalTuboTitle").textContent="Agregar tubos — "+(t.codigo_mat||t.descripcion||"");
+  document.getElementById("t_cod").value=t.codigo_mat||"";
+  document.getElementById("t_desc").value=t.descripcion||"";
   document.getElementById("t_altura").value="";
   document.getElementById("t_cantidad").value="";
   document.getElementById("modalTubo").style.display="flex";
@@ -2274,7 +2390,8 @@ async function saveTubo(){
   setBtnLoading("btnSaveTubo",false);
   closeModal("modalTubo");
   toast(`✓ ${cant} tubo${cant>1?"s":""} registrado${cant>1?"s":""} en sede ${sede} (${origen})`,"ok");
-  loadTubos();
+  clearCache(`tubos_${sede}`);
+  loadTubos(true);
 }
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -2293,61 +2410,73 @@ function resetFiltrosClientes(){
   renderClientes();
 }
 
-async function loadClientes(){
+// loadClientes: ahora server-side. Solo trae la página visible + un count exact.
+async function loadClientes(forceReload=false){
   const perm=PERMISOS[CU.rol];
   document.getElementById("btnNuevoCliente").style.display=perm.editarClientes?"inline-flex":"none";
-  document.getElementById("clientes-tbody").innerHTML=`<tr><td colspan="8" class="no-data"><div class="loading"><div class="spinner"></div>Cargando clientes...</div></td></tr>`;
-  showLoading(true);
-  let all=[];
-  for(let from=0;;from+=1000){
-    const {data,error}=await sb.from("clientes").select("*").order("nombre").range(from,from+999);
-    if(error){toast("Error: "+error.message,"err");break;}
-    if(!data?.length) break;
-    all=all.concat(data);
-    if(data.length<1000) break;
-  }
-  showLoading(false);
-  _clientesCache=all;
-  renderClientes();
+  // Disparar render server-side directamente
+  renderClientes(forceReload);
 }
 
-function renderClientes(){
+async function renderClientes(forceReload=false){
   const perm=PERMISOS[CU.rol];
   _clientesState.tipo=document.getElementById("cliTipo")?.value||"";
   _clientesState.ind=document.getElementById("cliInd")?.value||"";
   _clientesState.estado=document.getElementById("cliEstado")?.value||"";
 
-  const q=(_clientesState.query||"").trim().toLowerCase();
-  let lista=_clientesCache.filter(c=>{
-    if(_clientesState.tipo&&c.tipo!==_clientesState.tipo) return false;
-    if(_clientesState.estado&&(c.estado||"activo")!==_clientesState.estado) return false;
-    if(_clientesState.ind){
-      const f={cli:"ind_cli",pro:"ind_pro",tra:"ind_tra",otr:"ind_otr"}[_clientesState.ind];
-      if(!c[f]) return false;
-    }
-    if(q){
-      const hay=`${c.codigo} ${c.nombre} ${c.ruc||""} ${c.dni||""} ${c.telefono||""} ${c.celular||""} ${c.email||""}`.toLowerCase();
-      if(!hay.includes(q)) return false;
-    }
-    return true;
-  });
-
-  const totCli=_clientesCache.filter(c=>c.ind_cli).length;
-  const totPro=_clientesCache.filter(c=>c.ind_pro).length;
-  const totJur=_clientesCache.filter(c=>c.tipo==="JUR").length;
-  document.getElementById("clientesKpis").innerHTML=`
-    <div class="kpi"><div class="kpi-label">Total</div><div class="kpi-val white">${_clientesCache.length.toLocaleString()}</div></div>
-    <div class="kpi"><div class="kpi-label">Clientes</div><div class="kpi-val green">${totCli.toLocaleString()}</div></div>
-    <div class="kpi"><div class="kpi-label">Proveedores</div><div class="kpi-val blue">${totPro.toLocaleString()}</div></div>
-    <div class="kpi"><div class="kpi-label">Jurídicos</div><div class="kpi-val amber">${totJur.toLocaleString()}</div></div>`;
-
-  const total=lista.length;
+  const q=(_clientesState.query||"").trim();
+  const tipo=_clientesState.tipo;
+  const estado=_clientesState.estado;
+  const ind=_clientesState.ind;
   const per=_clientesState.perPage;
+  const page=Math.max(1,_clientesState.page);
+  const start=(page-1)*per;
+
+  // KPIs (queries de count exact, no traen filas — super rápido)
+  // Cache de KPIs separado (rara vez cambian)
+  let kpis=getCached("clientes_kpis",60000); // 1 min TTL
+  if(!kpis||forceReload){
+    const [t,tc,tp,tj]=await Promise.all([
+      sb.from("clientes").select("*",{count:"exact",head:true}),
+      sb.from("clientes").select("*",{count:"exact",head:true}).eq("ind_cli",true),
+      sb.from("clientes").select("*",{count:"exact",head:true}).eq("ind_pro",true),
+      sb.from("clientes").select("*",{count:"exact",head:true}).eq("tipo","JUR"),
+    ]);
+    kpis={total:t.count||0,cli:tc.count||0,pro:tp.count||0,jur:tj.count||0};
+    setCached("clientes_kpis",kpis);
+  }
+  document.getElementById("clientesKpis").innerHTML=`
+    <div class="kpi"><div class="kpi-label">Total</div><div class="kpi-val white">${kpis.total.toLocaleString()}</div></div>
+    <div class="kpi"><div class="kpi-label">Clientes</div><div class="kpi-val green">${kpis.cli.toLocaleString()}</div></div>
+    <div class="kpi"><div class="kpi-label">Proveedores</div><div class="kpi-val blue">${kpis.pro.toLocaleString()}</div></div>
+    <div class="kpi"><div class="kpi-label">Jurídicos</div><div class="kpi-val amber">${kpis.jur.toLocaleString()}</div></div>`;
+
+  // Construir query con filtros server-side
+  document.getElementById("clientes-tbody").innerHTML=`<tr><td colspan="8" class="no-data"><div class="loading"><div class="spinner"></div>Cargando...</div></td></tr>`;
+  let query=sb.from("clientes").select("*",{count:"exact"});
+  if(tipo) query=query.eq("tipo",tipo);
+  if(estado) query=query.eq("estado",estado);
+  if(ind){
+    const f={cli:"ind_cli",pro:"ind_pro",tra:"ind_tra",otr:"ind_otr"}[ind];
+    if(f) query=query.eq(f,true);
+  }
+  if(q){
+    // OR sobre múltiples columnas (ilike es case-insensitive)
+    const safe=q.replace(/[%,]/g," ");
+    query=query.or(`codigo.ilike.%${safe}%,nombre.ilike.%${safe}%,ruc.ilike.%${safe}%,dni.ilike.%${safe}%,email.ilike.%${safe}%,celular.ilike.%${safe}%,telefono.ilike.%${safe}%`);
+  }
+  query=query.order("nombre").range(start,start+per-1);
+
+  const {data,count,error}=await query;
+  if(error){
+    document.getElementById("clientes-tbody").innerHTML=`<tr><td colspan="8" class="no-data" style="color:#e85a5a">Error: ${esc(error.message)}</td></tr>`;
+    return;
+  }
+  _clientesCache=data||[]; // cache de la página visible para que openModalCliente funcione
+  const visible=_clientesCache;
+  const total=count||0;
   const totalPg=Math.max(1,Math.ceil(total/per));
-  if(_clientesState.page>totalPg) _clientesState.page=totalPg;
-  if(_clientesState.page<1) _clientesState.page=1;
-  const start=(_clientesState.page-1)*per;
-  const visible=lista.slice(start,start+per);
+  if(_clientesState.page>totalPg){_clientesState.page=totalPg;}
 
   const indHtml=c=>{
     const out=[];
@@ -2362,16 +2491,16 @@ function renderClientes(){
     :`<span class="rol-badge" style="background:#2a1e0a;color:#fb923c">NAT</span>`;
 
   document.getElementById("clientes-tbody").innerHTML=visible.length?visible.map(c=>{
-    const idDoc=c.ruc?`RUC ${c.ruc}`:(c.dni?`DNI ${c.dni}`:"—");
+    const idDoc=c.ruc?`RUC ${esc(c.ruc)}`:(c.dni?`DNI ${esc(c.dni)}`:"—");
     const tel=c.celular||c.telefono||"";
     return `<tr style="cursor:pointer" onclick="openModalCliente(${c.id})">
-      <td style="font-family:monospace;color:#7a7d99;font-size:10px">${c.codigo||""}</td>
-      <td><div style="color:#f0f0f5;font-weight:500">${c.nombre||""}</div>${c.nom_comercial?`<div style="font-size:10px;color:#5a5e7a">${c.nom_comercial}</div>`:""}</td>
+      <td style="font-family:monospace;color:#7a7d99;font-size:10px">${esc(c.codigo)}</td>
+      <td><div style="color:#f0f0f5;font-weight:500">${esc(c.nombre)}</div>${c.nom_comercial?`<div style="font-size:10px;color:#5a5e7a">${esc(c.nom_comercial)}</div>`:""}</td>
       <td>${tipoBadge(c.tipo)}</td>
       <td style="font-family:monospace;font-size:10px;color:#b0b3cc">${idDoc}</td>
       <td style="font-size:10px">${indHtml(c)}</td>
-      <td><div style="font-size:11px;color:#c8cce0">${tel||`<span style="color:#5a5e7a">—</span>`}</div>${c.email?`<div style="font-size:10px;color:#5a5e7a">${c.email}</div>`:""}</td>
-      <td style="font-size:10px;color:#7a7d99">${c.des_ubigeo||"—"}</td>
+      <td><div style="font-size:11px;color:#c8cce0">${esc(tel)||`<span style="color:#5a5e7a">—</span>`}</div>${c.email?`<div style="font-size:10px;color:#5a5e7a">${esc(c.email)}</div>`:""}</td>
+      <td style="font-size:10px;color:#7a7d99">${esc(c.des_ubigeo)||"—"}</td>
       <td style="text-align:right"><button class="btn btn-ghost" style="padding:4px 8px;font-size:10px" onclick="event.stopPropagation();openModalCliente(${c.id})"><i class="ti ti-${perm.editarClientes?"edit":"eye"}"></i></button></td>
     </tr>`;
   }).join(""):`<tr><td colspan="8" class="no-data">Sin resultados con esos filtros</td></tr>`;
@@ -2471,7 +2600,8 @@ async function saveCliente(){
   if(res.error){toast("Error: "+res.error.message,"err");return;}
   toast("✓ Cliente guardado","ok");
   closeModal("modalCliente");
-  await loadClientes();
+  clearCache("clientes");clearCache("clientes_kpis");
+  await loadClientes(true);
 }
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -2571,7 +2701,8 @@ async function saveMaterial(){
   setBtnLoading("btnSaveMaterial",false);
   closeModal("modalMaterial");
   toast(`✓ Material ${id?"actualizado":"creado"} en sede ${sede}`,"ok");
-  loadTubos();
+  clearCache(`tubos_${sede}`);
+  loadTubos(true);
 }
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -2581,17 +2712,24 @@ let _consState={page:1,perPage:50,query:"",mes:"",op:"",material:"",solo:""};
 let _consCache=[];
 let _consMatList=[]; // nombres únicos de material para autocompletar
 
-async function loadConsumos(){
+async function loadConsumos(forceReload=false){
   const perm=PERMISOS[CU.rol];
   document.getElementById("btnNuevoCons").style.display=perm.editarConsumos?"inline-flex":"none";
   document.getElementById("btnImportCons").style.display=perm.editarConsumos?"inline-flex":"none";
-  // Default mes a mes actual si vacío
   if(!document.getElementById("consMes").value){
     const d=new Date();
     document.getElementById("consMes").value=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
   }
+  if(!forceReload){
+    const cached=getCached("consumos");
+    if(cached){
+      _consCache=cached.data;_consMatList=cached.mats;
+      document.getElementById("consMatList").innerHTML=_consMatList.map(m=>`<option value="${m.replace(/"/g,"&quot;")}"></option>`).join("");
+      renderConsumos();return;
+    }
+  }
   document.getElementById("cons-tbody").innerHTML=`<tr><td colspan="11" class="no-data"><div class="loading"><div class="spinner"></div>Cargando consumos...</div></td></tr>`;
-  showLoading(true);
+  showLoading(true,"Cargando consumos...","Registro diario de material");
   let all=[];
   for(let from=0;;from+=1000){
     const {data,error}=await sb.from("consumos_ops").select("*").order("fecha",{ascending:false}).range(from,from+999);
@@ -2602,9 +2740,9 @@ async function loadConsumos(){
   }
   showLoading(false);
   _consCache=all;
-  // Construir lista única de materiales
   const set=new Set(all.map(c=>c.material).filter(Boolean));
   _consMatList=[...set].sort();
+  setCached("consumos",{data:all,mats:_consMatList});
   document.getElementById("consMatList").innerHTML=_consMatList.map(m=>`<option value="${m.replace(/"/g,"&quot;")}"></option>`).join("");
   renderConsumos();
 }
@@ -2668,16 +2806,16 @@ function renderConsumos(){
     const histo=c.es_historico;
     const rowStyle=merma?'background:#2e1a1a08':histo?'opacity:.7':'';
     return `<tr style="${rowStyle}">
-      <td style="font-size:11px;color:#b0b3cc">${c.fecha||""}</td>
-      <td style="font-family:monospace;color:#f0f0f5">${c.op||""}</td>
-      <td style="color:#c8cce0">${c.material||""}${histo?' <span style="font-size:9px;color:#7a7d99">(hist)</span>':''}</td>
+      <td style="font-size:11px;color:#b0b3cc">${esc(c.fecha)}</td>
+      <td style="font-family:monospace;color:#f0f0f5">${esc(c.op)}</td>
+      <td style="color:#c8cce0">${esc(c.material)}${histo?' <span style="font-size:9px;color:#7a7d99">(hist)</span>':''}</td>
       <td style="text-align:right;color:#7a7d99;font-size:11px">${c.di??""}</td>
       <td style="text-align:right;color:#7a7d99;font-size:11px">${c.de??""}</td>
       <td style="text-align:right;color:#7a7d99;font-size:11px">${c.largo??""}</td>
       <td style="text-align:right;color:#5b9bd5;font-weight:500">${c.enviado??""}</td>
       <td style="text-align:right;color:${c.devuelto!=null?'#4caf8c':'#5a5e7a'}">${c.devuelto??"—"}</td>
       <td style="text-align:right;color:${c.consumido>0?'#f5a623':'#7a7d99'};font-weight:500">${c.consumido??""}</td>
-      <td style="font-size:10px;color:${merma?'#e85a5a':'#7a7d99'}">${merma?`<i class="ti ti-trash-x"></i> MERMA${c.motivo_merma?`: ${c.motivo_merma}`:''}`:(c.observaciones||"")}</td>
+      <td style="font-size:10px;color:${merma?'#e85a5a':'#7a7d99'}">${merma?`<i class="ti ti-trash-x"></i> MERMA${c.motivo_merma?`: ${esc(c.motivo_merma)}`:''}`:esc(c.observaciones)}</td>
       <td style="white-space:nowrap">
         ${perm.editarConsumos&&!histo&&!merma?`
           ${isOpen?`<button class="btn btn-green" style="padding:3px 7px;font-size:10px" onclick="openModalConsumo(${c.id})" title="Cerrar (DEVUELTO)"><i class="ti ti-arrow-back-up"></i></button>`:""}
@@ -2764,13 +2902,9 @@ async function openModalConsumo(id=null){
   document.getElementById("co_cliente").value=c?.cliente_nombre||"";
   onTipoOpChange();
 
-  // Llenar autocomplete de clientes
-  if(_clientesCache.length===0){
-    const {data}=await sb.from("clientes").select("nombre").eq("estado","activo").limit(1000);
-    document.getElementById("consClientesList").innerHTML=(data||[]).map(c=>`<option value="${(c.nombre||"").replace(/"/g,"&quot;")}"></option>`).join("");
-  }else{
-    document.getElementById("consClientesList").innerHTML=_clientesCache.filter(c=>c.ind_cli||c.estado==="activo").map(c=>`<option value="${(c.nombre||"").replace(/"/g,"&quot;")}"></option>`).join("");
-  }
+  // Llenar autocomplete de clientes con la lista COMPLETA (todos los activos, ~5832)
+  const clientesAll=await getClientesList();
+  document.getElementById("consClientesList").innerHTML=clientesAll.map(c=>`<option value="${escAttr(c.nombre)}"></option>`).join("");
 
   // Reset líneas y pre-llenar
   document.getElementById("co_lineas").innerHTML="";
@@ -2793,31 +2927,128 @@ async function openModalConsumo(id=null){
 function addConsumoLine(prefill=null){
   const cont=document.getElementById("co_lineas");
   const idx=cont.children.length;
+  const isEdit=!!(prefill&&prefill.id); // edición de un registro existente
   const div=document.createElement("div");
   div.className="card";
   div.style.cssText="padding:10px 12px;margin:0;background:#1a1d26;border:.5px solid #2e3042;position:relative";
   div.dataset.idx=idx;
+  div.dataset.isEdit=isEdit?"1":"";
+
+  if(isEdit){
+    // ─── MODO EDICIÓN: tubo y medidas LOCKED ─────────────────────────────
+    // El usuario ya eligió el tubo en el registro original. Aquí solo puede
+    // ajustar DEVUELTO (para que esos mm vuelvan al stock), observaciones,
+    // y la sugerencia de material óptimo.
+    div.innerHTML=`
+      <div style="position:absolute;top:8px;right:8px">
+        <span style="font-size:10px;color:#5a5e7a;padding:3px 8px;background:#111318;border-radius:10px">#${idx+1}</span>
+      </div>
+      <div style="font-size:10px;color:#7a7d99;text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px">Línea ${idx+1} — Editar DEVUELTO</div>
+
+      <!-- Tarjeta de información del tubo (READONLY) -->
+      <div style="background:#111318;border:.5px solid #2e3042;border-radius:8px;padding:10px 12px;margin-bottom:10px;font-size:12px">
+        <div style="font-size:10px;color:#7a7d99;text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px">Tubo asignado</div>
+        <div style="color:#f0f0f5;font-weight:500" id="lockedTuboLabel_${idx}">Cargando...</div>
+        <div style="font-size:11px;color:#7a7d99;margin-top:2px">
+          DI ${prefill.di??"?"} · DE ${prefill.de??"?"} · L ${prefill.largo??"?"}mm · Material: <strong style="color:#c8cce0">${esc(prefill.material||"?")}</strong>
+        </div>
+        <div style="font-size:11px;color:#5b9bd5;margin-top:4px">
+          <i class="ti ti-arrow-up"></i> ENVIADO: <strong>${prefill.enviado??0}mm</strong> (no editable)
+        </div>
+      </div>
+
+      <div class="form-row" style="margin-bottom:6px">
+        <div class="form-group" style="margin:0">
+          <label class="form-label">DEVUELTO (mm) <span style="color:#4caf8c;font-weight:normal;font-size:10px">— al ingresar este valor, esos mm vuelven al stock</span></label>
+          <input class="form-input cl-devuelto" type="number" min="0" placeholder="Ej: 120" oninput="updateConsumoResumen()">
+        </div>
+      </div>
+      <div class="form-row" style="margin-bottom:0">
+        <div class="form-group" style="margin:0">
+          <label class="form-label">Observaciones</label>
+          <input class="form-input cl-observ" placeholder="MERMA, normal, etc.">
+        </div>
+        <div class="form-group" style="margin:0">
+          <label class="form-label">Material óptimo (sugerencia)</label>
+          <input class="form-input cl-optimo" placeholder="Opcional">
+        </div>
+      </div>
+
+      <!-- Inputs ocultos: mantienen las medidas, material, enviado y tubo originales -->
+      <input type="hidden" class="cl-di" value="${prefill.di??""}">
+      <input type="hidden" class="cl-de" value="${prefill.de??""}">
+      <input type="hidden" class="cl-largo" value="${prefill.largo??""}">
+      <input type="hidden" class="cl-material" value="${escAttr(prefill.material||"")}">
+      <input type="hidden" class="cl-enviado" value="${prefill.enviado??0}">
+      <input type="hidden" class="cl-tubo" value="${prefill.tubo_id||""}">
+    `;
+    cont.appendChild(div);
+    div.querySelector(".cl-devuelto").value=prefill.devuelto??"";
+    div.querySelector(".cl-observ").value=prefill.observaciones||"";
+    div.querySelector(".cl-optimo").value=prefill.material_optimo||"";
+    div.dataset.enviadoOrig=prefill.enviado||0;
+    div.dataset.devueltoOrig=prefill.devuelto??"";
+    div.dataset.tuboInstIdOrig=prefill.tubo_instancia_id||"";
+    div.dataset.instId=prefill.tubo_instancia_id||"";
+
+    // Cargar el label del tubo desde el cache de tubos (o consulta directa si no está)
+    (async()=>{
+      const lbl=document.getElementById(`lockedTuboLabel_${idx}`);if(!lbl) return;
+      let tubo=null;
+      for(const mat of Object.keys(_consMatTuboCache?.byMaterial||{})){
+        const g=_consMatTuboCache.byMaterial[mat].find(g=>g.tubo.id===prefill.tubo_id);
+        if(g){tubo=g.tubo;break;}
+      }
+      if(!tubo){
+        const {data}=await sb.from("tubos").select("descripcion,codigo_mat,altura_total").eq("id",prefill.tubo_id).maybeSingle();
+        tubo=data;
+      }
+      lbl.innerHTML=tubo?esc(tubo.descripcion||"")+(tubo.codigo_mat?` <span style="color:#7a7d99;font-size:10px;font-family:monospace">(${esc(tubo.codigo_mat)})</span>`:""):"Tubo no encontrado en cache";
+    })();
+    updateConsumoResumen();
+    return;
+  }
+
+  // ─── MODO NUEVO REGISTRO: flujo completo (medidas → tubo) ───────────────
   div.innerHTML=`
     <div style="position:absolute;top:8px;right:8px;display:flex;gap:4px">
       <span style="font-size:10px;color:#5a5e7a;padding:3px 8px;background:#111318;border-radius:10px">#${idx+1}</span>
       <button class="btn btn-ghost" style="padding:2px 6px;font-size:10px;color:#e85a5a" onclick="removeConsumoLine(this)" title="Eliminar"><i class="ti ti-trash"></i></button>
     </div>
-    <div style="font-size:10px;color:#7a7d99;text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px">Línea ${idx+1}</div>
+    <div style="font-size:10px;color:#7a7d99;text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px">Línea ${idx+1} — ingresa medidas, luego elige el tubo disponible</div>
+
     <div class="form-row-3" style="margin-bottom:6px">
       <div class="form-group" style="margin:0">
-        <label class="form-label">Material <span class="req">*</span></label>
-        <select class="form-input cl-material" onchange="onLineMaterialChange(this)"></select>
+        <label class="form-label">DI (mm) <span class="req">*</span></label>
+        <input class="form-input cl-di" type="number" min="0" placeholder="0" oninput="onLineMedidaChange(this)">
       </div>
-      <div class="form-group" style="margin:0;grid-column:span 2">
-        <label class="form-label">Tubo específico <span class="req">*</span></label>
-        <select class="form-input cl-tubo" onchange="onLineTuboChange(this)" disabled><option value="">— Primero elige material —</option></select>
+      <div class="form-group" style="margin:0">
+        <label class="form-label">DE (mm) <span class="req">*</span></label>
+        <input class="form-input cl-de" type="number" min="0" placeholder="25" oninput="onLineMedidaChange(this)">
+      </div>
+      <div class="form-group" style="margin:0">
+        <label class="form-label">LARGO (mm) <span class="req">*</span></label>
+        <input class="form-input cl-largo" type="number" min="1" placeholder="150" oninput="onLineMedidaChange(this)">
       </div>
     </div>
+
+    <div class="form-group" style="margin-bottom:6px">
+      <label class="form-label">Tubo disponible <span class="req">*</span></label>
+      <select class="form-input cl-tubo" onchange="onLineTuboChange(this)" disabled>
+        <option value="">— Ingresa DI, DE y LARGO primero —</option>
+      </select>
+      <div class="cl-tubo-info" style="font-size:10px;color:#5a5e7a;margin-top:3px"></div>
+    </div>
+
+    <div class="form-group" style="margin-bottom:6px">
+      <label class="form-label">Material (auto al elegir tubo)</label>
+      <input class="form-input cl-material" placeholder="Se llenará automáticamente">
+    </div>
+
     <div class="form-row" style="margin-bottom:6px">
       <div class="form-group" style="margin:0">
         <label class="form-label">ENVIADO (mm) <span class="req">*</span></label>
         <input class="form-input cl-enviado" type="number" min="0" placeholder="50" oninput="updateConsumoResumen()">
-        <div class="cl-tubo-info" style="font-size:10px;color:#5a5e7a;margin-top:3px"></div>
       </div>
       <div class="form-group" style="margin:0">
         <label class="form-label">DEVUELTO (mm)</label>
@@ -2836,36 +3067,70 @@ function addConsumoLine(prefill=null){
     </div>
   `;
   cont.appendChild(div);
-
-  // Llenar dropdown de materiales
-  const matSel=div.querySelector(".cl-material");
-  const mats=Object.keys(_consMatTuboCache?.byMaterial||{}).sort();
-  matSel.innerHTML=`<option value="">— Selecciona material —</option>`+mats.map(m=>{
-    const totalTubos=_consMatTuboCache.byMaterial[m].length;
-    const totalInst=_consMatTuboCache.byMaterial[m].reduce((a,g)=>a+g.instancias.length,0);
-    return `<option value="${m}">${m} (${totalTubos} medida${totalTubos>1?"s":""} · ${totalInst} tubo${totalInst>1?"s":""})</option>`;
-  }).join("");
-
-  if(prefill){
-    // Modo edición — pre-llenar
-    const mat=parseMaterial(prefill.material||"");
-    matSel.value=mat;
-    onLineMaterialChange(matSel);
-    const tuboSel=div.querySelector(".cl-tubo");
-    if(prefill.tubo_id){
-      tuboSel.value=prefill.tubo_id;
-      onLineTuboChange(tuboSel);
-    }
-    div.querySelector(".cl-enviado").value=prefill.enviado??"";
-    div.querySelector(".cl-devuelto").value=prefill.devuelto??"";
-    div.querySelector(".cl-observ").value=prefill.observaciones||"";
-    div.querySelector(".cl-optimo").value=prefill.material_optimo||"";
-    // Guardar valores originales para calcular delta al actualizar stock
-    div.dataset.enviadoOrig=prefill.enviado||0;
-    div.dataset.devueltoOrig=prefill.devuelto??"";
-    div.dataset.tuboInstIdOrig=prefill.tubo_instancia_id||"";
-  }
   updateConsumoResumen();
+}
+
+// Nueva función: cuando cambian DI/DE/LARGO, buscar tubos disponibles con esas medidas
+function onLineMedidaChange(inp){
+  const card=inp.closest(".card");
+  const di=parseFloat(card.querySelector(".cl-di").value);
+  const de=parseFloat(card.querySelector(".cl-de").value);
+  const largo=parseFloat(card.querySelector(".cl-largo").value);
+  const tuboSel=card.querySelector(".cl-tubo");
+  const info=card.querySelector(".cl-tubo-info");
+
+  // Si faltan medidas, deshabilitar el dropdown
+  if(isNaN(di)||isNaN(de)||isNaN(largo)){
+    tuboSel.disabled=true;
+    tuboSel.innerHTML=`<option value="">— Ingresa DI, DE y LARGO primero —</option>`;
+    info.innerHTML="";
+    return;
+  }
+
+  // Buscar TODAS las instancias físicas disponibles que matcheen las 3 medidas (en cualquier material)
+  // Cada instancia se lista por separado (T1, T2, T3...) con sus mm restantes, para que el usuario elija de cuál descontar
+  const matches=[];
+  for(const mat of Object.keys(_consMatTuboCache?.byMaterial||{})){
+    for(const grupo of _consMatTuboCache.byMaterial[mat]){
+      const med=parseMedidas(grupo.tubo.descripcion);
+      const matchDi=med.di===di||grupo.tubo.di===di;
+      const matchDe=med.de===de||grupo.tubo.de===de;
+      const matchLargo=(med.lon===largo)||(grupo.tubo.altura_total===largo);
+      if(matchDi&&matchDe&&matchLargo){
+        // Expandir cada instancia física como una opción individual
+        grupo.instancias.forEach((inst,idx)=>{
+          const mmRest=Math.max(0,(grupo.tubo.altura_total||0)-(inst.altura_usada||0));
+          matches.push({
+            material:mat,
+            tuboId:grupo.tubo.id,
+            instId:inst.id,
+            instIdx:idx+1, // T1, T2, T3
+            mmRest,
+            descripcion:grupo.tubo.descripcion,
+            instancia:inst,
+            tubo:grupo.tubo
+          });
+        });
+      }
+    }
+  }
+
+  if(!matches.length){
+    tuboSel.disabled=true;
+    tuboSel.innerHTML=`<option value="">— Sin tubos disponibles con esas medidas —</option>`;
+    info.innerHTML=`<span style="color:#e85a5a"><i class="ti ti-alert-circle"></i> No hay tubos en stock con DI ${di} · DE ${de} · L ${largo}</span>`;
+    return;
+  }
+
+  // Ordenar: por material, luego por mm restantes descendente (los más llenos primero)
+  matches.sort((a,b)=>a.material.localeCompare(b.material)||b.mmRest-a.mmRest);
+
+  tuboSel.disabled=false;
+  tuboSel.innerHTML=`<option value="">— Elige tubo físico (${matches.length} disponible${matches.length>1?"s":""}) —</option>`+matches.map(m=>{
+    // Valor compuesto tuboId:instId — el saveConsumo lo parsea
+    return `<option value="${m.tuboId}:${m.instId}" data-material="${escAttr(m.material)}">${esc(m.descripcion)} · T${m.instIdx} · ${m.mmRest}mm restantes</option>`;
+  }).join("");
+  info.innerHTML=`<span style="color:#4caf8c"><i class="ti ti-check"></i> ${matches.length} tubo${matches.length>1?"s":""} físico${matches.length>1?"s":""} disponible${matches.length>1?"s":""} con esas medidas</span>`;
 }
 
 function removeConsumoLine(btn){
@@ -2882,39 +3147,35 @@ function removeConsumoLine(btn){
   updateConsumoResumen();
 }
 
-function onLineMaterialChange(sel){
-  const card=sel.closest(".card");
-  const tuboSel=card.querySelector(".cl-tubo");
-  const mat=sel.value;
-  if(!mat){
-    tuboSel.innerHTML=`<option value="">— Primero elige material —</option>`;
-    tuboSel.disabled=true;
-    card.querySelector(".cl-tubo-info").innerHTML="";
-    return;
-  }
-  const grupos=_consMatTuboCache.byMaterial[mat]||[];
-  tuboSel.disabled=false;
-  tuboSel.innerHTML=`<option value="">— Selecciona tubo específico —</option>`+grupos.map(g=>{
-    const med=parseMedidas(g.tubo.descripcion);
-    const medStr=med.di!=null?`DI ${med.di}·DE ${med.de}·L ${med.lon}`:`${g.tubo.altura_total}mm`;
-    const totalMm=g.instancias.reduce((a,i)=>a+Math.max(0,(g.tubo.altura_total||0)-(i.altura_usada||0)),0);
-    return `<option value="${g.tubo.id}">${g.tubo.descripcion} · ${medStr} · ${g.instancias.length} disp · ${totalMm}mm total</option>`;
-  }).join("");
-  card.querySelector(".cl-tubo-info").innerHTML="";
-}
-
 function onLineTuboChange(sel){
   const card=sel.closest(".card");
-  const tuboId=parseInt(sel.value);
-  if(!tuboId){card.querySelector(".cl-tubo-info").innerHTML="";return;}
-  const matSel=card.querySelector(".cl-material");
-  const mat=matSel.value;
-  const grupo=(_consMatTuboCache.byMaterial[mat]||[]).find(g=>g.tubo.id===tuboId);
-  if(!grupo){card.querySelector(".cl-tubo-info").innerHTML="";return;}
-  // Tomar primera instancia disponible y mostrar info
-  const inst=grupo.instancias[0];
-  const mmRest=(grupo.tubo.altura_total||0)-(inst.altura_usada||0);
-  card.querySelector(".cl-tubo-info").innerHTML=`<span style="color:#4caf8c"><i class="ti ti-check"></i> Se descontará de T1 · ${mmRest}mm disponibles</span>`;
+  const val=sel.value;
+  if(!val){
+    card.querySelector(".cl-tubo-info").innerHTML="";
+    card.dataset.instId="";
+    return;
+  }
+  // El value tiene formato "tuboId:instId"
+  const [tuboIdStr,instIdStr]=val.split(":");
+  const tuboId=parseInt(tuboIdStr);
+  const instId=parseInt(instIdStr);
+  // Buscar el tubo y su material en el cache
+  let grupo=null,material=null,inst=null,instIdx=0;
+  for(const mat of Object.keys(_consMatTuboCache?.byMaterial||{})){
+    const g=_consMatTuboCache.byMaterial[mat].find(g=>g.tubo.id===tuboId);
+    if(g){
+      grupo=g;material=mat;
+      const idx=g.instancias.findIndex(i=>i.id===instId);
+      if(idx>=0){inst=g.instancias[idx];instIdx=idx+1;}
+      break;
+    }
+  }
+  if(!grupo||!inst){card.querySelector(".cl-tubo-info").innerHTML="";return;}
+  // Llenar el campo Material automáticamente (editable por el usuario después)
+  const matInp=card.querySelector(".cl-material");
+  if(matInp&&!matInp.value) matInp.value=material;
+  const mmRest=Math.max(0,(grupo.tubo.altura_total||0)-(inst.altura_usada||0));
+  card.querySelector(".cl-tubo-info").innerHTML=`<span style="color:#4caf8c"><i class="ti ti-check"></i> ${esc(material)} · Se descontará del tubo <strong>T${instIdx}</strong> · ${mmRest}mm disponibles</span>`;
   card.dataset.instId=inst.id;
 }
 
@@ -2953,10 +3214,12 @@ async function saveConsumo(){
 
   const lineas=[];
   for(const card of cards){
-    const matSel=card.querySelector(".cl-material");
     const tuboSel=card.querySelector(".cl-tubo");
-    const material=matSel.value;
     const tuboId=parseInt(tuboSel.value);
+    const di=parseFloat(card.querySelector(".cl-di").value);
+    const de=parseFloat(card.querySelector(".cl-de").value);
+    const largo=parseFloat(card.querySelector(".cl-largo").value);
+    const material=card.querySelector(".cl-material").value.trim();
     const enviado=parseFloat(card.querySelector(".cl-enviado").value);
     const devVal=card.querySelector(".cl-devuelto").value.trim();
     const devuelto=devVal===""?null:parseFloat(devVal);
@@ -2964,22 +3227,26 @@ async function saveConsumo(){
     const optimo=card.querySelector(".cl-optimo").value.trim();
     const instId=parseInt(card.dataset.instId)||null;
 
-    if(!material||!tuboId){toast(`Línea ${lineas.length+1}: falta material o tubo`,"err");return;}
+    if(!tuboId){toast(`Línea ${lineas.length+1}: ingresa medidas y elige un tubo`,"err");return;}
+    if(isNaN(di)||isNaN(de)||isNaN(largo)){toast(`Línea ${lineas.length+1}: medidas incompletas`,"err");return;}
     if(isNaN(enviado)||enviado<=0){toast(`Línea ${lineas.length+1}: ENVIADO inválido`,"err");return;}
     if(devuelto!=null&&devuelto>enviado){toast(`Línea ${lineas.length+1}: DEVUELTO > ENVIADO`,"err");return;}
 
-    const grupo=(_consMatTuboCache.byMaterial[material]||[]).find(g=>g.tubo.id===tuboId);
+    // Buscar grupo en cualquier material (el tubo es la clave única)
+    let grupo=null,materialDetectado=null;
+    for(const mat of Object.keys(_consMatTuboCache?.byMaterial||{})){
+      const g=_consMatTuboCache.byMaterial[mat].find(g=>g.tubo.id===tuboId);
+      if(g){grupo=g;materialDetectado=mat;break;}
+    }
     if(!grupo){toast(`Línea ${lineas.length+1}: tubo no encontrado en cache`,"err");return;}
 
-    const med=parseMedidas(grupo.tubo.descripcion);
     lineas.push({
       tuboId, instId,
       tubo: grupo.tubo,
       instancia: grupo.instancias.find(i=>i.id===instId)||grupo.instancias[0],
-      material,
-      di: med.di, de: med.de, largo: grupo.tubo.altura_total||med.lon,
+      material: material||materialDetectado,
+      di, de, largo,
       enviado, devuelto, observaciones: observ||null, material_optimo: optimo||null,
-      // valores originales si edita
       enviadoOrig: parseFloat(card.dataset.enviadoOrig)||0,
       devueltoOrig: card.dataset.devueltoOrig===""?null:(parseFloat(card.dataset.devueltoOrig)||0),
       tuboInstIdOrig: parseInt(card.dataset.tuboInstIdOrig)||null,
@@ -3050,7 +3317,7 @@ async function saveConsumo(){
     closeModal("modalConsumo");
     toast(`✓ ${okCount} consumo${okCount>1?"s":""} guardado${okCount>1?"s":""}${errors.length?` · ${errors.length} con error`:""}`,"ok");
     if(errors.length) console.warn("[Consumos] Errores:",errors);
-    loadConsumos();
+    clearCache("consumos");loadConsumos(true);
   }else{
     toast(`Error: ${errors[0]||"falló el guardado"}`,"err");
   }
@@ -3063,7 +3330,7 @@ function openMermaModal(consumoId){
   document.getElementById("mer_tubo_id").value=c.tubo_id||"";
   document.getElementById("mer_motivo").value=c.observaciones&&c.observaciones.toUpperCase().includes("MERMA")?c.observaciones:"";
   document.getElementById("mermaInfo").innerHTML=`
-    <div><strong style="color:#f0f0f5">OP ${c.op}</strong> · ${c.material}</div>
+    <div><strong style="color:#f0f0f5">OP ${esc(c.op)}</strong> · ${esc(c.material)}</div>
     <div style="font-size:11px;margin-top:4px">DI ${c.di} · DE ${c.de} · L ${c.largo}mm</div>
     <div style="font-size:11px;color:#7a7d99;margin-top:2px">Enviado: ${c.enviado}mm · Devuelto: ${c.devuelto??"—"}mm</div>`;
   document.getElementById("modalMerma").style.display="flex";
@@ -3094,7 +3361,7 @@ async function confirmMerma(){
   setBtnLoading("btnConfirmMerma",false);
   closeModal("modalMerma");
   toast("✓ MERMA registrada. Tubo eliminado del stock.","ok");
-  loadConsumos();
+  clearCache("consumos");loadConsumos(true);
 }
 
 // ── IMPORTAR HISTÓRICO EXCEL ─────────────────────────────────────────────────
@@ -3174,7 +3441,7 @@ async function importConsumosExcel(e){
       prog.innerHTML=`<div class="progress-info done"><span>✓ ${ok} registros históricos${err2?` · ${err2} con errores`:""}</span><span>100%</span></div><div class="progress-bar"><div class="progress-bar-fill" style="width:100%;background:#4caf8c"></div></div>${firstErr?`<div style="color:#e85a5a;font-size:11px;margin-top:4px">${firstErr}</div>`:""}`;
       toast(`✓ ${ok} consumos históricos cargados`,ok>0?"ok":"err");
       e.target.value="";
-      loadConsumos();
+      clearCache("consumos");loadConsumos(true);
     }catch(err){console.error(err);toast("Error: "+err.message,"err");prog.style.display="none";}
     showLoading(false);
   };
@@ -3187,11 +3454,15 @@ async function importConsumosExcel(e){
 let _mercState={page:1,perPage:30,query:"",cat:"",stock:""};
 let _mercCache=[];
 
-async function loadMercaderias(){
+async function loadMercaderias(forceReload=false){
   const perm=PERMISOS[CU.rol];
   document.getElementById("btnNuevoMerc").style.display=perm.editarMerc?"inline-flex":"none";
+  if(!forceReload){
+    const cached=getCached("mercaderias");
+    if(cached){_mercCache=cached;renderMercaderias();return;}
+  }
   document.getElementById("merc-tbody").innerHTML=`<tr><td colspan="8" class="no-data"><div class="loading"><div class="spinner"></div>Cargando mercaderías...</div></td></tr>`;
-  showLoading(true);
+  showLoading(true,"Cargando mercaderías...","O-rings, wipers, etc.");
   let all=[];
   for(let from=0;;from+=1000){
     const {data,error}=await sb.from("mercaderias").select("*").order("nombre").range(from,from+999);
@@ -3202,6 +3473,7 @@ async function loadMercaderias(){
   }
   showLoading(false);
   _mercCache=all;
+  setCached("mercaderias",all);
   renderMercaderias();
 }
 
@@ -3258,18 +3530,18 @@ function renderMercaderias(){
     const med=[m.di,m.de,m.grosor].filter(x=>x!=null).join(" × ")||"—";
     const colorStock=m.stock_actual<=0?"#e85a5a":m.stock_actual<(m.stock_minimo||0)?"#f5a623":"#4caf8c";
     return `<tr>
-      <td style="font-family:monospace;font-size:10px;color:#7a7d99">${m.codigo}</td>
-      <td><div style="color:#f0f0f5;font-weight:500">${m.nombre}</div>${m.material?`<div style="font-size:10px;color:#5a5e7a">${m.material}${m.dureza?` · ${m.dureza}`:""}</div>`:""}</td>
+      <td style="font-family:monospace;font-size:10px;color:#7a7d99">${esc(m.codigo)}</td>
+      <td><div style="color:#f0f0f5;font-weight:500">${esc(m.nombre)}</div>${m.material?`<div style="font-size:10px;color:#5a5e7a">${esc(m.material)}${m.dureza?` · ${esc(m.dureza)}`:""}</div>`:""}</td>
       <td>${catBadge(m.categoria)}</td>
       <td style="color:#b0b3cc;font-size:10px">${med}</td>
-      <td style="text-align:right"><span style="color:${colorStock};font-weight:600">${m.stock_actual}</span><span style="color:#5a5e7a;font-size:10px"> ${m.unidad||""}</span>${(m.stock_minimo||0)>0?`<div style="font-size:9px;color:#5a5e7a">mín ${m.stock_minimo}</div>`:""}</td>
-      <td style="text-align:right;color:#c8cce0">${m.precio_unitario!=null?`${m.precio_unitario} <span style="font-size:9px;color:#5a5e7a">${m.moneda||""}</span>`:"—"}</td>
-      <td style="font-size:10px;color:#7a7d99">${m.ubicacion||"—"}</td>
+      <td style="text-align:right"><span style="color:${colorStock};font-weight:600">${m.stock_actual}</span><span style="color:#5a5e7a;font-size:10px"> ${esc(m.unidad)}</span>${(m.stock_minimo||0)>0?`<div style="font-size:9px;color:#5a5e7a">mín ${m.stock_minimo}</div>`:""}</td>
+      <td style="text-align:right;color:#c8cce0">${m.precio_unitario!=null?`${m.precio_unitario} <span style="font-size:9px;color:#5a5e7a">${esc(m.moneda)}</span>`:"—"}</td>
+      <td style="font-size:10px;color:#7a7d99">${esc(m.ubicacion)||"—"}</td>
       <td style="white-space:nowrap">
         ${perm.editarMerc?`<button class="btn btn-green" style="padding:3px 7px;font-size:10px" onclick="openMercMov(${m.id},'entrada')" title="Entrada"><i class="ti ti-arrow-down"></i></button>
         <button class="btn btn-amber" style="padding:3px 7px;font-size:10px" onclick="openMercMov(${m.id},'salida')" title="Salida"><i class="ti ti-arrow-up"></i></button>
         <button class="btn btn-ghost" style="padding:3px 7px;font-size:10px" onclick="openModalMerc(${m.id})" title="Editar"><i class="ti ti-edit"></i></button>`:`<button class="btn btn-ghost" style="padding:3px 7px;font-size:10px" onclick="openModalMerc(${m.id})"><i class="ti ti-eye"></i></button>`}
-        <button class="btn btn-blue" style="padding:3px 7px;font-size:10px" onclick="openHistorial('merc',${m.id},'${(m.nombre||'').replace(/'/g,"\\'")}','${m.codigo}')" title="Historial"><i class="ti ti-history"></i></button>
+        <button class="btn btn-blue" style="padding:3px 7px;font-size:10px" onclick="openHistorial('merc',${m.id})" title="Historial"><i class="ti ti-history"></i></button>
       </td>
     </tr>`;
   }).join(""):`<tr><td colspan="8" class="no-data">Sin resultados</td></tr>`;
@@ -3349,7 +3621,7 @@ async function saveMerc(){
   if(res.error){toast("Error: "+res.error.message,"err");return;}
   closeModal("modalMerc");
   toast("✓ Producto guardado","ok");
-  loadMercaderias();
+  clearCache("mercaderias");loadMercaderias(true);
 }
 
 function openMercMov(id,tipo){
@@ -3357,7 +3629,7 @@ function openMercMov(id,tipo){
   document.getElementById("modalMercMovTitle").textContent=tipo==="entrada"?"Entrada de mercadería":"Salida de mercadería";
   document.getElementById("modalMercMovIcon").className=tipo==="entrada"?"ti ti-arrow-down":"ti ti-arrow-up";
   document.getElementById("modalMercMovIcon").style.color=tipo==="entrada"?"#4caf8c":"#f5a623";
-  document.getElementById("mercMovInfo").innerHTML=`<strong style="color:#f0f0f5">${m.nombre}</strong> <span style="color:#7a7d99">(${m.codigo})</span><br>Stock actual: <strong style="color:${m.stock_actual<=0?'#e85a5a':'#4caf8c'}">${m.stock_actual} ${m.unidad||""}</strong>`;
+  document.getElementById("mercMovInfo").innerHTML=`<strong style="color:#f0f0f5">${esc(m.nombre)}</strong> <span style="color:#7a7d99">(${esc(m.codigo)})</span><br>Stock actual: <strong style="color:${m.stock_actual<=0?'#e85a5a':'#4caf8c'}">${m.stock_actual} ${esc(m.unidad)}</strong>`;
   document.getElementById("mm_id").value=id;
   document.getElementById("mm_tipo").value=tipo;
   document.getElementById("mm_cant").value="";
@@ -3401,7 +3673,7 @@ async function saveMercMov(){
   setBtnLoading("btnSaveMercMov",false);
   closeModal("modalMercMov");
   toast(`✓ ${tipo==="entrada"?"Entrada":"Salida"} registrada · stock: ${stockDespues}`,"ok");
-  loadMercaderias();
+  clearCache("mercaderias");loadMercaderias(true);
 }
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -3410,11 +3682,15 @@ async function saveMercMov(){
 let _almState={page:1,perPage:30,query:"",stock:""};
 let _almCache=[];
 
-async function loadAlmMecaniza(){
+async function loadAlmMecaniza(forceReload=false){
   const perm=PERMISOS[CU.rol];
   document.getElementById("btnNuevoAlm").style.display=perm.editarAlmMec?"inline-flex":"none";
+  if(!forceReload){
+    const cached=getCached("alm_mecaniza");
+    if(cached){_almCache=cached;renderAlmMecaniza();return;}
+  }
   document.getElementById("alm-tbody").innerHTML=`<tr><td colspan="8" class="no-data"><div class="loading"><div class="spinner"></div>Cargando...</div></td></tr>`;
-  showLoading(true);
+  showLoading(true,"Cargando productos...","Almacén Mecaniza");
   let all=[];
   for(let from=0;;from+=1000){
     const {data,error}=await sb.from("alm_mecaniza_productos").select("*").order("nombre").range(from,from+999);
@@ -3425,6 +3701,7 @@ async function loadAlmMecaniza(){
   }
   showLoading(false);
   _almCache=all;
+  setCached("alm_mecaniza",all);
   renderAlmMecaniza();
 }
 
@@ -3469,18 +3746,18 @@ function renderAlmMecaniza(){
   document.getElementById("alm-tbody").innerHTML=visible.length?visible.map(a=>{
     const colorStock=a.stock_actual<=0?"#e85a5a":a.stock_actual<(a.stock_minimo||0)?"#f5a623":"#4caf8c";
     return `<tr>
-      <td style="font-family:monospace;font-size:10px;color:#7a7d99">${a.codigo}</td>
-      <td><div style="color:#f0f0f5;font-weight:500">${a.nombre}</div>${a.descripcion?`<div style="font-size:10px;color:#5a5e7a">${a.descripcion}</div>`:""}</td>
-      <td style="color:#b0b3cc">${a.marca||"—"}</td>
+      <td style="font-family:monospace;font-size:10px;color:#7a7d99">${esc(a.codigo)}</td>
+      <td><div style="color:#f0f0f5;font-weight:500">${esc(a.nombre)}</div>${a.descripcion?`<div style="font-size:10px;color:#5a5e7a">${esc(a.descripcion)}</div>`:""}</td>
+      <td style="color:#b0b3cc">${esc(a.marca)||"—"}</td>
       <td style="text-align:right"><span style="color:${colorStock};font-weight:600">${a.stock_actual}</span>${(a.stock_minimo||0)>0?`<div style="font-size:9px;color:#5a5e7a">mín ${a.stock_minimo}</div>`:""}</td>
-      <td style="color:#7a7d99;font-size:10px">${a.unidad||""}</td>
-      <td style="text-align:right;color:#c8cce0">${a.precio_unitario!=null?`${a.precio_unitario} <span style="font-size:9px;color:#5a5e7a">${a.moneda||""}</span>`:"—"}</td>
-      <td style="font-size:10px;color:#7a7d99">${a.ubicacion||"—"}</td>
+      <td style="color:#7a7d99;font-size:10px">${esc(a.unidad)}</td>
+      <td style="text-align:right;color:#c8cce0">${a.precio_unitario!=null?`${a.precio_unitario} <span style="font-size:9px;color:#5a5e7a">${esc(a.moneda)}</span>`:"—"}</td>
+      <td style="font-size:10px;color:#7a7d99">${esc(a.ubicacion)||"—"}</td>
       <td style="white-space:nowrap">
         ${perm.editarAlmMec?`<button class="btn btn-green" style="padding:3px 7px;font-size:10px" onclick="openAlmMov(${a.id},'entrada')" title="Entrada"><i class="ti ti-arrow-down"></i></button>
         <button class="btn btn-amber" style="padding:3px 7px;font-size:10px" onclick="openAlmMov(${a.id},'salida')" title="Salida"><i class="ti ti-arrow-up"></i></button>
         <button class="btn btn-ghost" style="padding:3px 7px;font-size:10px" onclick="openModalAlm(${a.id})" title="Editar"><i class="ti ti-edit"></i></button>`:`<button class="btn btn-ghost" style="padding:3px 7px;font-size:10px" onclick="openModalAlm(${a.id})"><i class="ti ti-eye"></i></button>`}
-        <button class="btn btn-blue" style="padding:3px 7px;font-size:10px" onclick="openHistorial('alm',${a.id},'${(a.nombre||'').replace(/'/g,"\\'")}','${a.codigo}')" title="Historial"><i class="ti ti-history"></i></button>
+        <button class="btn btn-blue" style="padding:3px 7px;font-size:10px" onclick="openHistorial('alm',${a.id})" title="Historial"><i class="ti ti-history"></i></button>
       </td>
     </tr>`;
   }).join(""):`<tr><td colspan="8" class="no-data">Sin resultados</td></tr>`;
@@ -3548,7 +3825,7 @@ async function saveAlm(){
   if(res.error){toast("Error: "+res.error.message,"err");return;}
   closeModal("modalAlm");
   toast("✓ Producto guardado","ok");
-  loadAlmMecaniza();
+  clearCache("alm_mecaniza");loadAlmMecaniza(true);
 }
 
 function openAlmMov(id,tipo){
@@ -3556,7 +3833,7 @@ function openAlmMov(id,tipo){
   document.getElementById("modalAlmMovTitle").textContent=tipo==="entrada"?"Entrada — Almacén Mecaniza":"Salida — Almacén Mecaniza";
   document.getElementById("modalAlmMovIcon").className=tipo==="entrada"?"ti ti-arrow-down":"ti ti-arrow-up";
   document.getElementById("modalAlmMovIcon").style.color=tipo==="entrada"?"#4caf8c":"#f5a623";
-  document.getElementById("almMovInfo").innerHTML=`<strong style="color:#f0f0f5">${a.nombre}</strong> <span style="color:#7a7d99">(${a.codigo})</span><br>Stock actual: <strong style="color:${a.stock_actual<=0?'#e85a5a':'#4caf8c'}">${a.stock_actual} ${a.unidad||""}</strong>`;
+  document.getElementById("almMovInfo").innerHTML=`<strong style="color:#f0f0f5">${esc(a.nombre)}</strong> <span style="color:#7a7d99">(${esc(a.codigo)})</span><br>Stock actual: <strong style="color:${a.stock_actual<=0?'#e85a5a':'#4caf8c'}">${a.stock_actual} ${esc(a.unidad)}</strong>`;
   document.getElementById("am_id").value=id;
   document.getElementById("am_tipo").value=tipo;
   document.getElementById("am_cant").value="";
@@ -3600,7 +3877,7 @@ async function saveAlmMov(){
   setBtnLoading("btnSaveAlmMov",false);
   closeModal("modalAlmMov");
   toast(`✓ ${tipo==="entrada"?"Entrada":"Salida"} registrada · stock: ${stockDespues}`,"ok");
-  loadAlmMecaniza();
+  clearCache("alm_mecaniza");loadAlmMecaniza(true);
 }
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -3622,19 +3899,19 @@ async function loadUsuarios(){
     const ini=(u.nombre||u.username).split(" ").map(w=>w[0]).join("").substring(0,2).toUpperCase();
     const isSelf=u.id===CU.id;
     return `<div class="user-row">
-      <div class="user-avatar-sm" style="background:${color}">${ini}</div>
+      <div class="user-avatar-sm" style="background:${color}">${esc(ini)}</div>
       <div style="flex:1">
-        <div style="font-size:13px;font-weight:500;color:#f0f0f5">${u.nombre} <span style="color:#7a7d99;font-weight:400">@${u.username}</span></div>
+        <div style="font-size:13px;font-weight:500;color:#f0f0f5">${esc(u.nombre)} <span style="color:#7a7d99;font-weight:400">@${esc(u.username)}</span></div>
         <div style="font-size:11px;color:#7a7d99;margin-top:2px">
-          <span class="rol-badge" style="background:${color}22;color:${color};border:.5px solid ${color}44">${u.rol}</span>
+          <span class="rol-badge" style="background:${color}22;color:${color};border:.5px solid ${color}44">${esc(u.rol)}</span>
           ${u.must_change_password?'<span style="color:#f5a623;margin-left:6px"><i class="ti ti-key"></i> debe cambiar pw</span>':''}
           ${u.ultimo_acceso?`<span style="margin-left:6px">Último: ${new Date(u.ultimo_acceso).toLocaleDateString("es-PE")}</span>`:'<span style="margin-left:6px">Nunca ingresó</span>'}
         </div>
       </div>
       <div class="toggle ${u.activo?"on":""}" onclick="toggleUsuarioActivo('${u.id}',${!u.activo})" title="${u.activo?"Activo":"Inactivo"}"></div>
       <button class="btn btn-ghost" style="padding:4px 8px;font-size:10px" onclick="openModalUsuario('${u.id}')" title="Editar"><i class="ti ti-edit"></i></button>
-      <button class="btn btn-amber" style="padding:4px 8px;font-size:10px" onclick="openResetPw('${u.id}','${u.username}','${u.nombre}')" title="Resetear pw"><i class="ti ti-key"></i></button>
-      ${!isSelf?`<button class="btn btn-ghost" style="padding:4px 8px;font-size:10px;color:#e85a5a" onclick="deleteUsuario('${u.id}','${u.username}')" title="Eliminar"><i class="ti ti-trash"></i></button>`:""}
+      <button class="btn btn-amber" style="padding:4px 8px;font-size:10px" onclick="openResetPw('${u.id}')" title="Resetear pw"><i class="ti ti-key"></i></button>
+      ${!isSelf?`<button class="btn btn-ghost" style="padding:4px 8px;font-size:10px;color:#e85a5a" onclick="deleteUsuario('${u.id}')" title="Eliminar"><i class="ti ti-trash"></i></button>`:""}
     </div>`;
   }).join("");
 }
@@ -3728,10 +4005,14 @@ async function toggleUsuarioActivo(id,nuevo){
   loadUsuarios();
 }
 
-function openResetPw(id,username,nombre){
+async function openResetPw(id){
+  // Buscar usuario en BD (no en parámetro inline) para evitar inyección
+  const {data:u}=await sb.from("perfiles").select("username,nombre").eq("id",id).single();
+  const username=u?.username||"";
+  const nombre=u?.nombre||"";
   document.getElementById("rpw_user_id").value=id;
   document.getElementById("rpw_value").value="";
-  document.getElementById("resetPwInfo").innerHTML=`<strong style="color:#f0f0f5">${nombre}</strong> <span style="color:#7a7d99">(@${username})</span><br><div style="font-size:11px;color:#5a5e7a;margin-top:4px">Asigna una nueva contraseña temporal. El usuario deberá cambiarla en su próximo login.</div>`;
+  document.getElementById("resetPwInfo").innerHTML=`<strong style="color:#f0f0f5">${esc(nombre)}</strong> <span style="color:#7a7d99">(@${esc(username)})</span><br><div style="font-size:11px;color:#5a5e7a;margin-top:4px">Asigna una nueva contraseña temporal. El usuario deberá cambiarla en su próximo login.</div>`;
   document.getElementById("modalResetPw").style.display="flex";
 }
 function generateResetPw(){
@@ -3747,7 +4028,10 @@ async function confirmResetPw(){
   closeModal("modalResetPw");
 }
 
-async function deleteUsuario(id,username){
+async function deleteUsuario(id){
+  // Buscar username en BD (no en parámetro inline) para evitar inyección
+  const {data:u}=await sb.from("perfiles").select("username").eq("id",id).single();
+  const username=u?.username||"usuario";
   if(!confirm(`¿Eliminar usuario @${username}? Esta acción no se puede deshacer.`)) return;
   // Solo elimina el perfil; la cuenta auth permanece (requiere admin de Supabase para borrarla del todo)
   showLoading(true);
@@ -3938,41 +4222,84 @@ async function loadStockFile(e){
       }
       if(!rows.length){toast("Sin datos válidos","err");prog.style.display="none";showLoading(false);return;}
 
-      let ok=0,err2=0,sinAltura=0;
-      const total=rows.length;
-      for(let idx=0;idx<rows.length;idx++){
-        const row=rows[idx];
+      // ── PROCESAMIENTO BATCH (de 4400 queries a ~6) ──────────────────────
+      // 1) Limpiar y agrupar filas válidas por (descripcion, altura)
+      let sinAltura=0,sinDatos=0;
+      const filasValidas=[];
+      for(const row of rows){
         const desc=String(row["Descripcion"]||row["descripcion"]||row["DESCRIPCION"]||"").trim();
         const altura=parseFloat(row["Altura_mm"]||row["altura_mm"]||row["ALTURA_MM"]||row["Altura"]||0);
         const cant=parseInt(row["Cantidad"]||row["cantidad"]||row["CANTIDAD"]||0);
         const cod=String(row["Codigo"]||row["codigo"]||row["CODIGO"]||"").trim()||null;
-        if(!desc||cant<=0){err2++;continue;}
-        if(!altura){sinAltura++;err2++;continue;}
-        if(idx%20===0){
-          const pct=Math.round((idx/total)*100);
-          prog.innerHTML=`<div class="progress-info"><span>Procesando ${idx+1} de ${total}</span><span>${pct}%</span></div><div class="progress-bar"><div class="progress-bar-fill" style="width:${pct}%"></div></div>`;
-        }
-        let tuboId;
-        const {data:ex}=await sb.from("tubos").select("id").eq("descripcion",desc).eq("altura_total",altura).eq("sede","custom").maybeSingle();
-        if(ex){tuboId=ex.id;}
-        else{
-          const {data:nv,error}=await sb.from("tubos").insert({codigo_mat:cod,descripcion:desc,altura_total:altura,sede:"custom"}).select().single();
-          // (carga masiva por Excel siempre va a 'custom' por ahora; usa el botón "Nuevo material" dentro de cada sede para crear en mecaniza)
-          if(error){err2++;continue;}
-          tuboId=nv.id;
-        }
-        const insts=Array.from({length:cant},()=>({tubo_id:tuboId,altura_usada:0,estado:"disponible"}));
-        const {error:ei}=await sb.from("tubo_instancias").insert(insts);
-        if(ei){err2++;continue;}
-        await sb.from("movimientos").insert({tubo_id:tuboId,tipo:"entrada",cantidad:cant,usuario_id:CU?.id,nota:`Carga masiva: ${cant} tubos`});
-        ok++;
+        if(!desc||cant<=0){sinDatos++;continue;}
+        if(!altura){sinAltura++;continue;}
+        filasValidas.push({cod,desc,altura,cant});
       }
-      const okPct=100;
-      prog.innerHTML=`<div class="progress-info done"><span>✓ ${ok} tipos cargados${sinAltura?` · ${sinAltura} sin altura`:""}${err2-sinAltura>0?` · ${err2-sinAltura} con error`:""}</span><span>${okPct}%</span></div><div class="progress-bar"><div class="progress-bar-fill" style="width:100%;background:#4caf8c"></div></div>`;
-      toast(`✓ Stock: ${ok} tipos de tubo cargados`,ok>0?"ok":"err");
+      const total=filasValidas.length;
+      if(!total){
+        prog.innerHTML=`<div class="progress-info done" style="color:#e85a5a">Sin filas válidas. ${sinAltura} sin altura, ${sinDatos} sin datos.</div>`;
+        toast("Sin filas válidas para cargar","err");return;
+      }
+
+      // 2) BATCH 1 — UPSERT de todos los tubos por (descripcion, altura_total, sede)
+      // Como la unique key es (descripcion, altura_total, sede), Supabase puede upsert directo
+      prog.innerHTML=`<div class="progress-info"><span>Paso 1/3: registrando ${total} tipos de tubo...</span><span>20%</span></div><div class="progress-bar"><div class="progress-bar-fill" style="width:20%"></div></div>`;
+      const tuboPayloads=filasValidas.map(f=>({codigo_mat:f.cod,descripcion:f.desc,altura_total:f.altura,sede:"custom"}));
+      // Upsert en lotes de 500
+      let tubosCreados=[];
+      const CHUNK=500;
+      for(let i=0;i<tuboPayloads.length;i+=CHUNK){
+        const slice=tuboPayloads.slice(i,i+CHUNK);
+        const {data,error}=await sb.from("tubos").upsert(slice,{onConflict:"descripcion,altura_total,sede"}).select("id,descripcion,altura_total");
+        if(error){
+          prog.innerHTML=`<div class="progress-info done" style="color:#e85a5a">Error en paso 1: ${esc(error.message)}</div>`;
+          toast("Error: "+error.message,"err");return;
+        }
+        tubosCreados=tubosCreados.concat(data||[]);
+      }
+      // Mapa de (desc|altura) → tubo_id
+      const tuboMap={};
+      tubosCreados.forEach(t=>{tuboMap[`${t.descripcion}|${t.altura_total}`]=t.id;});
+
+      // 3) BATCH 2 — INSERT masivo de TODAS las instancias
+      prog.innerHTML=`<div class="progress-info"><span>Paso 2/3: creando tubos físicos...</span><span>50%</span></div><div class="progress-bar"><div class="progress-bar-fill" style="width:50%"></div></div>`;
+      const instPayloads=[];
+      const movPayloads=[];
+      let tuboIdsValidos=0;
+      for(const f of filasValidas){
+        const key=`${f.desc}|${f.altura}`;
+        const tuboId=tuboMap[key];
+        if(!tuboId) continue;
+        tuboIdsValidos++;
+        for(let k=0;k<f.cant;k++){
+          instPayloads.push({tubo_id:tuboId,altura_usada:0,estado:"disponible"});
+        }
+        movPayloads.push({tubo_id:tuboId,tipo:"entrada",cantidad:f.cant,usuario_id:CU?.id,nota:`Carga masiva: ${f.cant} tubos`});
+      }
+      // Insertar instancias en lotes de 1000
+      let instsOk=0,instsErr=0;
+      for(let i=0;i<instPayloads.length;i+=1000){
+        const slice=instPayloads.slice(i,i+1000);
+        const pct=50+Math.round((i/instPayloads.length)*30);
+        prog.innerHTML=`<div class="progress-info"><span>Paso 2/3: ${i+slice.length} de ${instPayloads.length} instancias...</span><span>${pct}%</span></div><div class="progress-bar"><div class="progress-bar-fill" style="width:${pct}%"></div></div>`;
+        const {error}=await sb.from("tubo_instancias").insert(slice);
+        if(error){instsErr+=slice.length;console.error("[Stock instancias]",error);}
+        else instsOk+=slice.length;
+      }
+
+      // 4) BATCH 3 — INSERT masivo de movimientos
+      prog.innerHTML=`<div class="progress-info"><span>Paso 3/3: registrando movimientos...</span><span>85%</span></div><div class="progress-bar"><div class="progress-bar-fill" style="width:85%"></div></div>`;
+      for(let i=0;i<movPayloads.length;i+=500){
+        const slice=movPayloads.slice(i,i+500);
+        await sb.from("movimientos").insert(slice);
+      }
+
+      // 5) Reporte final
+      prog.innerHTML=`<div class="progress-info done"><span>✓ ${tuboIdsValidos} tipos · ${instsOk} tubos físicos${instsErr?` · ${instsErr} con error`:""}${sinAltura?` · ${sinAltura} sin altura`:""}</span><span>100%</span></div><div class="progress-bar"><div class="progress-bar-fill" style="width:100%;background:#4caf8c"></div></div>`;
+      toast(`✓ Stock: ${tuboIdsValidos} tipos · ${instsOk} tubos físicos cargados`,tuboIdsValidos>0?"ok":"err");
+      clearCache("tubos_custom");clearCache("tubos_mecaniza");
       e.target.value="";
-    }catch(err){toast("Error: "+err.message,"err");prog.style.display="none";}
-    showLoading(false);
+    }catch(err){console.error(err);toast("Error: "+err.message,"err");prog.style.display="none";}
   };
   r.readAsArrayBuffer(f);
 }
