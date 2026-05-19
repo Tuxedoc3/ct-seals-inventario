@@ -1,7 +1,7 @@
 # CT Seals — Catálogo de Materiales
 
 Dashboard web para consulta y gestión del catálogo de materiales prima (MP) de sellos hidráulicos y neumáticos.  
-Desarrollado para **CT Seals Perú** · [ctseals.com](https://ctseals.com)
+Desarrollado para **CT Seals Perú** ·
 
 ---
 
@@ -52,14 +52,6 @@ ct-seals-inventario/
 
 ---
 
-## Cómo usar
-
-### Abrir localmente
-Descarga `index.html` y ábrelo en cualquier navegador moderno. No requiere servidor ni instalación.
-
-### GitHub Pages (en línea)
-El sitio se publica automáticamente desde la rama `main`.  
-URL: `https://Tuxedoc3.github.io/ct-seals-inventario/`
 
 ---
 
