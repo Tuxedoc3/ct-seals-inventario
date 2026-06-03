@@ -1578,9 +1578,12 @@ tbody tr:hover td{background:var(--bg-card-2)}
         <input class="form-input" id="t_desc" placeholder="Ej: PU U500 - 28/52/120">
       </div>
     </div>
-    <div class="form-row">
-      <div class="form-group"><label class="form-label">Altura (mm) <span class="req">*</span></label><input class="form-input" id="t_altura" type="number">(Sugerido por catálogo)</div>
-      <div class="form-group"><label class="form-label">Cantidad <span class="req">*</span></label><input class="form-input" id="t_cantidad" type="number" min="1"></div>
+    <input type="hidden" id="t_altura">
+    <div class="form-group">
+      <label class="form-label">Tubos a ingresar — puedes mezclar medidas <span class="req">*</span></label>
+      <div id="t_lotes" style="display:flex;flex-direction:column;gap:6px"></div>
+      <button class="btn btn-ghost" style="margin-top:6px;padding:4px 10px;font-size:11px" onclick="addTuboLote()"><i class="ti ti-plus"></i>Añadir otra medida</button>
+      <div style="font-size:10px;color:#5a5e7a;margin-top:4px">Cada fila: <strong>Altura (mm) × Cantidad</strong>. Ej.: 150×3 (enteros) y 130×1, 90×2 (retazos). Solo números enteros mayores a 0.</div>
     </div>
     <div class="form-group">
       <label class="form-label">Origen <span class="req">*</span></label>
@@ -3908,10 +3911,9 @@ function renderTubosResumen(){
     const mat=parseMaterial(t.descripcion);
     return {t,insts,disp,ago,mmRest,mmTot,med,mat};
   });
-  // Ocultar agotados (disp=0) por defecto, salvo que el usuario busque, filtre o marque "Mostrar agotados"
+  // Ocultar tubos sin stock (disp=0) SIEMPRE, salvo que se marque "Mostrar agotados".
   const verAgotados=document.getElementById("tubosVerAgotados")?.checked;
-  const hayFiltro=!!(q||fMat||_tubosState.fSubFam||_tubosState.fDi||_tubosState.fDe);
-  if(!verAgotados && !hayFiltro) resumen=resumen.filter(r=>r.disp>0);
+  if(!verAgotados) resumen=resumen.filter(r=>r.disp>0);
   if(q) resumen=resumen.filter(r=>(r.t.descripcion||"").toLowerCase().includes(q)||(r.t.codigo_mat||"").toLowerCase().includes(q));
   if(fMat) resumen=resumen.filter(r=>r.mat===fMat);
 
@@ -4087,7 +4089,7 @@ async function verDetalleTubo(tuboId){
           const esSeparado=inst.estado==="separado";
           const puedeSeparar=!esAgotado;
           // Etiqueta legible del estado (merma se muestra como AGOTADO; en_uso como USADO).
-          const estLabel=esAgotado?"AGOTADO":(inst.estado==="en_uso"?"USADO":esc(inst.estado));
+          const estLabel=esAgotado?"AGOTADO":(esSeparado?"SEPARADO":((inst.altura_usada||0)>0?"USADO (disponible)":"DISPONIBLE"));
           // Info de separación (fecha límite + motivo) si el tubo está separado.
           let sepInfo="";
           if(esSeparado){
@@ -4624,17 +4626,37 @@ async function onTuboMatSelect(){
     codIn.value=data.codigo_mat||"";
     descIn.value=data.descripcion||"";
     altIn.value=data.altura_total||"";
+    // Sugerir la altura del material en la primera fila de lotes
+    const firstAlt=document.querySelector("#t_lotes .t-lote-alt");
+    if(firstAlt&&!firstAlt.value) firstAlt.value=data.altura_total||"";
   }
+}
+
+// ── Lotes de tubos (varias medidas a la vez) ──
+function addTuboLote(altura="",cant=""){
+  const box=document.getElementById("t_lotes");if(!box)return;
+  const row=document.createElement("div");
+  row.className="t-lote-row";
+  row.style.cssText="display:flex;gap:6px;align-items:center";
+  row.innerHTML=`<input class="form-input t-lote-alt" type="number" min="1" step="1" inputmode="numeric" placeholder="Altura mm" value="${altura}" style="flex:1">
+    <span style="color:#7a7d99">×</span>
+    <input class="form-input t-lote-cant" type="number" min="1" step="1" inputmode="numeric" placeholder="Cant." value="${cant}" style="width:90px">
+    <button class="btn btn-ghost" style="padding:4px 8px;font-size:11px;color:#e85a5a" onclick="this.closest('.t-lote-row').remove()" title="Quitar medida"><i class="ti ti-x"></i></button>`;
+  box.appendChild(row);
+}
+function resetTuboLotes(prefAltura=""){
+  const box=document.getElementById("t_lotes");if(box) box.innerHTML="";
+  addTuboLote(prefAltura,"");
 }
 
 function openModalTubo(){
   document.getElementById("modalTuboTitle").textContent="Registrar entrada de tubos";
-  ["t_cod","t_desc","t_altura","t_cantidad","t_target_id"].forEach(id=>document.getElementById(id).value="");
+  ["t_cod","t_desc","t_altura","t_target_id"].forEach(id=>document.getElementById(id).value="");
   document.getElementById("t_manual").checked=false;
   document.getElementById("t_manual_fields").style.display="none";
   // Modo entrada general: el material se elige del desplegable y la altura es editable
   document.getElementById("t_mat_select_group").style.display="";
-  document.getElementById("t_altura").readOnly=false;
+  resetTuboLotes();
   document.getElementById("t_mat_select").innerHTML=`<option value="">-- Seleccione un material --</option>`;
 
   const sede=_tubosState.sede||"custom";
@@ -4661,8 +4683,7 @@ function openModalTuboFor(tuboId){
   document.getElementById("t_cod").value=t.codigo_mat||"";
   document.getElementById("t_desc").value=t.descripcion||"";
   document.getElementById("t_altura").value=t.altura_total||"";
-  document.getElementById("t_altura").readOnly=false; // editable: largo real de ESTOS tubos (material nacional variable)
-  document.getElementById("t_cantidad").value="";
+  resetTuboLotes(t.altura_total||""); // primera fila con la altura del material; puedes añadir más medidas
   document.getElementById("t_manual").checked=false;
   document.getElementById("t_manual_fields").style.display="none";
   // Ocultamos el selector de material: ya está fijado a este
@@ -4675,50 +4696,63 @@ async function saveTubo(){
   const isManual=document.getElementById("t_manual").checked;
   const cod=document.getElementById("t_cod").value.trim()||null;
   const desc=document.getElementById("t_desc").value.trim();
-  const altura=parseFloat(document.getElementById("t_altura").value);
-  const cant=parseInt(document.getElementById("t_cantidad").value);
   const origen=document.getElementById("t_origen").value;
   const sede=_tubosState.sede||"custom";
 
-  if(!cant||cant<=0){toast("Indica la cantidad de tubos","err");return;}
-  if(!targetId && (!desc||!altura)){toast("Completa todos los campos obligatorios","err");return;}
+  // ── Leer y VALIDAR las medidas (lotes): solo enteros > 0 ──
+  const rows=[...document.querySelectorAll("#t_lotes .t-lote-row")];
+  const lotes=[];
+  for(const r of rows){
+    const aRaw=r.querySelector(".t-lote-alt").value.trim();
+    const cRaw=r.querySelector(".t-lote-cant").value.trim();
+    if(aRaw===""&&cRaw==="") continue; // fila vacía, se ignora
+    const a=Number(aRaw), c=Number(cRaw);
+    if(aRaw===""||!Number.isInteger(a)||a<=0){toast("Medida no válida: la altura debe ser un número entero mayor a 0","err");return;}
+    if(cRaw===""||!Number.isInteger(c)||c<=0){toast("Cantidad no válida: debe ser un número entero mayor a 0","err");return;}
+    lotes.push({altura:a,cant:c});
+  }
+  if(!lotes.length){toast("Agrega al menos una medida (Altura × Cantidad)","err");return;}
+  if(!targetId && !matId && !desc){toast("Selecciona o describe el material","err");return;}
   setBtnLoading("btnSaveTubo",true,"Guardando...");
 
   let tuboId;
   if(targetId){
-    // "Agregar tubos" desde el detalle de un material → SIEMPRE el mismo material (sin duplicar)
-    tuboId=targetId;
+    tuboId=targetId; // agregar al mismo material (sin duplicar)
   } else if(matId && !isManual){
     tuboId=matId;
   } else {
-    const {data:ex}=await sb.from("tubos").select("id").eq("descripcion",desc).eq("altura_total",altura).eq("sede",sede).maybeSingle();
+    const altNominal=lotes[0].altura; // material manual: altura nominal = la 1ra medida
+    const {data:ex}=await sb.from("tubos").select("id").eq("descripcion",desc).eq("altura_total",altNominal).eq("sede",sede).maybeSingle();
     if(ex){tuboId=ex.id;}
     else{
-      const {data:nv,error}=await sb.from("tubos").insert({codigo_mat:cod,descripcion:desc,altura_total:altura,sede}).select().single();
+      const {data:nv,error}=await sb.from("tubos").insert({codigo_mat:cod,descripcion:desc,altura_total:altNominal,sede}).select().single();
       if(error){setBtnLoading("btnSaveTubo",false);toast("Error: "+error.message,"err");return;}
       tuboId=nv.id;
     }
   }
 
-  // Altura real de estos tubos: si difiere de la altura nominal del material, se guarda por tubo.
-  let matAltura=altura;
-  if(targetId){const tt=_tubosCache.tubos.find(x=>String(x.id)===String(tuboId));matAltura=tt?.altura_total||altura;}
-  const altInst=(altura&&Math.abs(altura-(matAltura||0))>0.001)?altura:null;
-  const insts=Array.from({length:cant},()=>({tubo_id:tuboId,altura_usada:0,estado:"disponible",altura_total:altInst}));
+  // Altura nominal del material destino (para decidir si cada tubo lleva altura propia)
+  let matAltura=_tubosCache.tubos.find(x=>String(x.id)===String(tuboId))?.altura_total;
+  if(matAltura==null){const {data:td}=await sb.from("tubos").select("altura_total").eq("id",tuboId).maybeSingle();matAltura=td?.altura_total;}
+
+  // Construir todas las instancias (una por tubo), con su largo real cuando difiere del nominal
+  const insts=[]; let totalCant=0;
+  lotes.forEach(l=>{
+    const altInst=(matAltura!=null&&Math.abs(l.altura-matAltura)<=0.001)?null:l.altura;
+    for(let i=0;i<l.cant;i++) insts.push({tubo_id:tuboId,altura_usada:0,estado:"disponible",altura_total:altInst});
+    totalCant+=l.cant;
+  });
   const {error:ei}=await sb.from("tubo_instancias").insert(insts);
   if(ei){setBtnLoading("btnSaveTubo",false);toast("Error: "+ei.message,"err");return;}
 
   await sb.from("movimientos").insert({
-    tubo_id:tuboId,
-    tipo:"entrada",
-    cantidad:cant,
-    usuario_id:CU?.id,
-    nota:`Entrada ${origen}: ${cant} tubos (Sede ${sede})`
+    tubo_id:tuboId, tipo:"entrada", cantidad:totalCant, usuario_id:CU?.id,
+    nota:`Entrada ${origen}: ${lotes.map(l=>l.altura+"×"+l.cant).join(", ")} (Sede ${sede})`
   });
 
   setBtnLoading("btnSaveTubo",false);
   closeModal("modalTubo");
-  toast(`✓ ${cant} tubo${cant>1?"s":""} registrado${cant>1?"s":""} en sede ${sede} (${origen})`,"ok");
+  toast(`✓ ${totalCant} tubo${totalCant>1?"s":""} registrado${totalCant>1?"s":""} (${lotes.length} medida${lotes.length>1?"s":""})`,"ok");
   clearCache(`tubos_${sede}`);
   loadTubos(true);
 }
@@ -5539,7 +5573,7 @@ function onLineMedidaChange(inp){
       if(matchDi&&matchDe&&matchLargo){
         // Expandir cada instancia física como una opción individual
         grupo.instancias.forEach((inst,idx)=>{
-          const mmRest=Math.max(0,(grupo.tubo.altura_total||0)-(inst.altura_usada||0));
+          const mmRest=Math.max(0,instTot(inst,grupo.tubo)-(inst.altura_usada||0));
           matches.push({
             material:mat,
             tuboId:grupo.tubo.id,
@@ -5788,7 +5822,7 @@ async function saveConsumo(){
         // Si nuevoUsado < altTot Y > 0 → estado "en_uso" (en producción, parcial)
         // Si nuevoUsado === altTot → "agotado"
         // Si nuevoUsado === 0 → "disponible" (vuelve completo)
-        const nuevoEstado=nuevoUsado>=altTot?"agotado":(nuevoUsado>0?"en_uso":"disponible");
+        const nuevoEstado=nuevoUsado>=altTot?"agotado":"disponible";
 
         // UPDATE + select() para confirmar que se aplicó (Supabase devuelve [] si RLS lo bloquea)
         const {data:updated,error:eU}=await sb.from("tubo_instancias")
@@ -5864,7 +5898,7 @@ async function deleteConsumo(consumoId){
         const nuevoUsado=Math.max(0,(inst.altura_usada||0)-consumoARevertir);
         const {data:tubo}=await sb.from("tubos").select("altura_total").eq("id",c.tubo_id).maybeSingle();
         const altTot=tubo?.altura_total||0;
-        const nuevoEstado=nuevoUsado>=altTot?"agotado":(nuevoUsado>0?"en_uso":"disponible");
+        const nuevoEstado=nuevoUsado>=altTot?"agotado":"disponible";
         await sb.from("tubo_instancias").update({altura_usada:nuevoUsado,estado:nuevoEstado}).eq("id",c.tubo_instancia_id);
         await sb.from("movimientos").insert({
           tubo_id:c.tubo_id,tubo_instancia_id:c.tubo_instancia_id,
@@ -5892,7 +5926,7 @@ async function revertirStockConsumo(c){
   const {data:tubo}=await sb.from("tubos").select("altura_total").eq("id",c.tubo_id).maybeSingle();
   const altTot=tubo?.altura_total||0;
   const nuevoUsado=Math.max(0,(inst.altura_usada||0)-consumoARevertir);
-  const nuevoEstado=nuevoUsado>=altTot?"agotado":(nuevoUsado>0?"en_uso":"disponible");
+  const nuevoEstado=nuevoUsado>=altTot?"agotado":"disponible";
   await sb.from("tubo_instancias").update({altura_usada:nuevoUsado,estado:nuevoEstado}).eq("id",c.tubo_instancia_id);
   await sb.from("movimientos").insert({tubo_id:c.tubo_id,tubo_instancia_id:c.tubo_instancia_id,tipo:"ajuste",altura_usada:consumoARevertir,op_numero:c.op,usuario_id:CU?.id,nota:`Restituir stock OP ${c.op}: +${consumoARevertir}mm`});
 }
@@ -6156,8 +6190,10 @@ async function guardarCierreLinea(lineId,btn){
   // (jerarquía: campo del material → tipo de material → global)
   const altMin=alturaMinPara(tubo);
   const mmRest=altTot-nuevoUsado;
-  let nuevoEstado=nuevoUsado>=altTot?"agotado":(nuevoUsado>0?"en_uso":"disponible");
-  if(ruleBool("mp_auto_agotado",true)&&nuevoEstado==="en_uso"&&mmRest<altMin) nuevoEstado="agotado";
+  let nuevoEstado=nuevoUsado>=altTot?"agotado":"disponible";
+  // Solo auto-agota bajo el mínimo si la regla está ACTIVADA (por defecto NO: el tubo
+  // sigue disponible aunque quede bajo el mínimo; solo se marca "merma sugerida").
+  if(ruleBool("mp_auto_agotado",false)&&nuevoEstado==="disponible"&&nuevoUsado>0&&mmRest<altMin) nuevoEstado="agotado";
 
   // 1) Descontar instancia
   if(consumido>0){
@@ -6195,7 +6231,7 @@ async function revertirCierreLinea(lineId){
     if(inst&&tubo){
       const nuevoUsado=Math.max(0,(inst.altura_usada||0)-consumido);
       const altTot=instTot(inst,tubo);
-      const nuevoEstado=nuevoUsado>=altTot?"agotado":(nuevoUsado>0?"en_uso":"disponible");
+      const nuevoEstado=nuevoUsado>=altTot?"agotado":"disponible";
       await sb.from("tubo_instancias").update({altura_usada:nuevoUsado,estado:nuevoEstado}).eq("id",L.tubo_instancia_id);
       await sb.from("movimientos").insert({tubo_id:L.tubo_id,tubo_instancia_id:L.tubo_instancia_id,tipo:"ajuste",altura_usada:consumido,op_numero:_cierreState.op,usuario_id:CU?.id,nota:`Revertir cierre OP ${_cierreState.op}: +${consumido}mm`});
     }
@@ -6227,7 +6263,7 @@ async function reabrirOpCompleta(){
           const nuevoUsado=Math.max(0,(inst.altura_usada||0)-consumido);
           const altTot=instTot(inst,tubo);
           // No resucitar un tubo separado/agotado manualmente
-          const nuevoEstado=inst.estado==="separado"?"separado":(nuevoUsado>=altTot?"agotado":(nuevoUsado>0?"en_uso":"disponible"));
+          const nuevoEstado=inst.estado==="separado"?"separado":(nuevoUsado>=altTot?"agotado":"disponible");
           await sb.from("tubo_instancias").update({altura_usada:nuevoUsado,estado:nuevoEstado}).eq("id",L.tubo_instancia_id);
           await sb.from("movimientos").insert({tubo_id:L.tubo_id,tubo_instancia_id:L.tubo_instancia_id,tipo:"ajuste",altura_usada:consumido,op_numero:_cierreState.op,usuario_id:CU?.id,nota:`Reabrir OP ${_cierreState.op}: +${consumido}mm`});
         }
@@ -7477,4 +7513,3 @@ document.getElementById("loginUser")?.addEventListener("keydown",e=>{if(e.key===
 
 </body>
 </html>
-
