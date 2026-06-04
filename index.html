@@ -194,6 +194,9 @@ tbody tr:hover td{background:var(--bg-card-2)}
 .form-label .req{color:var(--red)}
 .form-input{background:var(--bg-input);border:1px solid var(--border);border-radius:9px;padding:8px 12px;color:var(--text-strong);font-size:12px;outline:none;width:100%;transition:all .2s}
 .form-input:focus{border-color:var(--red);box-shadow:0 0 0 3px rgba(239,68,68,.15)}
+/* Quitar las flechitas (spinners) de los campos numéricos */
+input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+input[type=number]{-moz-appearance:textfield;appearance:textfield}
 .form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .form-row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
 .modal-footer{display:flex;gap:8px;justify-content:flex-end;margin-top:16px;border-top:1px solid var(--border);padding-top:14px}
@@ -890,6 +893,10 @@ tbody tr:hover td{background:var(--bg-card-2)}
           </div>
         </div>
         <div class="cfg-row">
+          <div><div class="cfg-lbl">Ver autor de movimientos / registros</div><div class="cfg-sub">Muestra QUIÉN hizo cada movimiento y registro. El <strong>admin SIEMPRE lo ve</strong>; este interruptor lo habilita también para los demás roles (que tengan permiso de ver movimientos).</div></div>
+          <div class="toggle" id="cfgMpVerAutor" onclick="toggleConfig('mp_ver_autor','cfgMpVerAutor')"></div>
+        </div>
+        <div class="cfg-row">
           <div><div class="cfg-lbl">Ver historial de movimientos</div><div class="cfg-sub">Ahora es un permiso por rol/usuario: <strong>Roles y permisos base</strong> → "Ver historial de movimientos"</div></div>
           <div style="font-size:11px;color:#5b9bd5"><i class="ti ti-arrow-down"></i> ver Roles</div>
         </div>
@@ -1174,6 +1181,59 @@ tbody tr:hover td{background:var(--bg-card-2)}
     <div id="rankList" style="max-height:55vh;overflow-y:auto"></div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modalRanking')">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Stock sin movimiento -->
+<div class="modal-overlay" id="modalStockMuerto" style="display:none" onclick="if(event.target===this)closeModal('modalStockMuerto')">
+  <div class="modal" style="max-width:760px">
+    <div class="modal-title"><i class="ti ti-clock-pause" style="color:#f5a623"></i>Stock sin movimiento</div>
+    <div style="font-size:11px;color:#7a7d99;margin-bottom:10px">Materiales con stock disponible que <strong>no han tenido ningún movimiento</strong> (entrada, consumo, ajuste…) en el período elegido. Útil para detectar stock "muerto".</div>
+    <div style="display:flex;gap:8px;align-items:end;flex-wrap:wrap;margin-bottom:10px">
+      <div><label class="filter-label">Sin movimiento en los últimos</label>
+        <select class="form-input" id="smPeriodo" style="width:170px" onchange="document.getElementById('smFechaBox').style.display=this.value==='custom'?'':'none'">
+          <option value="1">1 mes</option>
+          <option value="3" selected>3 meses</option>
+          <option value="6">6 meses</option>
+          <option value="12">1 año</option>
+          <option value="24">2 años</option>
+          <option value="custom">Desde fecha…</option>
+        </select>
+      </div>
+      <div id="smFechaBox" style="display:none"><label class="filter-label">Desde</label><input class="form-input" id="smFecha" type="date" style="width:160px"></div>
+      <button class="btn btn-red" id="btnSmCalc" onclick="calcStockMuerto()"><i class="ti ti-search"></i>Calcular</button>
+      <button class="btn btn-ghost" onclick="exportStockMuerto()" title="Exportar a Excel"><i class="ti ti-file-spreadsheet"></i>Excel</button>
+    </div>
+    <div id="smResultado"><div class="no-data" style="padding:20px">Elige un período y pulsa <strong>Calcular</strong>.</div></div>
+  </div>
+</div>
+
+<!-- MODAL: Descargar movimientos -->
+<div class="modal-overlay" id="modalExportMovs" style="display:none" onclick="if(event.target===this)closeModal('modalExportMovs')">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-title"><i class="ti ti-history" style="color:#5b9bd5"></i>Descargar movimientos</div>
+    <div style="font-size:11px;color:#7a7d99;margin-bottom:10px">Exporta a Excel los movimientos de tubos (entradas, consumos, ajustes, mermas) según el filtro que elijas.</div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Desde</label><input class="form-input" id="emDesde" type="date"></div>
+      <div class="form-group"><label class="form-label">Hasta</label><input class="form-input" id="emHasta" type="date"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Tipo</label>
+        <select class="form-input" id="emTipo">
+          <option value="">Todos</option>
+          <option value="entrada">Entrada</option>
+          <option value="consumo">Consumo</option>
+          <option value="ajuste">Ajuste</option>
+          <option value="merma">Merma</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">N° OP (opcional)</label><input class="form-input" id="emOp" placeholder="8837"></div>
+    </div>
+    <div id="emInfo" style="font-size:11px;color:#7a7d99;margin-top:4px"></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modalExportMovs')">Cancelar</button>
+      <button class="btn btn-red" id="btnExportMovs" onclick="exportMovimientos()"><i class="ti ti-download"></i>Descargar Excel</button>
     </div>
   </div>
 </div>
@@ -1930,7 +1990,8 @@ const PAGINAS_DISPONIBLES=[
   {key:"mp_mecaniza",label:"Mat. Prima Mecaniza"},
   {key:"mercaderias",label:"Mercaderías"},
   {key:"alm_mecaniza",label:"Almacén Mecaniza"},
-  {key:"consumos",label:"Consumos"},
+  {key:"consumos",label:"Consumos — Custom"},
+  {key:"consumos_mec",label:"Consumos — Mecaniza"},
   {key:"clientes",label:"Clientes"},
   {key:"carga",label:"Cargar Excel"},
   {key:"usuarios",label:"Usuarios"},
@@ -1941,7 +2002,7 @@ const PAGINAS_DISPONIBLES=[
 // PERMISOS_BASE = defaults de fábrica (hardcoded). PERMISOS = efectivo en runtime,
 // que puede ser sobrescrito desde Configuración (admin) vía cfg.roles_permisos.
 const PERMISOS_BASE={
-  admin:    {nav:["dashboard","mp_custom","mp_mecaniza","mercaderias","alm_mecaniza","consumos","clientes","carga","usuarios","config"],editarCat:true,editarTubos:true,editarClientes:true,editarMerc:true,editarAlmMec:true,editarConsumos:true,verPrecios:true,canConsumir:true,verMovimientos:true,exportar:true,importar:true},
+  admin:    {nav:["dashboard","mp_custom","mp_mecaniza","mercaderias","alm_mecaniza","consumos","consumos_mec","clientes","carga","usuarios","config"],editarCat:true,editarTubos:true,editarClientes:true,editarMerc:true,editarAlmMec:true,editarConsumos:true,verPrecios:true,canConsumir:true,verMovimientos:true,exportar:true,importar:true},
   gerente:  {nav:["dashboard","mp_custom","mp_mecaniza","mercaderias","alm_mecaniza","consumos","clientes","config"],editarCat:false,editarTubos:false,editarClientes:false,editarMerc:false,editarAlmMec:false,editarConsumos:false,verPrecios:true,canConsumir:false,verMovimientos:true,exportar:true,importar:false},
   supervisor:{nav:["dashboard","mp_custom","mp_mecaniza","mercaderias","alm_mecaniza","consumos","clientes","config"],editarCat:true,editarTubos:true,editarClientes:true,editarMerc:true,editarAlmMec:true,editarConsumos:true,verPrecios:true,canConsumir:true,verMovimientos:true,exportar:true,importar:true},
   almacen:  {nav:["dashboard","mp_custom","mp_mecaniza","mercaderias","alm_mecaniza","consumos","carga","config"],editarCat:true,editarTubos:true,editarClientes:false,editarMerc:true,editarAlmMec:true,editarConsumos:true,verPrecios:true,canConsumir:true,verMovimientos:true,exportar:true,importar:true},
@@ -2084,7 +2145,8 @@ const NAV_ITEMS={
   mp_mecaniza:  {icon:"ti-cylinder",label:"Mat. Prima — Mecaniza",sec:"Almacenes"},
   mercaderias:  {icon:"ti-circle-dot",label:"Mercaderías",sec:"Almacenes"},
   alm_mecaniza: {icon:"ti-box",label:"Almacén Mecaniza",sec:"Almacenes"},
-  consumos:     {icon:"ti-clipboard-list",label:"Consumos de Material",sec:"Operación"},
+  consumos:     {icon:"ti-clipboard-list",label:"Consumos — Custom",sec:"Operación"},
+  consumos_mec: {icon:"ti-clipboard-list",label:"Consumos — Mecaniza",sec:"Operación"},
   clientes:     {icon:"ti-users",label:"Clientes",sec:"Principal"},
   carga:        {icon:"ti-upload",label:"Cargar Excel",sec:"Datos"},
   usuarios:     {icon:"ti-user-cog",label:"Usuarios",sec:"Administración"},
@@ -2415,6 +2477,14 @@ window.addEventListener("focus",()=>{
   clearCache("consumos");clearCache("mercaderias");clearCache("alm_mecaniza");
 });
 
+// Evitar que la RUEDITA del mouse cambie los campos numéricos (perdías lo escrito).
+// Al hacer scroll sobre un input numérico enfocado, lo desenfoca → la página
+// se desplaza normal y el valor NO se modifica.
+document.addEventListener("wheel",e=>{
+  const el=document.activeElement;
+  if(el&&el.tagName==="INPUT"&&el.type==="number"&&el===e.target){ el.blur(); }
+},{passive:true});
+
 function buildSidebar(){
   const nav=document.getElementById("sidebarNav");
   nav.innerHTML="";
@@ -2436,14 +2506,14 @@ function goTo(page){
   document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
   document.querySelectorAll(".nav-item").forEach(n=>n.classList.remove("active"));
   // Las dos páginas de MP comparten el mismo DOM #page-tubos, solo cambia la sede
-  const pageId=(page==="mp_custom"||page==="mp_mecaniza")?"tubos":page;
+  const pageId=(page==="mp_custom"||page==="mp_mecaniza")?"tubos":((page==="consumos"||page==="consumos_mec")?"consumos":page);
   document.getElementById("page-"+pageId)?.classList.add("active");
   document.getElementById("nav-"+page)?.classList.add("active");
   if(page==="dashboard") loadDashboard();
   if(page==="mp_custom"||page==="mp_mecaniza"){_tubosState.sede=SEDE_BY_PAGE[page];loadTubos();}
   if(page==="mercaderias") loadMercaderias();
   if(page==="alm_mecaniza") loadAlmMecaniza();
-  if(page==="consumos") loadConsumos();
+  if(page==="consumos"||page==="consumos_mec"){const nuevaSede=page==="consumos_mec"?"mecaniza":"custom";if(nuevaSede!==_consSede){_consSede=nuevaSede;_consMatTuboCache=null;_consState.page=1;}loadConsumos();}
   if(page==="clientes") loadClientes();
   if(page==="usuarios") loadUsuarios();
   if(page==="config") loadConfigPage();
@@ -2480,6 +2550,7 @@ function loadConfigPage(){
     tog("cfgConsSinTubo",cfgBool("consumo_permitir_sin_tubo",true));
     tog("cfgConsDevMayor",cfgBool("consumo_permitir_devuelto_mayor",false));
     tog("cfgMpAutoAgot",cfgBool("mp_auto_agotado",true));
+    tog("cfgMpVerAutor",cfgBool("mp_ver_autor",false));
     tog("cfgCliValidaDoc",cfgBool("cliente_validar_doc",true));
     tog("cfgCliExigeRuc",cfgBool("cliente_exigir_ruc_jur",false));
     tog("cfgCliExigeDni",cfgBool("cliente_exigir_dni_nat",false));
@@ -3778,11 +3849,13 @@ async function loadTubos(forceReload=false){
   const cacheLbl=cacheAgeLabel(`tubos_${sede}`);
   const cacheBadge=cacheLbl?`<span style="font-size:10px;color:#5a5e7a;margin-left:6px">📦 ${cacheLbl}</span>`:"";
   const btnExport=perm.exportar?`<button class="btn btn-ghost" onclick="exportTubosExcel()"><i class="ti ti-file-spreadsheet"></i>Exportar Excel</button>`:"";
+  const btnMuerto=perm.verMovimientos?`<button class="btn btn-ghost" onclick="openStockMuerto()"><i class="ti ti-clock-pause"></i>Sin movimiento</button>`:"";
+  const btnMovs=(perm.verMovimientos&&perm.exportar)?`<button class="btn btn-ghost" onclick="openExportMovs()"><i class="ti ti-history"></i>Descargar movimientos</button>`:"";
   const btnsCrear=userCanCRUD("crear","Tubos")
     ?`<button class="btn btn-red" onclick="openModalMaterial()"><i class="ti ti-plus"></i>Nuevo material</button>
       <button class="btn btn-ghost" onclick="openCategoriaModal('mp')"><i class="ti ti-category-plus"></i>+ Categoría</button>
       <button class="btn btn-ghost" onclick="openModalTubo()"><i class="ti ti-plus"></i>Agregar tubos</button>`:"";
-  actRow.innerHTML=`${btnsCrear}${btnExport}<button class="btn btn-ghost" onclick="loadTubos(true)"><i class="ti ti-refresh"></i>Actualizar</button>${cacheBadge}`;
+  actRow.innerHTML=`${btnsCrear}${btnExport}${btnMuerto}${btnMovs}<button class="btn btn-ghost" onclick="loadTubos(true)"><i class="ti ti-refresh"></i>Actualizar</button>${cacheBadge}`;
 
   wireTubosSearch();
 
@@ -3938,7 +4011,13 @@ function renderTubosResumen(){
     if(_tubosState.fDi) resumen=resumen.filter(r=>checkRange(r.med.di,_tubosState.fDi));
     if(_tubosState.fDe) resumen=resumen.filter(r=>checkRange(r.med.de,_tubosState.fDe));
   }
-  resumen.sort((a,b)=>(a.t.descripcion||"").localeCompare(b.t.descripcion||""));
+  // Ordenar: por nombre de material, y dentro de cada uno por medidas NUMÉRICAS (DI, DE, Largo) ascendente
+  const _n=v=>{const x=Number(v);return isNaN(x)?0:x;};
+  resumen.sort((a,b)=>{
+    const mc=(a.mat||"").localeCompare(b.mat||"");
+    if(mc!==0) return mc;
+    return (_n(a.med.di)-_n(b.med.di))||(_n(a.med.de)-_n(b.med.de))||(_n(a.med.lon)-_n(b.med.lon))||(a.t.descripcion||"").localeCompare(b.t.descripcion||"");
+  });
 
   const totalTipos=resumen.length;
   const totalTubos=resumen.reduce((a,r)=>a+r.insts.length,0);
@@ -4017,10 +4096,18 @@ async function verDetalleTubo(tuboId){
   const {data:insts}=await sb.from("tubo_instancias").select("*").eq("tubo_id",tuboId);
   const allInsts=insts||[];
   let movs=[];
-  if(allInsts.length){
-    const instIds=allInsts.map(i=>i.id);
-    const {data:md}=await sb.from("movimientos").select("*").in("tubo_instancia_id",instIds).order("fecha",{ascending:false});
+  {
+    // Traer TODOS los movimientos del material (entradas ligadas al material +
+    // consumos/ajustes ligados a cada tubo físico). Todos tienen tubo_id.
+    const {data:md}=await sb.from("movimientos").select("*").eq("tubo_id",tuboId).order("fecha",{ascending:false});
     movs=md||[];
+    // Nombres de usuario para mostrar "quién hizo el movimiento"
+    const uids=[...new Set(movs.map(m=>m.usuario_id).filter(Boolean))];
+    if(uids.length){
+      const {data:us}=await sb.from("perfiles").select("id,nombre,username").in("id",uids);
+      const umap={};(us||[]).forEach(u=>umap[u.id]=u.nombre||u.username);
+      movs.forEach(m=>m._usuario=umap[m.usuario_id]||null);
+    }
   }
   showLoading(false);
 
@@ -4050,8 +4137,10 @@ async function verDetalleTubo(tuboId){
     </div>`;
   }).join("");
 
+  // El admin SIEMPRE ve el autor; otros roles solo si la regla está activada en Configuración.
+  const verAutor=(CU?.rol==="admin")||cfgBool("mp_ver_autor",false);
   const movsHtml=movs.slice(0,10).map(m=>`<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:.5px solid #1e2134;font-size:11px">
-    <div style="flex:1;color:#c8cce0">${esc(m.tipo)}${m.altura_usada?` · ${m.altura_usada}mm`:""}${m.op_numero?` · OP ${esc(m.op_numero)}`:""}${m.nota?` · ${esc(m.nota)}`:""}</div>
+    <div style="flex:1;color:#c8cce0">${esc(m.tipo)}${m.altura_usada?` · ${m.altura_usada}mm`:""}${m.op_numero?` · OP ${esc(m.op_numero)}`:""}${m.nota?` · ${esc(m.nota)}`:""}${verAutor&&m._usuario?` · <span style="color:#5b9bd5"><i class="ti ti-user" style="font-size:11px"></i> ${esc(m._usuario)}</span>`:""}</div>
       <div style="display:flex;align-items:center;gap:8px">
         <span style="color:#3a3e5a;font-size:10px">${new Date(m.fecha).toLocaleDateString("es-PE")}</span>
         ${userCanCRUD("eliminar","Tubos")?`<button class="btn-ghost" style="padding:2px 5px;border-radius:4px;color:#e85a5a" onclick="deleteMovimiento(${m.id},${m.tubo_instancia_id||"null"})" title="Eliminar"><i class="ti ti-trash" style="font-size:12px"></i></button>`:""}
@@ -4436,6 +4525,138 @@ async function exportTubosExcel(){
   XLSX.writeFile(wb,`Tubos_MP_${sede}_${new Date().toISOString().slice(0,10)}.xlsx`);
   showLoading(false);
   toast(`✓ Exportados ${n} tubo(s) físico(s)`,"ok");
+}
+
+// ── REPORTE: Stock sin movimiento ──
+let _smData=[];
+function _dispDe(t){
+  if(_tubosCache.usingView) return t.disponibles||0;
+  const insts=(_tubosCache.instByTubo&&_tubosCache.instByTubo[t.id])||[];
+  return insts.filter(i=>i.estado==="disponible").length;
+}
+function openStockMuerto(){
+  _smData=[];
+  document.getElementById("smResultado").innerHTML=`<div class="no-data" style="padding:20px">Elige un período y pulsa <strong>Calcular</strong>.</div>`;
+  document.getElementById("modalStockMuerto").style.display="flex";
+}
+async function calcStockMuerto(){
+  const periodo=document.getElementById("smPeriodo").value;
+  let cutoff,label;
+  if(periodo==="custom"){
+    cutoff=document.getElementById("smFecha").value;
+    if(!cutoff){toast("Elige una fecha","err");return;}
+    label=`desde ${new Date(cutoff).toLocaleDateString("es-PE")}`;
+  }else{
+    const d=new Date();d.setMonth(d.getMonth()-parseInt(periodo));
+    cutoff=d.toISOString().slice(0,10);
+    label=`últimos ${periodo} mes(es)`;
+  }
+  const cont=document.getElementById("smResultado");
+  setBtnLoading("btnSmCalc",true,"Calculando...");
+  cont.innerHTML=`<div class="loading"><div class="spinner"></div>Revisando movimientos...</div>`;
+  // tubo_ids que SÍ se movieron en el período
+  const moved=new Set();
+  try{
+    for(let from=0;;from+=1000){
+      const {data,error}=await sb.from("movimientos").select("tubo_id").gte("fecha",cutoff).range(from,from+999);
+      if(error) throw new Error(error.message);
+      (data||[]).forEach(m=>{if(m.tubo_id!=null) moved.add(String(m.tubo_id));});
+      if(!data||data.length<1000) break;
+    }
+  }catch(err){setBtnLoading("btnSmCalc",false);cont.innerHTML=`<div class="no-data" style="color:#e85a5a">Error: ${esc(err.message)}</div>`;return;}
+  setBtnLoading("btnSmCalc",false);
+  // Materiales (sede actual) con stock disponible que NO se movieron
+  const sede=_tubosState.sede||"custom";
+  const tubos=(_tubosCache.tubos||[]).filter(t=>(t.sede||"custom")===sede);
+  const dead=tubos.filter(t=>_dispDe(t)>0 && !moved.has(String(t.id)));
+  // ordenar por material y medidas
+  const _n=v=>{const x=Number(v);return isNaN(x)?0:x;};
+  dead.sort((a,b)=>(parseMaterial(a.descripcion)||"").localeCompare(parseMaterial(b.descripcion)||"")||_n(a.di)-_n(b.di)||_n(a.de)-_n(b.de));
+  _smData=dead.map(t=>{
+    const pm=parseMedidas(t.descripcion);
+    const di=t.di!=null?t.di:pm.di, de=t.de!=null?t.de:pm.de, lon=t.altura_total!=null?t.altura_total:pm.lon;
+    return {codigo:t.codigo_mat||"",desc:t.descripcion||"",di,de,lon,disp:_dispDe(t),id:t.id};
+  });
+  if(!_smData.length){cont.innerHTML=`<div class="no-data" style="padding:20px;color:#4caf8c"><i class="ti ti-circle-check"></i> No hay stock sin movimiento en el período (${label}). Todo se ha movido. ✓</div>`;return;}
+  cont.innerHTML=`<div style="font-size:11px;color:#7a7d99;margin-bottom:6px">${_smData.length} material(es) con stock SIN movimiento (${label}) · sede ${sede}</div>
+    <div class="tbl-wrap" style="max-height:55vh"><table>
+      <thead><tr><th>Material / Código</th><th>Medidas</th><th style="text-align:center">Disponibles</th></tr></thead>
+      <tbody>${_smData.map(r=>`<tr>
+        <td><div style="color:#f0f0f5">${esc(r.desc)}</div><div style="font-size:10px;color:#5a5e7a">${esc(r.codigo)||"—"}</div></td>
+        <td style="color:#b0b3cc;white-space:nowrap">${r.di!=null||r.de!=null?`DI ${r.di??"?"} · DE ${r.de??"?"} · L ${r.lon??"?"}`:(r.lon?`${r.lon} mm`:"—")}</td>
+        <td style="text-align:center;color:#f5a623;font-weight:600">${r.disp}</td>
+      </tr>`).join("")}</tbody>
+    </table></div>`;
+}
+function exportStockMuerto(){
+  if(!_smData.length){toast("Primero calcula el reporte","err");return;}
+  const rows=[["Código","Descripción","DI","DE","Largo","Disponibles"]];
+  _smData.forEach(r=>rows.push([r.codigo,r.desc,r.di??"",r.de??"",r.lon??"",r.disp]));
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,"SinMovimiento",XLSX.utils.aoa_to_sheet(rows));
+  XLSX.writeFile(wb,`Stock_sin_movimiento_${new Date().toISOString().slice(0,10)}.xlsx`);
+  toast("✓ Exportado","ok");
+}
+
+// ── Descargar movimientos (con filtros de fecha/tipo/OP) ──
+function openExportMovs(){
+  ["emDesde","emHasta","emOp"].forEach(id=>document.getElementById(id).value="");
+  document.getElementById("emTipo").value="";
+  document.getElementById("emInfo").innerHTML="";
+  document.getElementById("modalExportMovs").style.display="flex";
+}
+async function exportMovimientos(){
+  if(!getEffectivePerms().exportar){toast("Sin permiso para exportar","err");return;}
+  const desde=document.getElementById("emDesde").value;
+  const hasta=document.getElementById("emHasta").value;
+  const tipo=document.getElementById("emTipo").value;
+  const op=document.getElementById("emOp").value.trim();
+  setBtnLoading("btnExportMovs",true,"Generando...");
+  document.getElementById("emInfo").innerHTML=`<div class="loading"><div class="spinner"></div>Leyendo movimientos...</div>`;
+  // Traer movimientos paginados con filtros
+  let movs=[];
+  try{
+    for(let from=0;;from+=1000){
+      let q=sb.from("movimientos").select("*").order("fecha",{ascending:false}).range(from,from+999);
+      if(desde) q=q.gte("fecha",desde);
+      if(hasta) q=q.lte("fecha",hasta+"T23:59:59");
+      if(tipo) q=q.eq("tipo",tipo);
+      if(op){const safe=op.replace(/[%,]/g," ");q=q.ilike("op_numero",`%${safe}%`);}
+      const {data,error}=await q;
+      if(error) throw new Error(error.message);
+      movs=movs.concat(data||[]);
+      if(!data||data.length<1000) break;
+      if(movs.length>=60000) break; // tope de seguridad
+    }
+  }catch(err){setBtnLoading("btnExportMovs",false);document.getElementById("emInfo").innerHTML=`<span style="color:#e85a5a">Error: ${esc(err.message)}</span>`;return;}
+  if(!movs.length){setBtnLoading("btnExportMovs",false);document.getElementById("emInfo").innerHTML=`<span style="color:#f5a623">Sin movimientos con esos filtros.</span>`;return;}
+  // Nombres de material (tubo) y usuario
+  const tuboIds=[...new Set(movs.map(m=>m.tubo_id).filter(Boolean))];
+  const tuboMap={};
+  for(let i=0;i<tuboIds.length;i+=300){
+    const {data}=await sb.from("tubos").select("id,descripcion,codigo_mat,sede").in("id",tuboIds.slice(i,i+300));
+    (data||[]).forEach(t=>tuboMap[t.id]=t);
+  }
+  const uids=[...new Set(movs.map(m=>m.usuario_id).filter(Boolean))];
+  const uMap={};
+  if(uids.length){const {data:us}=await sb.from("perfiles").select("id,nombre,username").in("id",uids);(us||[]).forEach(u=>uMap[u.id]=u.nombre||u.username);}
+  // Construir Excel
+  const rows=[["Fecha","Tipo","Material","Código","Sede","Tubo #","Cantidad","mm","OP","Cliente","Nota","Usuario"]];
+  movs.forEach(m=>{
+    const t=tuboMap[m.tubo_id]||{};
+    rows.push([
+      m.fecha?new Date(m.fecha).toLocaleString("es-PE"):"",
+      m.tipo||"", t.descripcion||"", t.codigo_mat||"", t.sede||"",
+      m.tubo_instancia_id||"", m.cantidad??"", m.altura_usada??"",
+      m.op_numero||"", m.cliente||"", m.nota||"", uMap[m.usuario_id]||""
+    ]);
+  });
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,"Movimientos",XLSX.utils.aoa_to_sheet(rows));
+  XLSX.writeFile(wb,`Movimientos_${new Date().toISOString().slice(0,10)}.xlsx`);
+  setBtnLoading("btnExportMovs",false);
+  document.getElementById("emInfo").innerHTML=`<span style="color:#4caf8c">✓ ${movs.length.toLocaleString()} movimientos exportados.</span>`;
+  toast(`✓ ${movs.length.toLocaleString()} movimientos exportados`,"ok");
 }
 
 async function deleteMovimiento(id, instId){
@@ -5120,10 +5341,15 @@ let _consState={page:1,perPage:50,query:"",mes:"",op:"",material:"",solo:""};
 let _consCache=[];
 let _consSel=new Set(); // ids seleccionados para acciones masivas
 let _consMatList=[]; // nombres únicos de material para autocompletar
+let _consSede="custom"; // sede activa de Consumos (custom o mecaniza) — define de qué almacén se descuenta
+let _consMatTuboCacheSede=null; // sede con la que se construyó _consMatTuboCache
 
 // loadConsumos: ahora server-side. Solo dispara renderConsumos (que hace la query con filtros)
 async function loadConsumos(forceReload=false){
   const perm=getEffectivePerms();
+  // Título según el almacén/sede activo
+  const tEl=document.querySelector("#page-consumos .page-title");
+  if(tEl){const sc=_consSede==="mecaniza"?"#f5a623":"#D32F2F";tEl.innerHTML=`<i class="ti ti-clipboard-list" style="color:${sc}"></i>Consumos de Material — <span style="color:${sc}">${_consSede==="mecaniza"?"Mecaniza":"Custom"}</span>`;}
   document.getElementById("btnNuevoCons").style.display=userCanCRUD("crear","Consumos")?"inline-flex":"none";
   document.getElementById("btnImportCons").style.display=perm.importar?"inline-flex":"none";
   // Default: mes actual
@@ -5209,7 +5435,7 @@ async function renderConsumos(){
   document.getElementById("cons-tbody").innerHTML=`<tr><td colspan="12" class="no-data"><div class="loading"><div class="spinner"></div>Cargando...</div></td></tr>`;
 
   // Construir query con filtros server-side
-  let query=sb.from("consumos_ops").select("*",{count:"exact"});
+  let query=sb.from("consumos_ops").select("*",{count:"exact"}).eq("sede",_consSede);
   if(rf){if(rf.ini)query=query.gte("fecha",rf.ini);if(rf.fin)query=query.lte("fecha",rf.fin);}
   if(op){const safe=op.replace(/[%,]/g," ");query=query.ilike("op",`%${safe}%`);}
   if(mat){const safe=mat.replace(/[%,]/g," ");query=query.ilike("material",`%${safe}%`);}
@@ -5227,6 +5453,16 @@ async function renderConsumos(){
   }
   let lista=data||[];
   _consCache=lista; // cache de la página visible para acciones (editar/eliminar)
+  // Nombres de usuario (quién registró). Admin siempre; otros según regla mp_ver_autor.
+  const _verAutor=(CU?.rol==="admin")||cfgBool("mp_ver_autor",false);
+  if(_verAutor){
+    const uids=[...new Set(lista.map(c=>c.usuario_id).filter(Boolean))];
+    if(uids.length){
+      const {data:us}=await sb.from("perfiles").select("id,nombre,username").in("id",uids);
+      const umap={};(us||[]).forEach(u=>umap[u.id]=u.nombre||u.username);
+      lista.forEach(c=>c._usuario=umap[c.usuario_id]||null);
+    }
+  }
 
   // KPIs (server-side: count exact + agregaciones de la página visible)
   // Para KPIs globales filtrados usamos un fetch separado liviano cuando hace falta
@@ -5244,7 +5480,7 @@ async function renderConsumos(){
     <div class="kpi"><div class="kpi-label">Mermas</div><div class="kpi-val red" id="kpiMermas">…</div><div class="kpi-sub" id="kpiMermasSub">…</div></div>`;
   // Calcular KPIs en background sin bloquear render
   (async()=>{
-    let statQ=sb.from("consumos_ops").select("enviado,devuelto,consumido,es_merma").limit(50000);
+    let statQ=sb.from("consumos_ops").select("enviado,devuelto,consumido,es_merma").eq("sede",_consSede).limit(50000);
     if(rf){if(rf.ini)statQ=statQ.gte("fecha",rf.ini);if(rf.fin)statQ=statQ.lte("fecha",rf.fin);}
     if(op){const safe=op.replace(/[%,]/g," ");statQ=statQ.ilike("op",`%${safe}%`);}
     if(mat){const safe=mat.replace(/[%,]/g," ");statQ=statQ.ilike("material",`%${safe}%`);}
@@ -5286,7 +5522,7 @@ async function renderConsumos(){
       <td style="text-align:right;color:#5b9bd5;font-weight:500">${c.enviado??""}</td>
       <td style="text-align:right;color:${c.devuelto!=null?'#4caf8c':'#5a5e7a'}">${c.devuelto??"—"}</td>
       <td style="text-align:right;color:${c.consumido>0?'#f5a623':'#7a7d99'};font-weight:500">${c.consumido??""}</td>
-      <td style="font-size:10px;color:${merma?'#e85a5a':'#7a7d99'}">${merma?`<i class="ti ti-trash-x"></i> MERMA${c.motivo_merma?`: ${esc(c.motivo_merma)}`:''}`:esc(c.observaciones)}</td>
+      <td style="font-size:10px;color:${merma?'#e85a5a':'#7a7d99'}">${merma?`<i class="ti ti-trash-x"></i> MERMA${c.motivo_merma?`: ${esc(c.motivo_merma)}`:''}`:esc(c.observaciones)}${c._usuario?`<div style="color:#5b9bd5;font-size:9px"><i class="ti ti-user"></i> ${esc(c._usuario)}</div>`:""}</td>
       <td style="white-space:nowrap">
         ${!histo?`<button class="btn btn-ghost" style="padding:3px 7px;font-size:10px;color:#5b9bd5" onclick="openCierreOp('${String(c.op).replace(/'/g,"\\'")}')" title="Ver OP (líneas, cierre y reabrir)"><i class="ti ti-eye"></i></button>`:""}
         ${puedeEditarCons&&!histo?`
@@ -5319,11 +5555,14 @@ async function renderConsumos(){
 let _consMatTuboCache=null; // {byMaterial: {mat: [{tubo, mmRest, instId}]}}
 
 async function loadConsMatTuboCache(force=false){
+  // Reconstruir si cambió la sede activa
+  if(_consMatTuboCacheSede!==_consSede) force=true;
   if(_consMatTuboCache&&!force) return _consMatTuboCache;
-  // Trae todos los tubos sede custom + sus instancias disponibles
+  _consMatTuboCacheSede=_consSede;
+  // Trae todos los tubos de la sede activa + sus instancias disponibles
   let tubos=[];
   for(let from=0;;from+=1000){
-    const {data,error}=await sb.from("tubos").select("*").eq("sede","custom").range(from,from+999);
+    const {data,error}=await sb.from("tubos").select("*").eq("sede",_consSede).range(from,from+999);
     if(error) break;
     if(!data?.length) break;
     tubos=tubos.concat(data);
@@ -5724,7 +5963,7 @@ async function saveConsumo(){
         di, de, largo, enviado,
         devuelto:null,                                   // pendiente de cierre
         observaciones:observ||null, material_optimo:optimo||null,
-        es_merma:false, es_historico:false, sede:"custom",
+        es_merma:false, es_historico:false, sede:_consSede,
         usuario_id:CU?.id,
         cliente_nombre: tipoOp==="interno"?null:(cliente||null),
       });
@@ -5855,7 +6094,7 @@ async function saveConsumo(){
         di:L.di, de:L.de, largo:L.largo, enviado:L.enviado,
         devuelto:L.devuelto, observaciones:L.observaciones,
         material_optimo:L.material_optimo, es_merma:false, es_historico:false,
-        sede:"custom", usuario_id:CU?.id,
+        sede:_consSede, usuario_id:CU?.id,
         cliente_nombre: tipoOp==="interno"?null:(cliente||null),
       };
       let res;
@@ -6071,7 +6310,7 @@ async function openCierreOp(op){
   document.getElementById("modalCierre").style.display="flex";
   showLoading(true,"Cargando OP...","Buscando líneas y tubos disponibles");
   // Cargar líneas de la OP (solo del sistema, no históricos)
-  const {data,error}=await sb.from("consumos_ops").select("*").eq("op",op).eq("es_historico",false).order("id");
+  const {data,error}=await sb.from("consumos_ops").select("*").eq("op",op).eq("es_historico",false).eq("sede",_consSede).order("id");
   await loadConsMatTuboCache(true);
   showLoading(false);
   if(error){toast("Error: "+error.message,"err");return;}
