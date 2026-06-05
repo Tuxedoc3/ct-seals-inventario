@@ -485,7 +485,7 @@ input[type=number]{-moz-appearance:textfield;appearance:textfield}
 
     <!-- MERCADERÍAS -->
     <div class="page" id="page-mercaderias">
-      <div class="page-title"><i class="ti ti-circle-dot" style="color:#5b9bd5"></i>Mercaderías — O-rings, Wipers y otros</div>
+      <div class="page-title"><i class="ti ti-box" style="color:#5b9bd5"></i>Almacén — Custom</div>
       <div class="kpi-grid" id="mercKpis"></div>
       <div class="card">
         <div class="card-title"><i class="ti ti-filter"></i>Búsqueda y filtros</div>
@@ -513,10 +513,14 @@ input[type=number]{-moz-appearance:textfield;appearance:textfield}
             </select>
           </div>
         </div>
-        <div class="btn-row">
+        <div class="btn-row" style="align-items:center">
           <button class="btn btn-ghost" onclick="resetFiltrosMerc()"><i class="ti ti-refresh"></i>Limpiar</button>
           <button class="btn btn-red" id="btnNuevoMerc" onclick="openModalMerc()"><i class="ti ti-plus"></i>Nuevo producto</button>
           <button class="btn btn-ghost" id="btnNuevaCatMerc" onclick="openCategoriaModal('merc')"><i class="ti ti-category-plus"></i>+ Categoría</button>
+          <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:#94a3b8;cursor:pointer;white-space:nowrap;margin-left:auto">
+            <input type="checkbox" id="mercVerAgotados" onchange="renderMercaderias()" style="cursor:pointer">
+            Mostrar agotados
+          </label>
         </div>
       </div>
       <div class="card" style="padding:0">
@@ -536,14 +540,18 @@ input[type=number]{-moz-appearance:textfield;appearance:textfield}
 
     <!-- ALMACÉN MECANIZA -->
     <div class="page" id="page-alm_mecaniza">
-      <div class="page-title"><i class="ti ti-box" style="color:#a78bfa"></i>Almacén Mecaniza — Productos varios</div>
+      <div class="page-title"><i class="ti ti-box" style="color:#a78bfa"></i>Almacén — Mecaniza</div>
       <div class="kpi-grid" id="almKpis"></div>
       <div class="card">
         <div class="card-title"><i class="ti ti-filter"></i>Búsqueda y filtros</div>
         <div class="filters-grid">
           <div class="filter-group" style="grid-column:span 2">
             <label class="filter-label">Búsqueda</label>
-            <input class="fi" id="almQ" type="text" placeholder="Nombre, código..." oninput="renderAlmMecaniza()">
+            <input class="fi" id="almQ" type="text" placeholder="Nombre, código, material..." oninput="renderAlmMecaniza()">
+          </div>
+          <div class="filter-group">
+            <label class="filter-label">Categoría</label>
+            <select class="fi" id="almCat" onchange="renderAlmMecaniza()"><option value="">Todas</option></select>
           </div>
           <div class="filter-group">
             <label class="filter-label">Stock</label>
@@ -555,17 +563,22 @@ input[type=number]{-moz-appearance:textfield;appearance:textfield}
             </select>
           </div>
         </div>
-        <div class="btn-row">
+        <div class="btn-row" style="align-items:center">
           <button class="btn btn-ghost" onclick="resetFiltrosAlm()"><i class="ti ti-refresh"></i>Limpiar</button>
           <button class="btn btn-red" id="btnNuevoAlm" onclick="openModalAlm()"><i class="ti ti-plus"></i>Nuevo producto</button>
+          <button class="btn btn-ghost" id="btnNuevaCatAlm" onclick="openCategoriaModal('merc')"><i class="ti ti-category-plus"></i>+ Categoría</button>
+          <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:#94a3b8;cursor:pointer;white-space:nowrap;margin-left:auto">
+            <input type="checkbox" id="almVerAgotados" onchange="renderAlmMecaniza()" style="cursor:pointer">
+            Mostrar agotados
+          </label>
         </div>
       </div>
       <div class="card" style="padding:0">
         <div class="tbl-wrap" style="max-height:none">
           <table>
             <thead><tr>
-              <th>Código</th><th>Nombre</th><th>Marca</th>
-              <th style="text-align:right">Stock</th><th>Unidad</th><th style="text-align:right">Precio</th>
+              <th>Código</th><th>Nombre</th><th>Categoría</th><th>Medidas</th>
+              <th style="text-align:right">Stock</th><th style="text-align:right">Precio</th>
               <th>Ubicación</th><th>Acciones</th>
             </tr></thead>
             <tbody id="alm-tbody"><tr><td colspan="8" class="no-data"><div class="loading"><div class="spinner"></div>Cargando...</div></td></tr></tbody>
@@ -671,47 +684,42 @@ input[type=number]{-moz-appearance:textfield;appearance:textfield}
         <div id="catProgress" style="display:none"></div>
       </div>
 
-      <!-- GESTIÓN DEL CATÁLOGO (editar / eliminar materiales individuales) -->
       <div class="card">
-        <div class="card-title"><i class="ti ti-list-search"></i>Gestionar catálogo de materiales</div>
-        <div style="font-size:11px;color:#7a7d99;margin-bottom:10px">Busca un material para <strong>editarlo</strong> o <strong>eliminarlo</strong> (por ejemplo, uno cargado por error). Al eliminar puedes quitar también sus tubos físicos asociados.</div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px">
-          <input class="form-input" id="catQ" type="text" placeholder="Buscar por código o descripción..." style="flex:1;min-width:220px" oninput="debounceCatList()">
-          <button class="btn btn-ghost" onclick="loadCatalogoList(true)"><i class="ti ti-refresh"></i>Actualizar</button>
-          <button class="btn btn-red" id="btnNuevoCat" onclick="openModalCatalogo()"><i class="ti ti-plus"></i>Nuevo material</button>
+        <div class="card-title"><i class="ti ti-circle-dot"></i>Almacén Custom (Excel)</div>
+        <div style="font-size:11px;color:#7a7d99;margin-bottom:10px">Sube el maestro de O-rings (u otros productos). Columnas: <strong>CODIGO, NOMBRE, FAMILIA, DESCRIPCION</strong> (y opcionales DI, DE, GROSOR, PRECIO, STOCK, CATEGORIA). La categoría se crea sola según la FAMILIA (ej. "ORING NBR 70" → "NBR 70").</div>
+        <div class="upload-zone" onclick="document.getElementById('mercImportInput').click()">
+          <div style="font-size:32px;color:#5b9bd5;margin-bottom:8px"><i class="ti ti-circle-dot"></i></div>
+          <div style="font-size:13px;font-weight:500;color:#f0f0f5;margin-bottom:4px">Cargar Almacén Custom</div>
+          <div><button class="btn btn-blue" onclick="event.stopPropagation();document.getElementById('mercImportInput').click()"><i class="ti ti-upload"></i>Seleccionar Excel</button></div>
+          <input type="file" id="mercImportInput" style="display:none" accept=".xlsx,.xls" onchange="importProductosExcel(event,'mercaderias')">
         </div>
-        <div class="card" style="padding:0">
-          <div class="tbl-wrap" style="max-height:420px">
-            <table>
-              <thead><tr>
-                <th>Código</th><th>Descripción</th><th>Familia</th>
-                <th style="text-align:right">DI</th><th style="text-align:right">DE</th><th style="text-align:right">Long.</th>
-                <th>Acciones</th>
-              </tr></thead>
-              <tbody id="cat-tbody"><tr><td colspan="7" class="no-data">Escribe para buscar…</td></tr></tbody>
-            </table>
+        <div id="mercImportProgress" style="display:none;margin-top:8px"></div>
+        <div style="margin-top:12px;padding-top:12px;border-top:.5px solid #2e3042">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+            <div style="font-size:11px;color:#7a7d99;text-transform:uppercase;letter-spacing:.5px">Catálogos cargados</div>
+            <button class="btn btn-ghost" style="font-size:11px;padding:4px 10px" onclick="renderCargasResumen('mercaderias')"><i class="ti ti-refresh"></i>Actualizar</button>
           </div>
-          <div class="tbl-footer" id="catFooter"></div>
+          <div id="mercCargasList"><div class="no-data" style="padding:12px;font-size:11px">— —</div></div>
         </div>
       </div>
 
       <div class="card">
-        <div class="card-title"><i class="ti ti-cylinder"></i>Inventario de tubos (Plantilla v2)</div>
-        <div style="font-size:11px;color:#7a7d99;margin-bottom:10px">
-          Usa la <strong style="color:#c8cce0">Plantilla_Inventario_Tubos.xlsx</strong>, hoja <strong style="color:#c8cce0">INVENTARIO_TUBOS</strong>.
-          Una fila por tubo físico con su <strong style="color:#3b82f6">altura_actual</strong> medida con calibrador.
-          Si el material (codigo_mat) no existe en el catálogo, se crea automáticamente.
+        <div class="card-title"><i class="ti ti-box"></i>Almacén Mecaniza (Excel)</div>
+        <div style="font-size:11px;color:#7a7d99;margin-bottom:10px">Sube productos al Almacén Mecaniza. Columnas mínimas: <strong>CODIGO, NOMBRE</strong> (y opcionales DESCRIPCION, UNIDAD, PRECIO, STOCK).</div>
+        <div class="upload-zone" onclick="document.getElementById('almImportInput').click()">
+          <div style="font-size:32px;color:#a78bfa;margin-bottom:8px"><i class="ti ti-box"></i></div>
+          <div style="font-size:13px;font-weight:500;color:#f0f0f5;margin-bottom:4px">Cargar Almacén Mecaniza</div>
+          <div><button class="btn btn-blue" onclick="event.stopPropagation();document.getElementById('almImportInput').click()"><i class="ti ti-upload"></i>Seleccionar Excel</button></div>
+          <input type="file" id="almImportInput" style="display:none" accept=".xlsx,.xls" onchange="importProductosExcel(event,'alm_mecaniza_productos')">
         </div>
-        <div class="upload-zone" onclick="document.getElementById('stockInput').click()">
-          <div style="font-size:32px;color:#5b9bd5;margin-bottom:8px"><i class="ti ti-table"></i></div>
-          <div style="font-size:13px;font-weight:500;color:#f0f0f5;margin-bottom:4px">Cargar inventario de tubos</div>
-          <div style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap">
-            <button class="btn btn-blue" onclick="event.stopPropagation();document.getElementById('stockInput').click()"><i class="ti ti-upload"></i>Seleccionar Excel</button>
-            <button class="btn btn-ghost" style="color:#e85a5a" onclick="event.stopPropagation();clearStock()"><i class="ti ti-trash"></i>Borrar Stock</button>
+        <div id="almImportProgress" style="display:none;margin-top:8px"></div>
+        <div style="margin-top:12px;padding-top:12px;border-top:.5px solid #2e3042">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+            <div style="font-size:11px;color:#7a7d99;text-transform:uppercase;letter-spacing:.5px">Catálogos cargados</div>
+            <button class="btn btn-ghost" style="font-size:11px;padding:4px 10px" onclick="renderCargasResumen('alm_mecaniza_productos')"><i class="ti ti-refresh"></i>Actualizar</button>
           </div>
-          <input type="file" id="stockInput" style="display:none" accept=".xlsx,.xls,.csv" onchange="loadStockFile(event)">
+          <div id="almCargasList"><div class="no-data" style="padding:12px;font-size:11px">— —</div></div>
         </div>
-        <div id="stockProgress" style="display:none"></div>
       </div>
 
       <div class="card">
@@ -780,7 +788,7 @@ input[type=number]{-moz-appearance:textfield;appearance:textfield}
         <div style="font-size:10px;color:#7a7d99;text-transform:uppercase;letter-spacing:.5px;margin:14px 0 6px;padding-bottom:4px;border-bottom:.5px solid #2e3042">Widgets visibles</div>
         <div class="cli-checks" style="flex-direction:column;gap:6px;align-items:flex-start">
           <label class="cli-check"><input type="checkbox" id="cfgW_opsmes" checked> 📅 OPs del período (click muestra detalle por OP)</label>
-          <label class="cli-check"><input type="checkbox" id="cfgW_stockbajo" checked> ⚠️ Productos con stock crítico (MP + Mercaderías + Almacén Mecaniza)</label>
+          <label class="cli-check"><input type="checkbox" id="cfgW_stockbajo" checked> ⚠️ Productos con stock crítico (MP + Almacén Custom + Almacén Mecaniza)</label>
           <label class="cli-check"><input type="checkbox" id="cfgW_consumos" checked> 📊 Consumos por material (suma de coincidencias por código)</label>
           <label class="cli-check"><input type="checkbox" id="cfgW_merma" checked> 🗑️ Mermas (cantidad y % sobre total)</label>
           <label class="cli-check"><input type="checkbox" id="cfgW_eficiencia"> ♻️ Eficiencia (mm enviados vs devueltos)</label>
@@ -810,7 +818,7 @@ input[type=number]{-moz-appearance:textfield;appearance:textfield}
         </div>
         <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-top:.5px solid #2e3042">
           <div>
-            <div style="font-size:13px;color:#c8cce0;font-weight:500">Stock mínimo Mercaderías</div>
+            <div style="font-size:13px;color:#c8cce0;font-weight:500">Stock mínimo Almacén Custom</div>
             <div style="font-size:11px;color:#5a5e7a">Umbral global para alertar productos bajo mínimo</div>
           </div>
           <div style="display:flex;gap:8px">
@@ -1354,7 +1362,15 @@ input[type=number]{-moz-appearance:textfield;appearance:textfield}
       <div class="form-group"><label class="form-label">Cliente</label><input class="form-input" id="mm_cliente"></div>
       <div class="form-group"><label class="form-label">N° OP</label><input class="form-input" id="mm_op_sal"></div>
     </div>
-    <div class="form-group"><label class="form-label">Motivo <span class="req">*</span></label><input class="form-input" id="mm_motivo" placeholder="Ej: compra, venta, ajuste..."></div>
+    <div class="form-group">
+      <label class="form-label">Motivo <span class="req">*</span></label>
+      <select class="form-input" id="mm_motivo" onchange="toggleMotivoOtro('mm')"></select>
+    </div>
+    <div class="form-group" id="mm_motivo_otro_box" style="display:none">
+      <label class="form-label">Especificar motivo <span class="req">*</span></label>
+      <input class="form-input" id="mm_motivo_otro" placeholder="Describe el motivo...">
+    </div>
+    <div id="mm_transfer_info" style="display:none;font-size:11px;color:#5b9bd5;background:#0f1e2e;padding:8px 10px;border-radius:4px;margin-bottom:10px"><i class="ti ti-arrows-transfer-up"></i> Se descontará de Almacén Custom y se sumará automáticamente al Almacén Mecaniza. Si el producto no existe allá, se creará con stock = la cantidad transferida.</div>
     <input type="hidden" id="mm_id">
     <input type="hidden" id="mm_tipo">
     <div class="modal-footer">
@@ -1374,6 +1390,16 @@ input[type=number]{-moz-appearance:textfield;appearance:textfield}
     </div>
     <div class="form-group"><label class="form-label">Nombre <span class="req">*</span></label><input class="form-input" id="a_nombre"></div>
     <div class="form-group"><label class="form-label">Descripción</label><input class="form-input" id="a_descripcion"></div>
+    <div class="form-row-3">
+      <div class="form-group"><label class="form-label">Categoría</label><select class="form-input" id="a_categoria"></select></div>
+      <div class="form-group"><label class="form-label">Material</label><input class="form-input" id="a_material" placeholder="NBR, FKM..."></div>
+      <div class="form-group"><label class="form-label">Dureza</label><input class="form-input" id="a_dureza" placeholder="70 Shore A"></div>
+    </div>
+    <div class="form-row-3">
+      <div class="form-group"><label class="form-label">DI (mm)</label><input class="form-input" id="a_di" type="number" step="0.01"></div>
+      <div class="form-group"><label class="form-label">DE (mm)</label><input class="form-input" id="a_de" type="number" step="0.01"></div>
+      <div class="form-group"><label class="form-label">Grosor (mm)</label><input class="form-input" id="a_grosor" type="number" step="0.01"></div>
+    </div>
     <div class="form-row-3">
       <div class="form-group"><label class="form-label">Marca</label><input class="form-input" id="a_marca"></div>
       <div class="form-group"><label class="form-label">Stock actual</label><input class="form-input" id="a_stock_actual" type="number" min="0" value="0"></div>
@@ -1411,7 +1437,15 @@ input[type=number]{-moz-appearance:textfield;appearance:textfield}
       <div class="form-group"><label class="form-label">Cliente</label><input class="form-input" id="am_cliente"></div>
       <div class="form-group"><label class="form-label">N° OP</label><input class="form-input" id="am_op_sal"></div>
     </div>
-    <div class="form-group"><label class="form-label">Motivo <span class="req">*</span></label><input class="form-input" id="am_motivo"></div>
+    <div class="form-group">
+      <label class="form-label">Motivo <span class="req">*</span></label>
+      <select class="form-input" id="am_motivo" onchange="toggleMotivoOtro('am')"></select>
+    </div>
+    <div class="form-group" id="am_motivo_otro_box" style="display:none">
+      <label class="form-label">Especificar motivo <span class="req">*</span></label>
+      <input class="form-input" id="am_motivo_otro" placeholder="Describe el motivo...">
+    </div>
+    <div id="am_transfer_info" style="display:none;font-size:11px;color:#a78bfa;background:#1a1235;padding:8px 10px;border-radius:4px;margin-bottom:10px"><i class="ti ti-arrows-transfer-up"></i> Se descontará de Almacén Mecaniza y se sumará automáticamente al Almacén Custom. Si el producto no existe allá, se creará con stock = la cantidad transferida.</div>
     <input type="hidden" id="am_id">
     <input type="hidden" id="am_tipo">
     <div class="modal-footer">
@@ -1601,12 +1635,21 @@ input[type=number]{-moz-appearance:textfield;appearance:textfield}
       </div>
     </div>
     <div id="catMercFields" style="display:none">
-      <div class="form-group"><label class="form-label">Nombre de la categoría <span class="req">*</span></label><input class="form-input" id="catMercLabel" placeholder="Repuesto, Complemento..."></div>
-      <div style="font-size:11px;color:#7a7d99"><i class="ti ti-info-circle"></i> Requiere que la base permita categorías libres (ver supabase_addons.txt, sección 4).</div>
+      <input type="hidden" id="catMercEditCode">
+      <div class="form-group">
+        <label class="form-label"><span id="catMercFormTitle">Nueva categoría</span> <span class="req">*</span></label>
+        <input class="form-input" id="catMercLabel" placeholder="NBR 70, FKM 90, Viton 75...">
+      </div>
+      <div style="display:flex;gap:6px;justify-content:flex-end;margin-top:-4px">
+        <button class="btn btn-ghost" id="btnCancelEditCatMerc" style="display:none;font-size:11px;padding:5px 10px" onclick="resetEditCatMerc()">Cancelar edición</button>
+        <button class="btn btn-red" id="btnSaveCatMerc" style="font-size:11px;padding:5px 12px" onclick="saveCategoria()"><i class="ti ti-check"></i><span id="btnSaveCatMercTxt">Agregar</span></button>
+      </div>
+      <div style="font-size:10px;color:#7a7d99;text-transform:uppercase;letter-spacing:.5px;margin:14px 0 6px;padding-bottom:4px;border-bottom:.5px solid #2e3042">Categorías existentes</div>
+      <div id="catMercList" style="max-height:240px;overflow:auto;display:grid;gap:4px"></div>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-ghost" onclick="closeModal('modalCategoria')">Cancelar</button>
-      <button class="btn btn-red" onclick="saveCategoria()"><i class="ti ti-check"></i>Guardar</button>
+      <button class="btn btn-ghost" onclick="closeModal('modalCategoria')"><span id="catModalCloseTxt">Cancelar</span></button>
+      <button class="btn btn-red" id="btnSaveCatModal" onclick="saveCategoria()"><i class="ti ti-check"></i>Guardar</button>
     </div>
   </div>
 </div>
@@ -1966,9 +2009,9 @@ const ACCIONES_DISPONIBLES=[
   {key:"editarClientes",label:"Clientes: Editar",icon:"ti-users",color:"violet"},
   {key:"eliminarClientes",label:"Clientes: Eliminar",icon:"ti-trash",color:"violet"},
   // Mercaderías
-  {key:"crearMerc",label:"Mercaderías: Crear",icon:"ti-plus",color:"blue"},
-  {key:"editarMerc",label:"Mercaderías: Editar",icon:"ti-circle-dot",color:"blue"},
-  {key:"eliminarMerc",label:"Mercaderías: Eliminar",icon:"ti-trash",color:"blue"},
+  {key:"crearMerc",label:"Almacén Custom: Crear",icon:"ti-plus",color:"blue"},
+  {key:"editarMerc",label:"Almacén Custom: Editar",icon:"ti-circle-dot",color:"blue"},
+  {key:"eliminarMerc",label:"Almacén Custom: Eliminar",icon:"ti-trash",color:"blue"},
   // Almacén Mecaniza
   {key:"crearAlmMec",label:"Almacén Mec.: Crear",icon:"ti-plus",color:"violet"},
   {key:"editarAlmMec",label:"Almacén Mec.: Editar",icon:"ti-box",color:"violet"},
@@ -1988,7 +2031,7 @@ const PAGINAS_DISPONIBLES=[
   {key:"dashboard",label:"Dashboard"},
   {key:"mp_custom",label:"Mat. Prima Custom"},
   {key:"mp_mecaniza",label:"Mat. Prima Mecaniza"},
-  {key:"mercaderias",label:"Mercaderías"},
+  {key:"mercaderias",label:"Almacén Custom"},
   {key:"alm_mecaniza",label:"Almacén Mecaniza"},
   {key:"consumos",label:"Consumos — Custom"},
   {key:"consumos_mec",label:"Consumos — Mecaniza"},
@@ -2143,7 +2186,7 @@ const NAV_ITEMS={
   dashboard:    {icon:"ti-layout-dashboard",label:"Dashboard",sec:"Principal"},
   mp_custom:    {icon:"ti-cylinder",label:"Mat. Prima — Custom",sec:"Almacenes"},
   mp_mecaniza:  {icon:"ti-cylinder",label:"Mat. Prima — Mecaniza",sec:"Almacenes"},
-  mercaderias:  {icon:"ti-circle-dot",label:"Mercaderías",sec:"Almacenes"},
+  mercaderias:  {icon:"ti-box",label:"Almacén — Custom",sec:"Almacenes"},
   alm_mecaniza: {icon:"ti-box",label:"Almacén Mecaniza",sec:"Almacenes"},
   consumos:     {icon:"ti-clipboard-list",label:"Consumos — Custom",sec:"Operación"},
   consumos_mec: {icon:"ti-clipboard-list",label:"Consumos — Mecaniza",sec:"Operación"},
@@ -2517,7 +2560,7 @@ function goTo(page){
   if(page==="clientes") loadClientes();
   if(page==="usuarios") loadUsuarios();
   if(page==="config") loadConfigPage();
-  if(page==="carga") loadCatalogoList();
+  if(page==="carga"){renderCargasResumen("mercaderias");renderCargasResumen("alm_mecaniza_productos");}
 }
 
 async function loadConfig(){
@@ -2804,11 +2847,14 @@ function slugCode(s){return (s||"").toLowerCase().normalize("NFD").replace(/[\u0
 // ── Modal "Nueva categoría" (compartido MP / Mercaderías) ──
 function openCategoriaModal(scope){
   document.getElementById("cat_scope").value=scope;
-  document.getElementById("catModalTitle").textContent=scope==="merc"?"Nueva categoría — Mercaderías":"Nueva categoría — Materia Prima";
+  document.getElementById("catModalTitle").textContent=scope==="merc"?"Gestionar categorías — Almacenes":"Nueva categoría — Materia Prima";
   // limpiar
   ["catFamLabel","catFamCode","catSubCod","catSubDureza","catSubColor","catMercLabel"].forEach(id=>{const e=document.getElementById(id);if(e)e.value="";});
   document.getElementById("catScopeMP").style.display=scope==="mp"?"":"none";
   document.getElementById("catMercFields").style.display=scope==="merc"?"":"none";
+  // El footer "Guardar" solo aplica a MP (merc tiene sus propios botones en la sección)
+  const btnFooter=document.getElementById("btnSaveCatModal");if(btnFooter)btnFooter.style.display=scope==="merc"?"none":"inline-flex";
+  const closeTxt=document.getElementById("catModalCloseTxt");if(closeTxt)closeTxt.textContent=scope==="merc"?"Cerrar":"Cancelar";
   if(scope==="mp"){
     document.getElementById("catTipo").value="familia";
     // poblar select de familia para subfamilia
@@ -2816,7 +2862,68 @@ function openCategoriaModal(scope){
     if(sel) sel.innerHTML=getCategoriasMP().map(c=>`<option value="${escAttr(c.code)}">${escAttr(c.label)}</option>`).join("");
     catTipoChange();
   }
+  if(scope==="merc"){
+    resetEditCatMerc();
+    renderCatMercList();
+  }
   document.getElementById("modalCategoria").style.display="flex";
+}
+function resetEditCatMerc(){
+  const lbl=document.getElementById("catMercLabel");if(lbl)lbl.value="";
+  const ec=document.getElementById("catMercEditCode");if(ec)ec.value="";
+  const txt=document.getElementById("btnSaveCatMercTxt");if(txt)txt.textContent="Agregar";
+  const tit=document.getElementById("catMercFormTitle");if(tit)tit.textContent="Nueva categoría";
+  const bc=document.getElementById("btnCancelEditCatMerc");if(bc)bc.style.display="none";
+}
+function renderCatMercList(){
+  const cont=document.getElementById("catMercList");if(!cont)return;
+  const list=getCategoriasMerc();
+  if(!list.length){cont.innerHTML=`<div class="no-data" style="padding:8px;font-size:11px">Sin categorías</div>`;return;}
+  cont.innerHTML=list.map(c=>{
+    const safeCode=JSON.stringify(c.code).replace(/"/g,"&quot;");
+    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 10px;background:#1a1d2e;border-radius:4px">
+      <div style="font-size:12px;color:#f0f0f5;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+        ${esc(c.label)}
+        <span style="color:#5a5e7a;font-family:monospace;font-size:10px;margin-left:6px">${esc(c.code)}</span>
+      </div>
+      <div style="display:flex;gap:4px;flex-shrink:0">
+        <button class="btn btn-ghost" style="padding:3px 8px;font-size:10px" onclick="editCatMerc(${safeCode})" title="Renombrar"><i class="ti ti-edit"></i></button>
+        <button class="btn btn-ghost" style="padding:3px 8px;font-size:10px;color:#e85a5a" onclick="deleteCatMerc(${safeCode})" title="Eliminar categoría"><i class="ti ti-trash"></i></button>
+      </div>
+    </div>`;
+  }).join("");
+}
+function editCatMerc(code){
+  const c=getCategoriasMerc().find(x=>x.code===code);if(!c)return;
+  document.getElementById("catMercLabel").value=c.label;
+  document.getElementById("catMercEditCode").value=c.code;
+  document.getElementById("btnSaveCatMercTxt").textContent="Actualizar";
+  document.getElementById("catMercFormTitle").textContent=`Editando "${c.label}"`;
+  document.getElementById("btnCancelEditCatMerc").style.display="inline-flex";
+  document.getElementById("catMercLabel").focus();
+}
+async function deleteCatMerc(code){
+  const c=getCategoriasMerc().find(x=>x.code===code);if(!c)return;
+  // contar productos que usan esta categoría
+  let usados=0;
+  try{
+    const [m,a]=await Promise.all([
+      sb.from("mercaderias").select("id",{count:"exact",head:true}).eq("categoria",code),
+      sb.from("alm_mecaniza_productos").select("id",{count:"exact",head:true}).eq("categoria",code)
+    ]);
+    usados=(m.count||0)+(a.count||0);
+  }catch(e){}
+  let msg=`¿Eliminar la categoría "${c.label}"?`;
+  if(usados>0) msg+=`\n\n⚠ Hay ${usados} producto(s) usando esta categoría. Quedarán con la categoría asignada (puedes reasignarlos editándolos o borrarlos desde Cargar Excel).`;
+  if(!confirm(msg)) return;
+  if(!confirm(`Confirmación final: borrar categoría "${c.label}".`)) return;
+  const list=getCategoriasMerc().filter(x=>x.code!==code);
+  if(await saveConfigRaw("categorias_merc",JSON.stringify(list))){
+    toast("✓ Categoría eliminada","ok");
+    poblarCategoriasMerc();
+    renderCatMercList();
+    resetEditCatMerc();
+  }
 }
 function catTipoChange(){
   const tipo=document.getElementById("catTipo").value;
@@ -2828,13 +2935,26 @@ async function saveCategoria(){
   if(scope==="merc"){
     const label=document.getElementById("catMercLabel").value.trim();
     if(!label){toast("Escribe el nombre","err");return;}
+    const editCode=document.getElementById("catMercEditCode").value;
     const list=getCategoriasMerc();
+    if(editCode){
+      const idx=list.findIndex(c=>c.code===editCode);
+      if(idx<0){toast("Categoría no encontrada","err");return;}
+      // evitar choque de label con otra
+      if(list.some((c,i)=>i!==idx&&c.label.toLowerCase()===label.toLowerCase())){toast("Ya existe otra categoría con ese nombre","err");return;}
+      list[idx].label=label;
+      if(await saveConfigRaw("categorias_merc",JSON.stringify(list))){
+        toast("✓ Categoría actualizada","ok");
+        resetEditCatMerc();poblarCategoriasMerc();renderCatMercList();
+      }
+      return;
+    }
     const code=slugCode(label);
     if(list.some(c=>c.code===code||c.label.toLowerCase()===label.toLowerCase())){toast("Esa categoría ya existe","err");return;}
     list.push({code,label});
     if(await saveConfigRaw("categorias_merc",JSON.stringify(list))){
-      closeModal("modalCategoria");toast("✓ Categoría agregada","ok");
-      poblarCategoriasMerc();
+      toast("✓ Categoría agregada","ok");
+      resetEditCatMerc();poblarCategoriasMerc();renderCatMercList();
     }
     return;
   }
@@ -2882,6 +3002,11 @@ function poblarCategoriasMerc(){
   if(filtro){const prev=filtro.value;filtro.innerHTML=`<option value="">Todas</option>`+list.map(c=>`<option value="${escAttr(c.code)}">${escAttr(c.label)}</option>`).join("");filtro.value=prev;}
   const modal=document.getElementById("m_categoria");
   if(modal){const prev=modal.value;modal.innerHTML=list.map(c=>`<option value="${escAttr(c.code)}">${escAttr(c.label)}</option>`).join("");if(prev)modal.value=prev;}
+  // Almacén Mecaniza comparte las mismas categorías
+  const filtroA=document.getElementById("almCat");
+  if(filtroA){const prev=filtroA.value;filtroA.innerHTML=`<option value="">Todas</option>`+list.map(c=>`<option value="${escAttr(c.code)}">${escAttr(c.label)}</option>`).join("");filtroA.value=prev;}
+  const modalA=document.getElementById("a_categoria");
+  if(modalA){const prev=modalA.value;modalA.innerHTML=list.map(c=>`<option value="${escAttr(c.code)}">${escAttr(c.label)}</option>`).join("");if(prev)modalA.value=prev;}
 }
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -3378,7 +3503,7 @@ async function dashDetalleStockBajo(){
   if(total===0) return `<div style="text-align:center;padding:30px;color:var(--green)"><i class="ti ti-circle-check" style="font-size:32px"></i><div style="margin-top:10px">Todo el stock está sobre el mínimo ✓</div></div>`;
   let html=`<div style="margin-bottom:10px;font-size:11px;color:var(--text-soft)">${total} productos bajo el umbral</div><div class="tbl-wrap" style="max-height:60vh"><table><thead><tr><th>Producto</th><th>Almacén</th><th style="text-align:right">Actual</th><th style="text-align:right">Mínimo</th></tr></thead><tbody>`;
   tubosBajos.forEach(t=>{const disp=dispByTubo[t.id]||0;html+=`<tr><td>${esc(t.descripcion)}</td><td><span style="color:${t.sede==='custom'?'var(--red)':'var(--amber)'};font-size:10px;text-transform:uppercase">MP ${esc(t.sede)}</span></td><td style="text-align:right;color:var(--red);font-weight:600">${disp}</td><td style="text-align:right;color:var(--text-soft)">${t.stock_minimo}</td></tr>`;});
-  mercBajos.forEach(m=>{html+=`<tr><td>${esc(m.nombre)} <span style="color:var(--text-faint);font-size:10px">(${esc(m.codigo)})</span></td><td><span style="color:var(--blue);font-size:10px">MERCADERÍAS</span></td><td style="text-align:right;color:var(--red);font-weight:600">${m.stock_actual} ${esc(m.unidad)}</td><td style="text-align:right;color:var(--text-soft)">${Math.max(m.stock_minimo||0,thrMerc)}</td></tr>`;});
+  mercBajos.forEach(m=>{html+=`<tr><td>${esc(m.nombre)} <span style="color:var(--text-faint);font-size:10px">(${esc(m.codigo)})</span></td><td><span style="color:var(--blue);font-size:10px">ALMACÉN CUSTOM</span></td><td style="text-align:right;color:var(--red);font-weight:600">${m.stock_actual} ${esc(m.unidad)}</td><td style="text-align:right;color:var(--text-soft)">${Math.max(m.stock_minimo||0,thrMerc)}</td></tr>`;});
   almBajos.forEach(a=>{html+=`<tr><td>${esc(a.nombre)} <span style="color:var(--text-faint);font-size:10px">(${esc(a.codigo)})</span></td><td><span style="color:var(--violet);font-size:10px">ALM. MECANIZA</span></td><td style="text-align:right;color:var(--red);font-weight:600">${a.stock_actual} ${esc(a.unidad)}</td><td style="text-align:right;color:var(--text-soft)">${Math.max(a.stock_minimo||0,thrAlm)}</td></tr>`;});
   html+=`</tbody></table></div>`;
   return html;
@@ -3512,15 +3637,15 @@ async function widgetConsumos(){
 
 async function widgetOrings(){
   const {data,error}=await sb.from("mercaderias").select("nombre,codigo,categoria,stock_actual,stock_minimo,di,de,grosor").eq("activo",true).limit(2000);
-  if(error) return `<div class="card"><div class="card-title">Mercaderías</div><div class="no-data">Error</div></div>`;
-  if(!data?.length) return `<div class="card"><div class="card-title"><i class="ti ti-circle-dot"></i>Mercaderías</div><div class="no-data">Sin productos registrados</div></div>`;
+  if(error) return `<div class="card"><div class="card-title">Almacén Custom</div><div class="no-data">Error</div></div>`;
+  if(!data?.length) return `<div class="card"><div class="card-title"><i class="ti ti-circle-dot"></i>Almacén Custom</div><div class="no-data">Sin productos registrados</div></div>`;
   const top=data.filter(m=>m.stock_actual>0).sort((a,b)=>b.stock_actual-a.stock_actual).slice(0,10);
   const items=top.map(m=>{
     const med=[m.di,m.de,m.grosor].filter(x=>x!=null).join("×");
     return {label:`${m.nombre}${med?` (${med})`:""}`,val:m.stock_actual,display:`${m.stock_actual}`};
   });
   return `<div class="card">
-    <div class="card-title"><i class="ti ti-circle-dot"></i>Top mercaderías por stock</div>
+    <div class="card-title"><i class="ti ti-circle-dot"></i>Top Almacén Custom por stock</div>
     ${items.length?barChart(items,null,()=>"#5b9bd5"):'<div class="no-data">Sin stock disponible</div>'}
   </div>`;
 }
@@ -3556,7 +3681,7 @@ async function widgetStockBajo(){
     }).join("");
   }
   if(mercBajos.length){
-    html+=`<div style="font-size:10px;color:#7a7d99;text-transform:uppercase;margin:8px 0 4px">Mercaderías</div>`;
+    html+=`<div style="font-size:10px;color:#7a7d99;text-transform:uppercase;margin:8px 0 4px">Almacén Custom</div>`;
     html+=mercBajos.slice(0,10).map(m=>`<div style="display:flex;justify-content:space-between;padding:5px 8px;border-bottom:.5px solid #1e2134;font-size:11px"><span style="color:#c8cce0">${esc(m.nombre)} <span style="color:#5a5e7a">(${esc(m.codigo)})</span></span><span style="color:#e85a5a;font-weight:600">${m.stock_actual} ${esc(m.unidad)} <span style="color:#5a5e7a">/ mín ${Math.max(m.stock_minimo||0,thrMerc)}</span></span></div>`).join("");
   }
   if(almBajos.length){
@@ -3677,7 +3802,7 @@ async function openHistorial(tipo,itemId){
   const itemName=item?.nombre||"";
   const itemCode=item?.codigo||"";
   _histState={tipo,itemId,itemName,itemCode,data:[]};
-  document.getElementById("histTitle").textContent=`Historial — ${tipo==="merc"?"Mercaderías":"Almacén Mecaniza"}`;
+  document.getElementById("histTitle").textContent=`Historial — ${tipo==="merc"?"Almacén Custom":"Almacén Mecaniza"}`;
   document.getElementById("histInfo").innerHTML=`<strong style="color:#f0f0f5">${esc(itemName)}</strong> <span style="color:#7a7d99">(${esc(itemCode)})</span>`;
   document.getElementById("histDesde").value="";
   document.getElementById("histHasta").value="";
@@ -4157,6 +4282,7 @@ async function verDetalleTubo(tuboId){
     ${pCrearT?`<button class="btn btn-ghost" onclick="openModalTuboFor(${t.id})"><i class="ti ti-plus"></i>Agregar tubos</button>`:""}
     ${pEditT?`<button class="btn btn-ghost" onclick="openModalMaterial(${t.id})"><i class="ti ti-edit"></i>Editar material</button>`:""}
     ${pEditT?`<button class="btn btn-ghost" style="color:#3a9bd5" onclick="recalcularTuboDesdeConsumos(${t.id})"><i class="ti ti-refresh"></i>Recalcular stock</button>`:""}
+    ${pCrearT?`<button class="btn btn-ghost" style="color:#a78bfa" onclick="copiarMaterialAOtraSede(${t.id})"><i class="ti ti-copy"></i>Copiar a ${t.sede==="custom"?"Mecaniza":"Custom"}</button>`:""}
     ${pElimT?`<button class="btn btn-ghost" style="color:#e85a5a" onclick="deleteTuboModelo(${t.id})"><i class="ti ti-trash"></i>Eliminar material</button>`:""}
   </div>`;
 
@@ -4383,6 +4509,30 @@ async function deleteTuboModelo(tuboId){
   _tubosState.detalleId=null;
   clearCache("tubos_custom");clearCache("tubos_mecaniza");_consMatTuboCache=null;
   loadTubos(true);
+}
+// Copia el MATERIAL (no los tubos físicos) a la otra sede, para compartir el código/medidas.
+async function copiarMaterialAOtraSede(tuboId){
+  if(!userCanCRUD("crear","Tubos")){toast("Sin permiso para crear","err");return;}
+  const t=_tubosCache.tubos.find(x=>x.id===tuboId)||_detalleTubo;
+  if(!t){toast("Material no encontrado","err");return;}
+  const otra=(t.sede==="custom")?"mecaniza":"custom";
+  if(!confirm(`¿Copiar el material "${t.descripcion}" a la sede ${otra==="mecaniza"?"MECANIZA":"CUSTOM"}?\n\nSe crea el material (mismo código y medidas) SIN tubos físicos. Luego agregas stock allá.`))return;
+  showLoading(true,"Copiando a la otra sede...");
+  // ¿Ya existe en la otra sede?
+  const {data:ex}=await sb.from("tubos").select("id").eq("descripcion",t.descripcion).eq("altura_total",t.altura_total).eq("sede",otra).maybeSingle();
+  if(ex){showLoading(false);toast("Ese material ya existe en la otra sede","err");return;}
+  const payload={
+    codigo_mat:t.codigo_mat||null, descripcion:t.descripcion, altura_total:t.altura_total, sede:otra,
+    familia:t.familia||null, subfamilia:t.subfamilia||null, dureza:t.dureza||null, color:t.color||null,
+    marca:t.marca||null, di:t.di??null, de:t.de??null, precio:t.precio??null, moneda:t.moneda||"PEN",
+    proveedor:t.proveedor||null, origen:t.origen||null, stock_minimo:t.stock_minimo??2,
+    altura_min_aprovechable:t.altura_min_aprovechable??null, notas:t.notas||null
+  };
+  const {error}=await sb.from("tubos").insert(payload);
+  showLoading(false);
+  if(error){toast("Error: "+error.message,"err");return;}
+  toast(`✓ Material copiado a ${otra==="mecaniza"?"Mecaniza":"Custom"} (sin stock)`,"ok");
+  clearCache("tubos_custom");clearCache("tubos_mecaniza");_consMatTuboCache=null;
 }
 // Recalcula altura_usada/estado de cada instancia del modelo desde los consumos vigentes.
 // Corrige tubos "fantasma" con consumo que ya no existe (consumos eliminados).
@@ -6705,6 +6855,7 @@ function resetFiltrosMerc(){
   document.getElementById("mercQ").value="";
   document.getElementById("mercCat").value="";
   document.getElementById("mercStock").value="";
+  const va=document.getElementById("mercVerAgotados");if(va)va.checked=false;
   _mercState={page:1,perPage:30,query:"",cat:"",stock:""};
   renderMercaderias();
 }
@@ -6714,11 +6865,14 @@ function renderMercaderias(){
   _mercState.query=document.getElementById("mercQ")?.value.toLowerCase()||"";
   _mercState.cat=document.getElementById("mercCat")?.value||"";
   _mercState.stock=document.getElementById("mercStock")?.value||"";
+  const verAgotados=document.getElementById("mercVerAgotados")?.checked;
   let lista=_mercCache.filter(m=>{
     if(_mercState.cat&&m.categoria!==_mercState.cat) return false;
     if(_mercState.stock==="bajo"&&!(m.stock_actual<(m.stock_minimo||0))) return false;
     if(_mercState.stock==="cero"&&m.stock_actual>0) return false;
     if(_mercState.stock==="ok"&&m.stock_actual<=0) return false;
+    // Ocultar sin stock por defecto, salvo "Mostrar agotados" o filtros que lo requieran
+    if(!verAgotados && _mercState.stock!=="cero" && (m.stock_actual||0)<=0) return false;
     if(_mercState.query){
       const hay=`${m.codigo} ${m.nombre} ${m.material||""} ${m.marca||""}`.toLowerCase();
       if(!hay.includes(_mercState.query)) return false;
@@ -6861,9 +7015,87 @@ async function deleteMerc(id){
   clearCache("mercaderias");loadMercaderias(true);
 }
 
+// ── Importar productos (O-rings, etc.) desde Excel → Mercaderías o Almacén Mecaniza ──
+// Lee TODAS las hojas. Mapea por encabezado: CODIGO, NOMBRE, FAMILIA, DESCRIPCION,
+// y campos opcionales (DI, DE, GROSOR, PRECIO, STOCK, CATEGORIA, UNIDAD, MATERIAL, DUREZA).
+// Si no vienen DI/DE/GROSOR, los extrae del NOMBRE ("Ø1.78 X 0.74 X 2.78" → grosor, DI, DE).
+async function importProductosExcel(e,tabla){
+  const f=e.target.files[0];if(!f)return;
+  e.target.value="";
+  const esMerc=tabla==="mercaderias";
+  if(!userCanCRUD("crear",esMerc?"Merc":"AlmMec")){toast("Sin permiso para crear","err");return;}
+  const progId=esMerc?"mercImportProgress":"almImportProgress";
+  const prog=document.getElementById(progId);
+  if(prog){prog.style.display="block";prog.innerHTML=`<div class="progress-info"><span>Leyendo archivo...</span></div>`;}
+  _suspendRealtimeRender=true;
+  const r=new FileReader();
+  r.onload=async ev=>{
+    try{
+      const wb=XLSX.read(ev.target.result,{type:"array"});
+      const get=(row,keys)=>{for(const k of Object.keys(row)){const K=k.toString().toUpperCase().replace(/\s|_/g,"");if(keys.some(x=>K===x||K.includes(x)))return row[k];}return"";};
+      const num=v=>{const x=parseFloat(String(v).replace(",","."));return isNaN(x)?null:x;};
+      const all=[]; const newCats={}; // categorías nuevas detectadas (por FAMILIA)
+      for(const sn of wb.SheetNames){
+        const rows=XLSX.utils.sheet_to_json(wb.Sheets[sn],{defval:""});
+        for(const row of rows){
+          const cod=String(get(row,["CODIGO","COD","SKU","CODE"])||"").trim();
+          const nombre=String(get(row,["NOMBRE","DESCRIP"])||"").trim();
+          if(!cod||!nombre) continue;
+          const familia=String(get(row,["FAMILIA"])||"").trim();
+          const descripcion=String(get(row,["DESCRIPCION","DETALLE","SUBFAM"])||"").trim();
+          // Medidas: explícitas o parseadas del nombre (3 números: grosor, DI, DE)
+          let grosor=num(get(row,["GROSOR","CS","SECCION"])), di=num(get(row,["DI","ID"])), de=num(get(row,["DE","OD"]));
+          if(grosor==null&&di==null&&de==null){
+            const nums=(nombre.match(/\d+(?:[.,]\d+)?/g)||[]).map(x=>parseFloat(x.replace(",",".")));
+            // descartar el "2-001" inicial: tomar los 3 que vienen tras la Ø
+            const m=nombre.match(/Ø\s*([\d.,]+)\s*[xX*]\s*([\d.,]+)\s*[xX*]\s*([\d.,]+)/);
+            if(m){grosor=parseFloat(m[1].replace(",","."));di=parseFloat(m[2].replace(",","."));de=parseFloat(m[3].replace(",","."));}
+          }
+          const material=String(get(row,["MATERIAL"])||"").trim()||((familia.match(/NBR|FKM|FPM|EPDM|HNBR|SILICON|VITON|PU|PTFE/i)||[])[0]||"");
+          let dureza=String(get(row,["DUREZA"])||"").trim();
+          if(!dureza){const dm=(nombre+" "+descripcion+" "+familia).match(/(\d{2,3})\s*SHORE/i);if(dm)dureza=dm[1]+" Shore A";}
+          const unidad=String(get(row,["UNIDAD","UNIVENTA","UND"])||"UND").trim()||"UND";
+          const precio=num(get(row,["PRECIO","PRECIOUNITARIO","COSTO"]));
+          const stock=num(get(row,["STOCK","STOCKACTUAL","CANTIDAD","EXISTENCIA"]));
+          // Categoría por FAMILIA (ej. "ORING NBR 70" → "NBR 70"). Se autocrea si es nueva. Igual para ambos almacenes.
+          const catLabel=(get(row,["CATEGORIA"])?String(get(row,["CATEGORIA"])).trim():"")||familia.replace(/ORINGS?/i,"").trim()||"O-ring";
+          const catCode=slugCode(catLabel);
+          newCats[catCode]=catLabel;
+          all.push({codigo:cod,nombre,categoria:catCode,descripcion:descripcion||null,material:material||null,dureza:dureza||null,
+            di,de,grosor,unidad,stock_actual:stock||0,stock_minimo:0,precio_unitario:precio,moneda:cfgStr("general_moneda_default","PEN"),user_crea:CU?.id});
+        }
+      }
+      if(!all.length){toast("Sin filas válidas (faltan CODIGO/NOMBRE)","err");if(prog)prog.style.display="none";return;}
+      const CHUNK=500;let ok=0,err2=0,firstErr=null;
+      for(let i=0;i<all.length;i+=CHUNK){
+        const slice=all.slice(i,i+CHUNK);
+        const pct=Math.round((i/all.length)*100);
+        if(prog)prog.innerHTML=`<div class="progress-info"><span>Subiendo ${i+1}–${Math.min(i+CHUNK,all.length)} de ${all.length}</span><span>${pct}%</span></div><div class="progress-bar"><div class="progress-bar-fill" style="width:${pct}%"></div></div>`;
+        const {error}=await sb.from(tabla).upsert(slice,{onConflict:"codigo"});
+        if(error){err2+=slice.length;if(!firstErr)firstErr=error.message;console.error("[import]",error);}
+        else ok+=slice.length;
+      }
+      if(prog)prog.innerHTML=`<div class="progress-info done"><span>✓ ${ok} productos cargados${err2?` · ${err2} con error`:""}</span><span>100%</span></div><div class="progress-bar"><div class="progress-bar-fill" style="width:100%;background:#4caf8c"></div></div>${firstErr?`<div style="color:#e85a5a;font-size:11px;margin-top:4px">${esc(firstErr)}</div>`:""}`;
+      // Registrar las categorías nuevas en la configuración (compartidas por ambos almacenes)
+      if(Object.keys(newCats).length){
+        const lista=getCategoriasMerc();
+        let cambios=false;
+        Object.entries(newCats).forEach(([code,label])=>{if(!lista.some(c=>c.code===code)){lista.push({code,label});cambios=true;}});
+        if(cambios) await saveConfigRaw("categorias_merc",JSON.stringify(lista));
+      }
+      toast(`✓ ${ok} productos importados`,ok>0?"ok":"err");
+      clearCache(esMerc?"mercaderias":"alm_mecaniza");
+      if(esMerc) loadMercaderias(true); else loadAlmMecaniza(true);
+      renderCargasResumen(tabla);
+    }catch(err){console.error(err);toast("Error: "+err.message,"err");if(prog)prog.style.display="none";}
+    _suspendRealtimeRender=false;
+  };
+  r.readAsArrayBuffer(f);
+}
+
 function openMercMov(id,tipo){
   const m=_mercCache.find(x=>x.id===id);if(!m)return;
-  document.getElementById("modalMercMovTitle").textContent=tipo==="entrada"?"Entrada de mercadería":"Salida de mercadería";
+  document.getElementById("modalMercMovTitle").textContent=tipo==="entrada"?"Entrada — Almacén Custom":"Salida — Almacén Custom";
   document.getElementById("modalMercMovIcon").className=tipo==="entrada"?"ti ti-arrow-down":"ti ti-arrow-up";
   document.getElementById("modalMercMovIcon").style.color=tipo==="entrada"?"#4caf8c":"#f5a623";
   document.getElementById("mercMovInfo").innerHTML=`<strong style="color:#f0f0f5">${esc(m.nombre)}</strong> <span style="color:#7a7d99">(${esc(m.codigo)})</span><br>Stock actual: <strong style="color:${m.stock_actual<=0?'#e85a5a':'#4caf8c'}">${m.stock_actual} ${esc(m.unidad)}</strong>`;
@@ -6875,7 +7107,9 @@ function openMercMov(id,tipo){
   document.getElementById("mm_op").value="";
   document.getElementById("mm_cliente").value="";
   document.getElementById("mm_op_sal").value="";
-  document.getElementById("mm_motivo").value=tipo==="entrada"?"Compra":"";
+  poblarMotivos("mm_motivo",tipo);
+  document.getElementById("mm_motivo_otro").value="";
+  document.getElementById("mm_motivo_otro_box").style.display="none";
   document.getElementById("mm_prov_box").style.display=tipo==="entrada"?"grid":"none";
   document.getElementById("mm_cli_box").style.display=tipo==="salida"?"grid":"none";
   document.getElementById("modalMercMov").style.display="flex";
@@ -6885,7 +7119,7 @@ async function saveMercMov(){
   const id=parseInt(document.getElementById("mm_id").value);
   const tipo=document.getElementById("mm_tipo").value;
   const cant=parseFloat(document.getElementById("mm_cant").value);
-  const motivo=document.getElementById("mm_motivo").value.trim();
+  const motivo=resolverMotivo("mm");
   if(!cant||cant<=0){toast("Cantidad inválida","err");return;}
   if(!motivo){toast("Motivo obligatorio","err");return;}
   const m=_mercCache.find(x=>x.id===id);if(!m)return;
@@ -6907,9 +7141,24 @@ async function saveMercMov(){
   if(e1){setBtnLoading("btnSaveMercMov",false);toast("Error mov: "+e1.message,"err");return;}
   const {error:e2}=await sb.from("mercaderias").update({stock_actual:stockDespues,fec_act:new Date().toISOString(),user_act:CU?.id}).eq("id",id);
   if(e2){setBtnLoading("btnSaveMercMov",false);toast("Error stock: "+e2.message,"err");return;}
+  // Si es una salida por transferencia, crear la entrada en el otro almacén.
+  let transferMsg="";
+  if(tipo==="salida"&&motivo===MOTIVO_TRANSFER){
+    try{
+      const opNum=document.getElementById("mm_op_sal").value.trim();
+      const r=await transferirAOtroAlmacen("mercaderias",m,cant,opNum);
+      transferMsg=` → ${r.destNombre}: stock ${r.stockDestino}${r.creado?" (producto creado)":""}`;
+      clearCache("alm_mecaniza");
+    }catch(err){
+      setBtnLoading("btnSaveMercMov",false);
+      toast("Salida OK, pero falló la entrada en Mecaniza: "+err.message,"err");
+      clearCache("mercaderias");loadMercaderias(true);
+      return;
+    }
+  }
   setBtnLoading("btnSaveMercMov",false);
   closeModal("modalMercMov");
-  toast(`✓ ${tipo==="entrada"?"Entrada":"Salida"} registrada · stock: ${stockDespues}`,"ok");
+  toast(`✓ ${tipo==="entrada"?"Entrada":"Salida"} registrada · stock: ${stockDespues}${transferMsg}`,"ok");
   clearCache("mercaderias");loadMercaderias(true);
 }
 
@@ -6922,6 +7171,8 @@ let _almCache=[];
 async function loadAlmMecaniza(forceReload=false){
   const perm=getEffectivePerms();
   document.getElementById("btnNuevoAlm").style.display=userCanCRUD("crear","AlmMec")?"inline-flex":"none";
+  const bCA=document.getElementById("btnNuevaCatAlm");if(bCA)bCA.style.display=userCanCRUD("crear","AlmMec")?"inline-flex":"none";
+  poblarCategoriasMerc();
   if(!forceReload){
     const cached=getCached("alm_mecaniza");
     if(cached){_almCache=cached;renderAlmMecaniza();return;}
@@ -6945,7 +7196,9 @@ async function loadAlmMecaniza(forceReload=false){
 function resetFiltrosAlm(){
   document.getElementById("almQ").value="";
   document.getElementById("almStock").value="";
-  _almState={page:1,perPage:30,query:"",stock:""};
+  const ac=document.getElementById("almCat");if(ac)ac.value="";
+  const va=document.getElementById("almVerAgotados");if(va)va.checked=false;
+  _almState={page:1,perPage:30,query:"",stock:"",cat:""};
   renderAlmMecaniza();
 }
 
@@ -6953,24 +7206,30 @@ function renderAlmMecaniza(){
   const perm=getEffectivePerms();
   _almState.query=document.getElementById("almQ")?.value.toLowerCase()||"";
   _almState.stock=document.getElementById("almStock")?.value||"";
+  _almState.cat=document.getElementById("almCat")?.value||"";
+  const verAgotados=document.getElementById("almVerAgotados")?.checked;
   let lista=_almCache.filter(a=>{
+    if(_almState.cat&&a.categoria!==_almState.cat) return false;
     if(_almState.stock==="bajo"&&!(a.stock_actual<(a.stock_minimo||0))) return false;
     if(_almState.stock==="cero"&&a.stock_actual>0) return false;
     if(_almState.stock==="ok"&&a.stock_actual<=0) return false;
+    // Ocultar sin stock por defecto, salvo "Mostrar agotados" o filtros que lo requieran
+    if(!verAgotados && _almState.stock!=="cero" && (a.stock_actual||0)<=0) return false;
     if(_almState.query){
-      const hay=`${a.codigo} ${a.nombre} ${a.marca||""}`.toLowerCase();
+      const hay=`${a.codigo} ${a.nombre} ${a.material||""} ${a.marca||""}`.toLowerCase();
       if(!hay.includes(_almState.query)) return false;
     }
     return true;
   });
 
+  const totOR=_almCache.filter(a=>a.categoria==="oring").length;
+  const totWP=_almCache.filter(a=>a.categoria==="wiper_fab").length;
   const totBajo=_almCache.filter(a=>a.stock_actual<(a.stock_minimo||0)).length;
-  const totSin=_almCache.filter(a=>a.stock_actual<=0).length;
   document.getElementById("almKpis").innerHTML=`
     <div class="kpi"><div class="kpi-label">Total productos</div><div class="kpi-val white">${_almCache.length}</div></div>
-    <div class="kpi"><div class="kpi-label">Con stock</div><div class="kpi-val green">${_almCache.length-totSin}</div></div>
-    <div class="kpi"><div class="kpi-label">Stock bajo</div><div class="kpi-val ${totBajo>0?'amber':'green'}">${totBajo}</div></div>
-    <div class="kpi"><div class="kpi-label">Sin stock</div><div class="kpi-val ${totSin>0?'red':'green'}">${totSin}</div></div>`;
+    <div class="kpi"><div class="kpi-label">O-rings</div><div class="kpi-val blue">${totOR}</div></div>
+    <div class="kpi"><div class="kpi-label">Wipers</div><div class="kpi-val green">${totWP}</div></div>
+    <div class="kpi"><div class="kpi-label">Stock bajo</div><div class="kpi-val ${totBajo>0?'red':'green'}">${totBajo}</div></div>`;
 
   const per=_almState.perPage;
   const total=lista.length;
@@ -6980,14 +7239,16 @@ function renderAlmMecaniza(){
   const start=(_almState.page-1)*per;
   const visible=lista.slice(start,start+per);
 
+  const catBadge=c=>{const map={oring:["#0f1e2e","#5b9bd5"],wiper_fab:["#1a3a2a","#4caf8c"],otro:["#22253a","#7a7d99"]};const [bg,fg]=map[c]||["#22253a","#7a7d99"];return `<span class="rol-badge" style="background:${bg};color:${fg}">${esc(mercCatLabel(c))}</span>`;};
   document.getElementById("alm-tbody").innerHTML=visible.length?visible.map(a=>{
     const colorStock=a.stock_actual<=0?"#e85a5a":a.stock_actual<(a.stock_minimo||0)?"#f5a623":"#4caf8c";
+    const med=[a.di,a.de,a.grosor].filter(x=>x!=null).join(" × ")||"—";
     return `<tr>
       <td style="font-family:monospace;font-size:10px;color:#7a7d99">${esc(a.codigo)}</td>
-      <td><div style="color:#f0f0f5;font-weight:500">${esc(a.nombre)}</div>${a.descripcion?`<div style="font-size:10px;color:#5a5e7a">${esc(a.descripcion)}</div>`:""}</td>
-      <td style="color:#b0b3cc">${esc(a.marca)||"—"}</td>
-      <td style="text-align:right"><span style="color:${colorStock};font-weight:600">${a.stock_actual}</span>${(a.stock_minimo||0)>0?`<div style="font-size:9px;color:#5a5e7a">mín ${a.stock_minimo}</div>`:""}</td>
-      <td style="color:#7a7d99;font-size:10px">${esc(a.unidad)}</td>
+      <td><div style="color:#f0f0f5;font-weight:500">${esc(a.nombre)}</div>${a.material||a.descripcion?`<div style="font-size:10px;color:#5a5e7a">${esc(a.material||a.descripcion)}${a.material&&a.dureza?` · ${esc(a.dureza)}`:""}</div>`:""}</td>
+      <td>${catBadge(a.categoria)}</td>
+      <td style="color:#b0b3cc;font-size:10px">${med}</td>
+      <td style="text-align:right"><span style="color:${colorStock};font-weight:600">${a.stock_actual}</span><span style="color:#5a5e7a;font-size:10px"> ${esc(a.unidad)}</span>${(a.stock_minimo||0)>0?`<div style="font-size:9px;color:#5a5e7a">mín ${a.stock_minimo}</div>`:""}</td>
       <td style="text-align:right;color:#c8cce0">${a.precio_unitario!=null?`${a.precio_unitario} <span style="font-size:9px;color:#5a5e7a">${esc(a.moneda)}</span>`:"—"}</td>
       <td style="font-size:10px;color:#7a7d99">${esc(a.ubicacion)||"—"}</td>
       <td style="white-space:nowrap">
@@ -7013,11 +7274,16 @@ function openModalAlm(id=null){
   const perm=getEffectivePerms();
   const a=id?_almCache.find(x=>x.id===id):null;
   document.getElementById("modalAlmTitle").textContent=a?`Editar — ${a.nombre}`:"Nuevo producto";
+  poblarCategoriasMerc();
   const set=(k,v)=>{const el=document.getElementById(k);if(el)el.value=v??"";};
   set("a_id",a?.id||"");
   set("a_codigo",a?.codigo||"");
   set("a_nombre",a?.nombre||"");
   set("a_descripcion",a?.descripcion||"");
+  set("a_categoria",a?.categoria||"otro");
+  set("a_material",a?.material||"");
+  set("a_dureza",a?.dureza||"");
+  set("a_di",a?.di??"");set("a_de",a?.de??"");set("a_grosor",a?.grosor??"");
   set("a_marca",a?.marca||"");
   set("a_unidad",a?.unidad||"unidad");
   set("a_stock_actual",a?.stock_actual??0);
@@ -7042,7 +7308,11 @@ async function saveAlm(){
   setBtnLoading("btnSaveAlm",true,"Guardando...");
   const payload={
     codigo,nombre,
+    categoria:document.getElementById("a_categoria")?.value||"otro",
     descripcion:v("a_descripcion")||null,
+    material:v("a_material")||null,
+    dureza:v("a_dureza")||null,
+    di:num("a_di"),de:num("a_de"),grosor:num("a_grosor"),
     marca:v("a_marca")||null,
     unidad:v("a_unidad")||"unidad",
     stock_actual:num("a_stock_actual")||0,
@@ -7091,7 +7361,9 @@ function openAlmMov(id,tipo){
   document.getElementById("am_op").value="";
   document.getElementById("am_cliente").value="";
   document.getElementById("am_op_sal").value="";
-  document.getElementById("am_motivo").value=tipo==="entrada"?"Compra":"";
+  poblarMotivos("am_motivo",tipo);
+  document.getElementById("am_motivo_otro").value="";
+  document.getElementById("am_motivo_otro_box").style.display="none";
   document.getElementById("am_prov_box").style.display=tipo==="entrada"?"grid":"none";
   document.getElementById("am_cli_box").style.display=tipo==="salida"?"grid":"none";
   document.getElementById("modalAlmMov").style.display="flex";
@@ -7101,7 +7373,7 @@ async function saveAlmMov(){
   const id=parseInt(document.getElementById("am_id").value);
   const tipo=document.getElementById("am_tipo").value;
   const cant=parseFloat(document.getElementById("am_cant").value);
-  const motivo=document.getElementById("am_motivo").value.trim();
+  const motivo=resolverMotivo("am");
   if(!cant||cant<=0){toast("Cantidad inválida","err");return;}
   if(!motivo){toast("Motivo obligatorio","err");return;}
   const a=_almCache.find(x=>x.id===id);if(!a)return;
@@ -7123,10 +7395,199 @@ async function saveAlmMov(){
   if(e1){setBtnLoading("btnSaveAlmMov",false);toast("Error: "+e1.message,"err");return;}
   const {error:e2}=await sb.from("alm_mecaniza_productos").update({stock_actual:stockDespues,fec_act:new Date().toISOString(),user_act:CU?.id}).eq("id",id);
   if(e2){setBtnLoading("btnSaveAlmMov",false);toast("Error: "+e2.message,"err");return;}
+  let transferMsg="";
+  if(tipo==="salida"&&motivo===MOTIVO_TRANSFER){
+    try{
+      const opNum=document.getElementById("am_op_sal").value.trim();
+      const r=await transferirAOtroAlmacen("alm_mecaniza_productos",a,cant,opNum);
+      transferMsg=` → ${r.destNombre}: stock ${r.stockDestino}${r.creado?" (producto creado)":""}`;
+      clearCache("mercaderias");
+    }catch(err){
+      setBtnLoading("btnSaveAlmMov",false);
+      toast("Salida OK, pero falló la entrada en Custom: "+err.message,"err");
+      clearCache("alm_mecaniza");loadAlmMecaniza(true);
+      return;
+    }
+  }
   setBtnLoading("btnSaveAlmMov",false);
   closeModal("modalAlmMov");
-  toast(`✓ ${tipo==="entrada"?"Entrada":"Salida"} registrada · stock: ${stockDespues}`,"ok");
+  toast(`✓ ${tipo==="entrada"?"Entrada":"Salida"} registrada · stock: ${stockDespues}${transferMsg}`,"ok");
   clearCache("alm_mecaniza");loadAlmMecaniza(true);
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+//  MOTIVOS predefinidos para entradas/salidas de almacenes
+// ────────────────────────────────────────────────────────────────────────────
+const MOTIVOS_ALMACEN={
+  entrada:["Compra","Devolución de cliente","Ajuste de inventario","Producción","Otro"],
+  salida: ["Venta","Consumo en OP","Devolución a proveedor","Merma / daño","Ajuste de inventario","Transferencia entre almacenes","Otro"]
+};
+const MOTIVO_TRANSFER="Transferencia entre almacenes";
+function poblarMotivos(selId,tipo){
+  const sel=document.getElementById(selId);if(!sel)return;
+  const opts=MOTIVOS_ALMACEN[tipo]||[];
+  sel.innerHTML=opts.map(o=>`<option value="${escAttr(o)}">${escAttr(o)}</option>`).join("");
+  sel.value=opts[0]||"";
+}
+function toggleMotivoOtro(prefix){
+  const sel=document.getElementById(prefix+"_motivo");
+  const box=document.getElementById(prefix+"_motivo_otro_box");
+  if(sel&&box) box.style.display=sel.value==="Otro"?"":"none";
+  const ti=document.getElementById(prefix+"_transfer_info");
+  if(sel&&ti) ti.style.display=sel.value===MOTIVO_TRANSFER?"":"none";
+}
+// Crea la entrada automática en el almacén destino cuando se hace una salida
+// con motivo "Transferencia entre almacenes". Si el producto no existe en el
+// destino (por código), lo crea con los mismos datos básicos y stock 0.
+async function transferirAOtroAlmacen(origenTabla,prodOrigen,cant,opNum){
+  const esDeMerc=origenTabla==="mercaderias";
+  const destTabla=esDeMerc?"alm_mecaniza_productos":"mercaderias";
+  const destMovT=esDeMerc?"alm_mecaniza_movimientos":"mercaderia_movimientos";
+  const destFk=esDeMerc?"producto_id":"mercaderia_id";
+  const destNombre=esDeMerc?"Almacén Mecaniza":"Almacén Custom";
+  const {data:exist,error:eFind}=await sb.from(destTabla).select("*").eq("codigo",prodOrigen.codigo).maybeSingle();
+  if(eFind) throw eFind;
+  let destProd=exist;
+  let creado=false;
+  if(!destProd){
+    const nuevo={
+      codigo:prodOrigen.codigo,
+      nombre:prodOrigen.nombre,
+      categoria:prodOrigen.categoria||"otro",
+      descripcion:prodOrigen.descripcion||null,
+      material:prodOrigen.material||null,
+      dureza:prodOrigen.dureza||null,
+      di:prodOrigen.di??null,de:prodOrigen.de??null,grosor:prodOrigen.grosor??null,
+      unidad:prodOrigen.unidad||"unidad",
+      stock_actual:0,stock_minimo:0,
+      precio_unitario:prodOrigen.precio_unitario??null,
+      moneda:prodOrigen.moneda||"PEN",
+      ubicacion:prodOrigen.ubicacion||null,
+      user_crea:CU?.id,
+    };
+    const {data:created,error:eIns}=await sb.from(destTabla).insert(nuevo).select().single();
+    if(eIns) throw eIns;
+    destProd=created;creado=true;
+  }
+  const antes=Number(destProd.stock_actual)||0;
+  const despues=antes+cant;
+  const mov={
+    [destFk]:destProd.id,tipo:"entrada",cantidad:cant,
+    precio_unitario:prodOrigen.precio_unitario??null,
+    moneda:destProd.moneda||prodOrigen.moneda||"PEN",
+    motivo:MOTIVO_TRANSFER,op_numero:opNum||null,
+    stock_antes:antes,stock_despues:despues,usuario_id:CU?.id,
+  };
+  const {error:eMov}=await sb.from(destMovT).insert(mov);
+  if(eMov) throw eMov;
+  const {error:eUp}=await sb.from(destTabla).update({stock_actual:despues,fec_act:new Date().toISOString(),user_act:CU?.id}).eq("id",destProd.id);
+  if(eUp) throw eUp;
+  return {destNombre,creado,stockDestino:despues};
+}
+function resolverMotivo(prefix){
+  const sel=document.getElementById(prefix+"_motivo");
+  if(!sel)return "";
+  const v=sel.value;
+  if(v==="Otro"){
+    const t=(document.getElementById(prefix+"_motivo_otro")?.value||"").trim();
+    return t;
+  }
+  return v;
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+//  RESUMEN DE CATÁLOGOS CARGADOS (por almacén) — listar / borrar por categoría
+// ────────────────────────────────────────────────────────────────────────────
+async function renderCargasResumen(tabla){
+  const esMerc=tabla==="mercaderias";
+  const contId=esMerc?"mercCargasList":"almCargasList";
+  const cont=document.getElementById(contId);if(!cont)return;
+  cont.innerHTML=`<div class="loading" style="padding:8px"><div class="spinner"></div>Cargando...</div>`;
+  let all=[];
+  for(let from=0;;from+=1000){
+    const {data,error}=await sb.from(tabla).select("categoria").range(from,from+999);
+    if(error){cont.innerHTML=`<div style="color:#e85a5a;font-size:11px;padding:8px">Error: ${esc(error.message)}</div>`;return;}
+    if(!data?.length) break;
+    all=all.concat(data);
+    if(data.length<1000) break;
+  }
+  if(!all.length){cont.innerHTML=`<div class="no-data" style="padding:12px;font-size:11px">Aún no hay productos cargados.</div>`;return;}
+  const counts={};
+  all.forEach(r=>{const c=r.categoria||"(sin categoría)";counts[c]=(counts[c]||0)+1;});
+  const entries=Object.entries(counts).sort((a,b)=>b[1]-a[1]);
+  const total=all.length;
+  const puedeBorrar=userCanCRUD("eliminar",esMerc?"Merc":"AlmMec");
+  cont.innerHTML=`
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <div style="font-size:11px;color:#c8cce0"><strong style="color:#f0f0f5">${total.toLocaleString()}</strong> productos en <strong style="color:#f0f0f5">${entries.length}</strong> catálogo(s)</div>
+      ${puedeBorrar?`<button class="btn btn-ghost" style="color:#e85a5a;font-size:11px;padding:4px 10px" onclick="borrarTodoAlmacen('${tabla}')"><i class="ti ti-trash"></i>Borrar TODO</button>`:""}
+    </div>
+    <div style="display:grid;gap:4px;max-height:240px;overflow:auto">
+      ${entries.map(([cat,n])=>`
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 10px;background:#1a1d2e;border-radius:4px">
+          <div style="font-size:11px;color:#f0f0f5;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+            <span style="color:#c8cce0">${esc(cat)}</span>
+            <span style="color:#5a5e7a;margin:0 6px">·</span>
+            <strong>${n.toLocaleString()}</strong> <span style="color:#5a5e7a">producto(s)</span>
+          </div>
+          ${puedeBorrar?`<button class="btn btn-ghost" style="color:#e85a5a;font-size:10px;padding:3px 8px;flex-shrink:0" onclick="borrarCategoriaProductos('${tabla}',${JSON.stringify(cat).replace(/"/g,"&quot;")})" title="Eliminar este catálogo"><i class="ti ti-trash"></i></button>`:""}
+        </div>`).join("")}
+    </div>`;
+}
+
+async function borrarCategoriaProductos(tabla,cat){
+  const esMerc=tabla==="mercaderias";
+  if(!userCanCRUD("eliminar",esMerc?"Merc":"AlmMec")){toast("Sin permiso para eliminar","err");return;}
+  const label=cat==="(sin categoría)"?'productos sin categoría':`catálogo "${cat}"`;
+  if(!confirm(`⚠️ ¿Eliminar TODOS los productos del ${label}?\n\nSe borrarán también sus movimientos.\nEsta acción no se puede deshacer.`))return;
+  if(!confirm(`Confirmación final: vas a borrar el ${label}. ¿Continuar?`))return;
+  showLoading(true,"Eliminando...");
+  try{
+    let qSel=sb.from(tabla).select("id");
+    if(cat==="(sin categoría)") qSel=qSel.is("categoria",null);
+    else qSel=qSel.eq("categoria",cat);
+    const {data:rows,error:e0}=await qSel;
+    if(e0)throw e0;
+    const ids=(rows||[]).map(r=>r.id);
+    if(!ids.length){showLoading(false);toast("Nada que borrar","ok");renderCargasResumen(tabla);return;}
+    const movT=esMerc?"mercaderia_movimientos":"alm_mecaniza_movimientos";
+    const fk=esMerc?"mercaderia_id":"producto_id";
+    const CHUNK=500;
+    for(let i=0;i<ids.length;i+=CHUNK){
+      const slice=ids.slice(i,i+CHUNK);
+      const {error:em}=await sb.from(movT).delete().in(fk,slice);
+      if(em)throw em;
+      const {error:ep}=await sb.from(tabla).delete().in("id",slice);
+      if(ep)throw ep;
+    }
+    showLoading(false);
+    toast(`✓ ${ids.length} producto(s) eliminado(s)`,"ok");
+    clearCache(esMerc?"mercaderias":"alm_mecaniza");
+    if(esMerc) loadMercaderias(true); else loadAlmMecaniza(true);
+    renderCargasResumen(tabla);
+  }catch(err){showLoading(false);toast("Error: "+err.message,"err");}
+}
+
+async function borrarTodoAlmacen(tabla){
+  const esMerc=tabla==="mercaderias";
+  if(!userCanCRUD("eliminar",esMerc?"Merc":"AlmMec")){toast("Sin permiso para eliminar","err");return;}
+  const nombre=esMerc?"Almacén Custom":"Almacén Mecaniza";
+  if(!confirm(`⚠️ ¡ADVERTENCIA! Vas a ELIMINAR TODOS los productos y movimientos de ${nombre}.\n\nEsta acción no se puede deshacer.`))return;
+  const txt=prompt(`Para confirmar, escribe BORRAR (en mayúsculas):`);
+  if(txt!=="BORRAR"){toast("Cancelado","ok");return;}
+  showLoading(true,"Vaciando almacén...");
+  try{
+    const movT=esMerc?"mercaderia_movimientos":"alm_mecaniza_movimientos";
+    const {error:em}=await sb.from(movT).delete().not("id","is",null);
+    if(em)throw em;
+    const {error:ep}=await sb.from(tabla).delete().not("id","is",null);
+    if(ep)throw ep;
+    showLoading(false);
+    toast(`✓ ${nombre} vaciado`,"ok");
+    clearCache(esMerc?"mercaderias":"alm_mecaniza");
+    if(esMerc) loadMercaderias(true); else loadAlmMecaniza(true);
+    renderCargasResumen(tabla);
+  }catch(err){showLoading(false);toast("Error: "+err.message,"err");}
 }
 
 // ────────────────────────────────────────────────────────────────────────────
