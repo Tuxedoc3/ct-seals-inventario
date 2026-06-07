@@ -1119,6 +1119,9 @@ input[type=number]{-moz-appearance:textfield;appearance:textfield}
       <datalist id="consClientesList"></datalist>
     </div>
 
+    <!-- Datalist compartido de materiales (autocompletar + texto libre) -->
+    <datalist id="consMaterialesList"></datalist>
+
     <!-- Líneas de materiales -->
     <div style="font-size:10px;color:#7a7d99;text-transform:uppercase;letter-spacing:.5px;margin:14px 0 6px;padding-bottom:4px;border-bottom:.5px solid #2e3042;display:flex;align-items:center;gap:6px">
       <i class="ti ti-list"></i>Materiales a consumir
@@ -1211,37 +1214,43 @@ input[type=number]{-moz-appearance:textfield;appearance:textfield}
       </div>
       <div id="smFechaBox" style="display:none"><label class="filter-label">Desde</label><input class="form-input" id="smFecha" type="date" style="width:160px"></div>
       <button class="btn btn-red" id="btnSmCalc" onclick="calcStockMuerto()"><i class="ti ti-search"></i>Calcular</button>
-      <button class="btn btn-ghost" onclick="exportStockMuerto()" title="Exportar a Excel"><i class="ti ti-file-spreadsheet"></i>Excel</button>
+      <button class="btn btn-ghost" onclick="exportStockMuerto()" title="Ver / imprimir reporte"><i class="ti ti-printer"></i>Reporte</button>
     </div>
     <div id="smResultado"><div class="no-data" style="padding:20px">Elige un período y pulsa <strong>Calcular</strong>.</div></div>
   </div>
 </div>
 
-<!-- MODAL: Descargar movimientos -->
+<!-- MODAL: Rotación de materiales (sin / poco / bastante movimiento) -->
 <div class="modal-overlay" id="modalExportMovs" style="display:none" onclick="if(event.target===this)closeModal('modalExportMovs')">
-  <div class="modal" style="max-width:520px">
-    <div class="modal-title"><i class="ti ti-history" style="color:#5b9bd5"></i>Descargar movimientos</div>
-    <div style="font-size:11px;color:#7a7d99;margin-bottom:10px">Exporta a Excel los movimientos de tubos (entradas, consumos, ajustes, mermas) según el filtro que elijas.</div>
+  <div class="modal" style="max-width:680px">
+    <div class="modal-title"><i class="ti ti-arrows-shuffle" style="color:#5b9bd5"></i>Rotación de materiales</div>
+    <div style="font-size:11px;color:#7a7d99;margin-bottom:10px">Clasifica los materiales por cuánto se consumieron en el período. La clasificación es <strong>automática por ranking</strong>: el tercio que más se movió = <strong>alta rotación</strong>, el del medio = <strong>media</strong>, el que menos = <strong>baja</strong>; sin consumo = <strong>sin rotación</strong>. El consumo se muestra en <strong>mm</strong> y su equivalente en <strong>tubos</strong> (mm ÷ largo del tubo).</div>
     <div class="form-row">
       <div class="form-group"><label class="form-label">Desde</label><input class="form-input" id="emDesde" type="date"></div>
       <div class="form-group"><label class="form-label">Hasta</label><input class="form-input" id="emHasta" type="date"></div>
     </div>
     <div class="form-row">
-      <div class="form-group"><label class="form-label">Tipo</label>
-        <select class="form-input" id="emTipo">
+      <div class="form-group"><label class="form-label">Material</label>
+        <select class="form-input" id="emMaterial"><option value="">Todos los materiales</option></select>
+      </div>
+      <div class="form-group"><label class="form-label">Mostrar</label>
+        <select class="form-input" id="emClase" onchange="renderRotacion()">
           <option value="">Todos</option>
-          <option value="entrada">Entrada</option>
-          <option value="consumo">Consumo</option>
-          <option value="ajuste">Ajuste</option>
-          <option value="merma">Merma</option>
+          <option value="sin">Sin rotación</option>
+          <option value="baja">Baja rotación</option>
+          <option value="media">Media rotación</option>
+          <option value="alta">Alta rotación</option>
         </select>
       </div>
-      <div class="form-group"><label class="form-label">N° OP (opcional)</label><input class="form-input" id="emOp" placeholder="8837"></div>
     </div>
-    <div id="emInfo" style="font-size:11px;color:#7a7d99;margin-top:4px"></div>
+    <div style="display:flex;gap:6px;margin-bottom:8px">
+      <button class="btn btn-red" id="btnCalcRotacion" onclick="calcularRotacion()"><i class="ti ti-calculator"></i>Calcular</button>
+      <button class="btn btn-ghost" id="btnPrintRotacion" onclick="imprimirRotacion()" style="display:none"><i class="ti ti-printer"></i>Reporte</button>
+    </div>
+    <div id="emInfo" style="font-size:11px;color:#7a7d99;margin:4px 0"></div>
+    <div id="emRotList" style="max-height:380px;overflow:auto"></div>
     <div class="modal-footer">
-      <button class="btn btn-ghost" onclick="closeModal('modalExportMovs')">Cancelar</button>
-      <button class="btn btn-red" id="btnExportMovs" onclick="exportMovimientos()"><i class="ti ti-download"></i>Descargar Excel</button>
+      <button class="btn btn-ghost" onclick="closeModal('modalExportMovs')">Cerrar</button>
     </div>
   </div>
 </div>
@@ -1474,7 +1483,7 @@ input[type=number]{-moz-appearance:textfield;appearance:textfield}
       </div>
       <div style="display:flex;align-items:flex-end;gap:6px">
         <button class="btn btn-ghost" onclick="histLimpiarFiltros()"><i class="ti ti-refresh"></i></button>
-        <button class="btn btn-blue" onclick="exportHistorial()"><i class="ti ti-file-spreadsheet"></i>Excel</button>
+        <button class="btn btn-blue" onclick="exportHistorial()"><i class="ti ti-printer"></i>Reporte</button>
       </div>
     </div>
 
@@ -1619,10 +1628,17 @@ input[type=number]{-moz-appearance:textfield;appearance:textfield}
       </select>
     </div>
     <div id="catFamiliaFields">
+      <input type="hidden" id="catFamEditCode">
       <div class="form-row">
         <div class="form-group"><label class="form-label">Nombre de la familia <span class="req">*</span></label><input class="form-input" id="catFamLabel" placeholder="Poliuretanos"></div>
         <div class="form-group"><label class="form-label">Código corto</label><input class="form-input" id="catFamCode" placeholder="PU"></div>
       </div>
+      <div style="display:flex;gap:6px;justify-content:flex-end;margin-top:-4px">
+        <button class="btn btn-ghost" id="btnCancelEditCatMP" style="display:none;font-size:11px;padding:5px 10px" onclick="resetEditCatMP()">Cancelar edición</button>
+        <button class="btn btn-red" id="btnSaveCatMP" style="font-size:11px;padding:5px 12px" onclick="saveCategoria()"><i class="ti ti-check"></i><span id="btnSaveCatMPTxt">Agregar familia</span></button>
+      </div>
+      <div style="font-size:10px;color:#7a7d99;text-transform:uppercase;letter-spacing:.5px;margin:14px 0 6px;padding-bottom:4px;border-bottom:.5px solid #2e3042">Familias existentes</div>
+      <div id="catMPFamList" style="max-height:220px;overflow:auto;display:grid;gap:4px"></div>
     </div>
     <div id="catSubfamFields" style="display:none">
       <div class="form-row">
@@ -2032,7 +2048,7 @@ const PAGINAS_DISPONIBLES=[
   {key:"mp_custom",label:"Mat. Prima Custom"},
   {key:"mp_mecaniza",label:"Mat. Prima Mecaniza"},
   {key:"mercaderias",label:"Almacén Custom"},
-  {key:"alm_mecaniza",label:"Almacén Mecaniza"},
+  {key:"alm_mecaniza",label:"Almacén — Mecaniza"},
   {key:"consumos",label:"Consumos — Custom"},
   {key:"consumos_mec",label:"Consumos — Mecaniza"},
   {key:"clientes",label:"Clientes"},
@@ -2187,7 +2203,7 @@ const NAV_ITEMS={
   mp_custom:    {icon:"ti-cylinder",label:"Mat. Prima — Custom",sec:"Almacenes"},
   mp_mecaniza:  {icon:"ti-cylinder",label:"Mat. Prima — Mecaniza",sec:"Almacenes"},
   mercaderias:  {icon:"ti-box",label:"Almacén — Custom",sec:"Almacenes"},
-  alm_mecaniza: {icon:"ti-box",label:"Almacén Mecaniza",sec:"Almacenes"},
+  alm_mecaniza: {icon:"ti-box",label:"Almacén — Mecaniza",sec:"Almacenes"},
   consumos:     {icon:"ti-clipboard-list",label:"Consumos — Custom",sec:"Operación"},
   consumos_mec: {icon:"ti-clipboard-list",label:"Consumos — Mecaniza",sec:"Operación"},
   clientes:     {icon:"ti-users",label:"Clientes",sec:"Principal"},
@@ -2254,6 +2270,46 @@ async function getClientesList(forceReload=false){
   }
   setCached("clientes_list",all);
   return all;
+}
+
+// Lista de materiales para autocompletar en Consumos. Junta:
+//  1) materiales del catálogo (familia / descripción base)
+//  2) materiales ya usados en consumos_ops (lo que el usuario escribió antes)
+//  3) materiales de tubos en stock
+// Permite elegir uno existente (sin errores de tipeo) o escribir uno nuevo.
+async function getMaterialesList(forceReload=false){
+  const TTL=30*60*1000; // 30 min
+  if(!forceReload){
+    const cached=getCached("materiales_list",TTL);
+    if(cached) return cached;
+  }
+  const set=new Set();
+  // Descarta solo códigos cortos de familia de 1-2 letras (EL, PU, PL).
+  // Materiales de 3+ letras (NBR, POM, FPM...) sí se incluyen.
+  const add=v=>{
+    const m=normMaterial(v);
+    if(!m||m==="OTROS") return;
+    if(m.length<3) return;
+    set.add(m);
+  };
+  // ÚNICA fuente: el CATÁLOGO (datos oficiales/limpios). No se usa el texto libre
+  // escrito en consumos anteriores, porque ahí se acumulan errores de tipeo.
+  // Tampoco se usa el campo "familia" (son códigos cortos tipo EL/PU/PL).
+  try{
+    for(let from=0;;from+=1000){
+      const {data,error}=await sb.from("catalogo").select("descripcion").range(from,from+999);
+      if(error||!data?.length) break;
+      data.forEach(r=>add(parseMaterial(r.descripcion)));
+      if(data.length<1000) break;
+    }
+  }catch(e){}
+  // Materiales con stock actual (también derivados del catálogo, fuente limpia)
+  try{
+    Object.keys(_consMatTuboCache?.byMaterial||{}).forEach(add);
+  }catch(e){}
+  const list=[...set].filter(Boolean).sort((a,b)=>a.localeCompare(b));
+  setCached("materiales_list",list);
+  return list;
 }
 
 // ── SANITIZACIÓN XSS: escapar caracteres peligrosos antes de innerHTML ───────
@@ -2929,6 +2985,65 @@ function catTipoChange(){
   const tipo=document.getElementById("catTipo").value;
   document.getElementById("catFamiliaFields").style.display=tipo==="familia"?"":"none";
   document.getElementById("catSubfamFields").style.display=tipo==="subfamilia"?"":"none";
+  // La familia tiene sus propios botones; el footer "Guardar" solo aplica a subfamilia.
+  const btnFooter=document.getElementById("btnSaveCatModal");
+  if(btnFooter) btnFooter.style.display=tipo==="subfamilia"?"inline-flex":"none";
+  if(tipo==="familia"){resetEditCatMP();renderCatMPFamList();}
+}
+function resetEditCatMP(){
+  const lbl=document.getElementById("catFamLabel");if(lbl)lbl.value="";
+  const cod=document.getElementById("catFamCode");if(cod){cod.value="";cod.disabled=false;}
+  const ec=document.getElementById("catFamEditCode");if(ec)ec.value="";
+  const txt=document.getElementById("btnSaveCatMPTxt");if(txt)txt.textContent="Agregar familia";
+  const bc=document.getElementById("btnCancelEditCatMP");if(bc)bc.style.display="none";
+}
+function renderCatMPFamList(){
+  const cont=document.getElementById("catMPFamList");if(!cont)return;
+  const list=getCategoriasMP();
+  if(!list.length){cont.innerHTML=`<div class="no-data" style="padding:8px;font-size:11px">Sin familias</div>`;return;}
+  cont.innerHTML=list.map(c=>{
+    const safe=JSON.stringify(c.code).replace(/"/g,"&quot;");
+    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 10px;background:#1a1d2e;border-radius:4px">
+      <div style="font-size:12px;color:#f0f0f5;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+        ${esc(c.label)}
+        <span style="color:#5a5e7a;font-family:monospace;font-size:10px;margin-left:6px">${esc(c.code)}</span>
+      </div>
+      <div style="display:flex;gap:4px;flex-shrink:0">
+        <button class="btn btn-ghost" style="padding:3px 8px;font-size:10px" onclick="editCatMP(${safe})" title="Renombrar"><i class="ti ti-edit"></i></button>
+        <button class="btn btn-ghost" style="padding:3px 8px;font-size:10px;color:#e85a5a" onclick="deleteCatMP(${safe})" title="Eliminar familia"><i class="ti ti-trash"></i></button>
+      </div>
+    </div>`;
+  }).join("");
+}
+function editCatMP(code){
+  const c=getCategoriasMP().find(x=>x.code===code);if(!c)return;
+  document.getElementById("catFamLabel").value=c.label;
+  const cod=document.getElementById("catFamCode");cod.value=c.code;cod.disabled=true; // el código es la clave, no se cambia
+  document.getElementById("catFamEditCode").value=c.code;
+  document.getElementById("btnSaveCatMPTxt").textContent="Actualizar familia";
+  document.getElementById("btnCancelEditCatMP").style.display="inline-flex";
+  document.getElementById("catFamLabel").focus();
+}
+async function deleteCatMP(code){
+  const c=getCategoriasMP().find(x=>x.code===code);if(!c)return;
+  // contar materiales/tubos que usan esta familia
+  let usados=0;
+  try{
+    const [cat,tub]=await Promise.all([
+      sb.from("catalogo").select("id",{count:"exact",head:true}).eq("familia",code),
+      sb.from("tubos").select("id",{count:"exact",head:true}).eq("familia",code)
+    ]);
+    usados=(cat.count||0)+(tub.count||0);
+  }catch(e){}
+  let msg=`¿Eliminar la familia "${c.label}" (${c.code})?`;
+  if(usados>0) msg+=`\n\n⚠ Hay ${usados} material(es)/tubo(s) usando esta familia. Conservarán el valor asignado (no se borran).`;
+  if(!confirm(msg)) return;
+  if(!confirm(`Confirmación final: borrar la familia "${c.label}".`)) return;
+  const list=getCategoriasMP().filter(x=>x.code!==code);
+  if(await saveConfigRaw("categorias_mp",JSON.stringify(list))){
+    toast("✓ Familia eliminada","ok");
+    resetEditCatMP();renderCatMPFamList();poblarFiltrosTubos();
+  }
 }
 async function saveCategoria(){
   const scope=document.getElementById("cat_scope").value;
@@ -2964,13 +3079,26 @@ async function saveCategoria(){
     const label=document.getElementById("catFamLabel").value.trim();
     let code=document.getElementById("catFamCode").value.trim();
     if(!label){toast("Escribe el nombre de la familia","err");return;}
-    if(!code) code=label.substring(0,2).toUpperCase();
+    const editCode=document.getElementById("catFamEditCode").value;
     const list=getCategoriasMP();
+    if(editCode){
+      // EDICIÓN: solo cambia el nombre (label); el código es la clave y no se toca
+      const idx=list.findIndex(c=>c.code===editCode);
+      if(idx<0){toast("Familia no encontrada","err");return;}
+      if(list.some((c,i)=>i!==idx&&c.label.toLowerCase()===label.toLowerCase())){toast("Ya existe otra familia con ese nombre","err");return;}
+      list[idx].label=label;
+      if(await saveConfigRaw("categorias_mp",JSON.stringify(list))){
+        toast("✓ Familia actualizada","ok");
+        resetEditCatMP();renderCatMPFamList();poblarFiltrosTubos();
+      }
+      return;
+    }
+    if(!code) code=label.substring(0,2).toUpperCase();
     if(list.some(c=>c.code.toUpperCase()===code.toUpperCase())){toast("Ya existe una familia con ese código","err");return;}
     list.push({code,label});
     if(await saveConfigRaw("categorias_mp",JSON.stringify(list))){
-      closeModal("modalCategoria");toast("✓ Familia agregada","ok");
-      poblarFiltrosTubos();
+      toast("✓ Familia agregada","ok");
+      resetEditCatMP();renderCatMPFamList();poblarFiltrosTubos();
     }
   }else{
     const fam=document.getElementById("catSubFam").value;
@@ -3877,6 +4005,40 @@ function renderHistorial(){
   }).join(""):`<tr><td colspan="9" class="no-data">Sin movimientos con esos filtros</td></tr>`;
 }
 
+// Abre un reporte en pestaña nueva (imprimir / guardar PDF / copiar a Word).
+// aoa[0] = encabezados; aoa[1..] = filas. resumenHtml es opcional (HTML de confianza).
+function abrirReporteHTML(titulo, subtitulo, aoa, resumenHtml){
+  const headers=(aoa&&aoa[0])||[];
+  const data=(aoa||[]).slice(1);
+  const head=headers.map(h=>`<th>${esc(String(h??""))}</th>`).join("");
+  const body=data.length?data.map(r=>`<tr>${headers.map((_,i)=>`<td>${esc(String(r[i]??""))}</td>`).join("")}</tr>`).join("")
+    :`<tr><td colspan="${headers.length||1}" style="text-align:center;color:#888;padding:20px">Sin datos.</td></tr>`;
+  const html=`<!doctype html><html lang="es"><head><meta charset="utf-8"><title>${esc(titulo)}</title>
+    <style>
+      *{box-sizing:border-box} body{font-family:Arial,Helvetica,sans-serif;margin:24px;color:#1a1a1a}
+      h1{font-size:20px;margin:0 0 4px} .sub{color:#666;font-size:13px;margin-bottom:14px}
+      table{border-collapse:collapse;width:100%;font-size:12px}
+      th,td{border:1px solid #ddd;padding:5px 8px;white-space:nowrap}
+      th{background:#f3f3f3;text-align:left;position:sticky;top:0}
+      tr:nth-child(even) td{background:#fafafa}
+      .toolbar{margin-bottom:16px}
+      .toolbar button{padding:8px 16px;font-size:13px;cursor:pointer;border:1px solid #888;border-radius:6px;background:#fff;margin-right:8px}
+      @media print{.toolbar{display:none} body{margin:0} th{position:static}}
+    </style></head><body>
+    <div class="toolbar">
+      <button onclick="window.print()">🖨️ Imprimir / Guardar PDF</button>
+      <span style="font-size:12px;color:#666">Para Word: selecciona todo (Ctrl+A) → copia (Ctrl+C) → pega en Word.</span>
+    </div>
+    <h1>${esc(titulo)}</h1>
+    <div class="sub">${subtitulo?esc(subtitulo)+" · ":""}Generado: ${new Date().toLocaleString("es-PE")}</div>
+    ${resumenHtml||""}
+    <table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>
+    </body></html>`;
+  const w=window.open("","_blank");
+  if(!w){toast("El navegador bloqueó la ventana. Permite ventanas emergentes.","err");return false;}
+  w.document.write(html);w.document.close();return true;
+}
+
 function exportHistorial(){
   if(!_histState.data?.length){toast("Sin movimientos para exportar","err");return;}
   const desde=document.getElementById("histDesde")?.value||"";
@@ -3894,11 +4056,7 @@ function exportHistorial(){
     new Date(m.fecha).toLocaleString("es-PE"),m.tipo,m.cantidad,m.precio_unitario||"",m.moneda||"",
     m.proveedor||"",m.cliente_nombre||"",m.op_numero||"",m.motivo||"",m._usuario?.nombre||"",m.stock_antes||"",m.stock_despues||""
   ]));
-  const wb=XLSX.utils.book_new();
-  const ws=XLSX.utils.aoa_to_sheet(rows);
-  XLSX.utils.book_append_sheet(wb,"Historial",ws);
-  XLSX.writeFile(wb,`Historial_${_histState.tipo}_${_histState.itemCode}_${new Date().toISOString().slice(0,10)}.xlsx`);
-  toast("✓ Exportado","ok");
+  abrirReporteHTML(`Historial de movimientos — ${_histState.itemCode||""}`,`${lista.length} movimiento(s)`,rows);
 }
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -3911,6 +4069,16 @@ let _tubosCache={tubos:[],instByTubo:{}};
 function parseMaterial(desc){
   const m=(desc||"").match(/^([A-Z\-]+(?:\s[A-Z0-9]+)?)/i);
   return m?m[1].trim().toUpperCase():"OTROS";
+}
+// Normaliza el nombre de un material: MAYÚSCULAS, sin espacios extra y sin
+// guiones/espacios sobrantes al inicio o final (mantiene los internos, ej "H-NBR").
+// Evita que "PU Red", "PU  RED" y "NBR-" se guarden como materiales distintos.
+function normMaterial(s){
+  return (s||"")
+    .trim()
+    .replace(/\s+/g," ")
+    .replace(/^[\s\-]+|[\s\-]+$/g,"") // quita guiones/espacios al principio y al final
+    .toUpperCase();
 }
 // Altura total EFECTIVA de un tubo físico: su propia altura_total si la tiene
 // (material nacional de largo variable), si no la del material (tubo modelo).
@@ -3973,13 +4141,12 @@ async function loadTubos(forceReload=false){
   const actRow=document.getElementById("tubosActions");
   const cacheLbl=cacheAgeLabel(`tubos_${sede}`);
   const cacheBadge=cacheLbl?`<span style="font-size:10px;color:#5a5e7a;margin-left:6px">📦 ${cacheLbl}</span>`:"";
-  const btnExport=perm.exportar?`<button class="btn btn-ghost" onclick="exportTubosExcel()"><i class="ti ti-file-spreadsheet"></i>Exportar Excel</button>`:"";
+  const btnExport=perm.exportar?`<button class="btn btn-ghost" onclick="exportTubosExcel()"><i class="ti ti-printer"></i>Reporte</button>`:"";
   const btnMuerto=perm.verMovimientos?`<button class="btn btn-ghost" onclick="openStockMuerto()"><i class="ti ti-clock-pause"></i>Sin movimiento</button>`:"";
-  const btnMovs=(perm.verMovimientos&&perm.exportar)?`<button class="btn btn-ghost" onclick="openExportMovs()"><i class="ti ti-history"></i>Descargar movimientos</button>`:"";
+  const btnMovs=perm.verMovimientos?`<button class="btn btn-ghost" onclick="openExportMovs()"><i class="ti ti-arrows-shuffle"></i>Rotación de materiales</button>`:"";
   const btnsCrear=userCanCRUD("crear","Tubos")
     ?`<button class="btn btn-red" onclick="openModalMaterial()"><i class="ti ti-plus"></i>Nuevo material</button>
-      <button class="btn btn-ghost" onclick="openCategoriaModal('mp')"><i class="ti ti-category-plus"></i>+ Categoría</button>
-      <button class="btn btn-ghost" onclick="openModalTubo()"><i class="ti ti-plus"></i>Agregar tubos</button>`:"";
+      <button class="btn btn-ghost" onclick="openCategoriaModal('mp')"><i class="ti ti-category-plus"></i>+ Categoría</button>`:"";
   actRow.innerHTML=`${btnsCrear}${btnExport}${btnMuerto}${btnMovs}<button class="btn btn-ghost" onclick="loadTubos(true)"><i class="ti ti-refresh"></i>Actualizar</button>${cacheBadge}`;
 
   wireTubosSearch();
@@ -4177,7 +4344,7 @@ function renderTubosResumen(){
       <td style="text-align:right;color:#5b9bd5;font-weight:500;white-space:nowrap">${mmRest.toFixed(0)}<span style="color:#5a5e7a;font-size:10px"> mm</span></td>
       <td style="text-align:center;color:#7a7d99">${pct}%</td>
       ${verP?`<td style="text-align:right;white-space:nowrap;color:#4caf8c;font-weight:500">${t.precio!=null&&t.precio!==""?`${t.precio} <span style="font-size:9px;color:#5a5e7a">${esc(t.moneda||"PEN")}</span>`:'<span style="color:#5a5e7a">—</span>'}</td>`:""}
-      <td style="text-align:right">
+      <td style="text-align:right;white-space:nowrap">
         <button class="btn btn-blue" style="padding:5px 10px;font-size:11px;white-space:nowrap" onclick="verDetalleTubo(${t.id})"><i class="ti ti-eye"></i>Consultar stock</button>
       </td>
     </tr>`;
@@ -4264,13 +4431,16 @@ async function verDetalleTubo(tuboId){
 
   // El admin SIEMPRE ve el autor; otros roles solo si la regla está activada en Configuración.
   const verAutor=(CU?.rol==="admin")||cfgBool("mp_ver_autor",false);
-  const movsHtml=movs.slice(0,10).map(m=>`<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:.5px solid #1e2134;font-size:11px">
-    <div style="flex:1;color:#c8cce0">${esc(m.tipo)}${m.altura_usada?` · ${m.altura_usada}mm`:""}${m.op_numero?` · OP ${esc(m.op_numero)}`:""}${m.nota?` · ${esc(m.nota)}`:""}${verAutor&&m._usuario?` · <span style="color:#5b9bd5"><i class="ti ti-user" style="font-size:11px"></i> ${esc(m._usuario)}</span>`:""}</div>
+  const movsHtml=movs.slice(0,10).map(m=>{
+    const puedeDeshacer=m.tipo==="entrada"&&_idsDesdeNota(m.nota).length>0&&userCanCRUD("eliminar","Tubos");
+    return `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:.5px solid #1e2134;font-size:11px">
+    <div style="flex:1;color:#c8cce0">${esc(m.tipo)}${m.altura_usada?` · ${m.altura_usada}mm`:""}${m.op_numero?` · OP ${esc(m.op_numero)}`:""}${m.nota?` · ${esc(notaLimpia(m.nota))}`:""}${verAutor&&m._usuario?` · <span style="color:#5b9bd5"><i class="ti ti-user" style="font-size:11px"></i> ${esc(m._usuario)}</span>`:""}</div>
       <div style="display:flex;align-items:center;gap:8px">
         <span style="color:#3a3e5a;font-size:10px">${new Date(m.fecha).toLocaleDateString("es-PE")}</span>
+        ${puedeDeshacer?`<button class="btn-ghost" style="padding:2px 7px;border-radius:4px;color:#f5a623;font-size:10px" onclick="deshacerIngreso(${m.id})" title="Deshacer este ingreso (elimina los tubos que creó)"><i class="ti ti-arrow-back-up" style="font-size:12px"></i> Deshacer</button>`:""}
         ${userCanCRUD("eliminar","Tubos")?`<button class="btn-ghost" style="padding:2px 5px;border-radius:4px;color:#e85a5a" onclick="deleteMovimiento(${m.id},${m.tubo_instancia_id||"null"})" title="Eliminar"><i class="ti ti-trash" style="font-size:12px"></i></button>`:""}
       </div>
-  </div>`).join("");
+  </div>`;}).join("");
 
   // Exponer al resto de funciones de gestión
   _detalleInsts=allInsts;_detalleTubo=t;
@@ -4289,7 +4459,13 @@ async function verDetalleTubo(tuboId){
   // Gestión por instancia física: editar mm/estado, resetear, merma, trasladar, eliminar.
   const gestionHtml=(pEditT||pElimT)?`
     <div style="border-top:.5px solid #2e3042;padding-top:8px;margin-top:8px">
-      <div style="font-size:10px;color:#5a5e7a;margin-bottom:6px;text-transform:uppercase"><i class="ti ti-settings"></i> Gestión de tubos físicos</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px;flex-wrap:wrap">
+        <div style="font-size:10px;color:#5a5e7a;text-transform:uppercase"><i class="ti ti-settings"></i> Gestión de tubos físicos</div>
+        ${pElimT&&allInsts.length?`<div style="display:flex;gap:6px;align-items:center">
+          <label style="font-size:10px;color:#94a3b8;display:flex;align-items:center;gap:4px;cursor:pointer"><input type="checkbox" id="chkAllInst" onclick="toggleAllInst(this)"> Seleccionar todos</label>
+          <button class="btn btn-ghost" style="padding:3px 9px;font-size:10px;color:#e85a5a" onclick="deleteInstanciasSeleccionadas(${t.id})"><i class="ti ti-trash"></i> Eliminar seleccionados</button>
+        </div>`:""}
+      </div>
       <div style="display:flex;flex-direction:column;gap:6px">
         ${allInsts.length?allInsts.map((inst,idx)=>{
           const aTot=instTot(inst,t);
@@ -4316,7 +4492,10 @@ async function verDetalleTubo(tuboId){
           // Alerta de merma sugerida: tubo aprovechable pero por debajo del mínimo del material.
           const mermaSugerida=mmR>0&&mmR<altMinInst&&(inst.estado==="disponible"||inst.estado==="en_uso");
           return `<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;background:#1a1d26;border:.5px solid ${mermaSugerida?"#7a5a2a":"#2e3042"};border-radius:8px;padding:6px 10px;flex-wrap:wrap">
-            <div style="font-size:11px;color:#c8cce0;flex:1;min-width:150px">T${idx+1} · Tubo #${inst.id} · <strong>${mmR}mm</strong> de ${aTot}mm · <span style="color:${ec};text-transform:uppercase;font-size:10px">${estLabel}</span>${sepInfo}${mermaSugerida?` · <span style="color:#f5a623;font-size:10px" title="Por debajo del mínimo aprovechable (${altMinInst}mm)"><i class="ti ti-alert-triangle"></i> merma sugerida</span>`:""}</div>
+            <div style="font-size:11px;color:#c8cce0;flex:1;min-width:150px;display:flex;align-items:center;gap:8px">
+              ${pElimT?`<input type="checkbox" class="inst-chk" value="${inst.id}" style="cursor:pointer">`:""}
+              <span>T${idx+1} · <strong>${mmR}mm</strong> de ${aTot}mm · <span style="color:${ec};text-transform:uppercase;font-size:10px">${estLabel}</span>${sepInfo}${mermaSugerida?` · <span style="color:#f5a623;font-size:10px" title="Por debajo del mínimo aprovechable (${altMinInst}mm)"><i class="ti ti-alert-triangle"></i> merma sugerida</span>`:""}</span>
+            </div>
             <div style="display:flex;gap:4px;flex-wrap:wrap">
               ${pEditT?`<button class="btn btn-ghost" style="padding:3px 7px;font-size:10px" onclick="openInstModal(${inst.id})" title="Editar mm y estado"><i class="ti ti-edit"></i> Editar</button>
               <button class="btn btn-ghost" style="padding:3px 7px;font-size:10px;color:#4caf8c" onclick="resetInstancia(${inst.id})" title="Volver a tubo nuevo (0 usado)"><i class="ti ti-rotate"></i> Resetear</button>
@@ -4468,6 +4647,42 @@ async function agotarInstancia(instId){
   toast("✓ Tubo marcado como agotado","ok");
   clearCache("tubos_custom");clearCache("tubos_mecaniza");_consMatTuboCache=null;
   loadTubos(true);
+}
+// Marca/desmarca todas las casillas de tubos físicos
+function toggleAllInst(master){
+  document.querySelectorAll(".inst-chk").forEach(c=>c.checked=master.checked);
+}
+// Elimina en lote los tubos físicos seleccionados (con sus referencias en consumos).
+async function deleteInstanciasSeleccionadas(tuboId){
+  if(!userCanCRUD("eliminar","Tubos")){toast("Sin permiso para eliminar","err");return;}
+  const ids=[...document.querySelectorAll(".inst-chk:checked")].map(c=>parseInt(c.value)).filter(Boolean);
+  if(!ids.length){toast("Selecciona al menos un tubo físico","err");return;}
+  // ¿Cuántos consumos apuntan a estos tubos?
+  let conCount=0;
+  try{
+    const {count}=await sb.from("consumos_ops").select("id",{count:"exact",head:true}).in("tubo_instancia_id",ids);
+    conCount=count||0;
+  }catch(e){}
+  let warn=`¿Eliminar ${ids.length} tubo(s) físico(s) seleccionado(s)?`;
+  if(conCount>0) warn+=`\n\n⚠ Hay ${conCount} consumo(s) que apuntan a estos tubos. Quedarán sin tubo asignado (no se borran).`;
+  warn+="\n\nEsta acción no se puede deshacer.";
+  if(!confirm(warn))return;
+  showLoading(true,`Eliminando ${ids.length} tubo(s)...`);
+  try{
+    const CHUNK=200;
+    for(let i=0;i<ids.length;i+=CHUNK){
+      const slice=ids.slice(i,i+CHUNK);
+      // soltar referencias en consumos y movimientos
+      await sb.from("consumos_ops").update({tubo_instancia_id:null}).in("tubo_instancia_id",slice);
+      await sb.from("movimientos").update({tubo_instancia_id:null}).in("tubo_instancia_id",slice);
+      const {error}=await sb.from("tubo_instancias").delete().in("id",slice);
+      if(error) throw error;
+    }
+    showLoading(false);
+    toast(`✓ ${ids.length} tubo(s) eliminado(s)`,"ok");
+    clearCache("tubos_custom");clearCache("tubos_mecaniza");_consMatTuboCache=null;
+    if(tuboId) verDetalleTubo(tuboId); else loadTubos(true);
+  }catch(err){showLoading(false);toast("Error: "+err.message,"err");}
 }
 async function deleteInstancia(instId){
   if(!userCanCRUD("eliminar","Tubos")){toast("Sin permiso para eliminar","err");return;}
@@ -4669,12 +4884,8 @@ async function exportTubosExcel(){
       n++;
     });
   });
-  const wb=XLSX.utils.book_new();
-  const ws=XLSX.utils.aoa_to_sheet(rows);
-  XLSX.utils.book_append_sheet(wb,"Tubos",ws);
-  XLSX.writeFile(wb,`Tubos_MP_${sede}_${new Date().toISOString().slice(0,10)}.xlsx`);
   showLoading(false);
-  toast(`✓ Exportados ${n} tubo(s) físico(s)`,"ok");
+  abrirReporteHTML(`Materia Prima — Sede ${sede.toUpperCase()}`,`${n} tubo(s) físico(s)`,rows);
 }
 
 // ── REPORTE: Stock sin movimiento ──
@@ -4742,71 +4953,209 @@ function exportStockMuerto(){
   if(!_smData.length){toast("Primero calcula el reporte","err");return;}
   const rows=[["Código","Descripción","DI","DE","Largo","Disponibles"]];
   _smData.forEach(r=>rows.push([r.codigo,r.desc,r.di??"",r.de??"",r.lon??"",r.disp]));
-  const wb=XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb,"SinMovimiento",XLSX.utils.aoa_to_sheet(rows));
-  XLSX.writeFile(wb,`Stock_sin_movimiento_${new Date().toISOString().slice(0,10)}.xlsx`);
-  toast("✓ Exportado","ok");
+  abrirReporteHTML("Stock sin movimiento",`${_smData.length} material(es)`,rows);
 }
 
-// ── Descargar movimientos (con filtros de fecha/tipo/OP) ──
+// ── Rotación de materiales (sin / baja / media / alta rotación) ──
+// Calcula el consumo (mm) de cada material en el período y su equivalente en
+// tubos (mm ÷ largo del tubo). Clasifica automáticamente por ranking (tercios).
+let _rotData=null; // [{desc,codigo,alt,mm,tubos,clase}]
 function openExportMovs(){
-  ["emDesde","emHasta","emOp"].forEach(id=>document.getElementById(id).value="");
-  document.getElementById("emTipo").value="";
+  ["emDesde","emHasta"].forEach(id=>document.getElementById(id).value="");
+  document.getElementById("emClase").value="";
   document.getElementById("emInfo").innerHTML="";
+  document.getElementById("emRotList").innerHTML="";
+  document.getElementById("btnPrintRotacion").style.display="none";
+  // Poblar selector de Material con los materiales de la sede actual (igual que el filtro)
+  const selM=document.getElementById("emMaterial");
+  if(selM){
+    const mats=[...new Set((_tubosCache.tubos||[]).map(t=>parseMaterial(t.descripcion)).filter(Boolean))].sort();
+    selM.innerHTML=`<option value="">Todos los materiales</option>`+mats.map(m=>`<option value="${escAttr(m)}">${escAttr(m)}</option>`).join("");
+  }
+  _rotData=null;
   document.getElementById("modalExportMovs").style.display="flex";
 }
-async function exportMovimientos(){
-  if(!getEffectivePerms().exportar){toast("Sin permiso para exportar","err");return;}
+// Redondea tubos a 1 decimal, quita el ".0"
+function _fmtTubos(n){const r=Math.round(n*10)/10;return (r%1===0?r.toFixed(0):r.toFixed(1));}
+// Clasificación AUTOMÁTICA por ranking: entre los materiales con consumo > 0,
+// el tercio que más consumió = "alta", el del medio = "media", el menos = "baja".
+// Consumo = 0 → "sin". Devuelve una función (fila → clase).
+function _clasificarRotacion(data){
+  const conMov=(data||[]).filter(r=>r.mm>0).slice().sort((a,b)=>b.mm-a.mm);
+  const n=conMov.length;
+  const mapa=new Map();
+  conMov.forEach((r,i)=>{
+    let c;
+    if(i < n/3) c="alta";
+    else if(i < 2*n/3) c="media";
+    else c="baja";
+    mapa.set(r,c);
+  });
+  return r=> r.mm>0 ? (mapa.get(r)||"baja") : "sin";
+}
+async function calcularRotacion(){
   const desde=document.getElementById("emDesde").value;
   const hasta=document.getElementById("emHasta").value;
-  const tipo=document.getElementById("emTipo").value;
-  const op=document.getElementById("emOp").value.trim();
-  setBtnLoading("btnExportMovs",true,"Generando...");
-  document.getElementById("emInfo").innerHTML=`<div class="loading"><div class="spinner"></div>Leyendo movimientos...</div>`;
-  // Traer movimientos paginados con filtros
-  let movs=[];
+  const sede=_tubosState.sede||"custom";
+  setBtnLoading("btnCalcRotacion",true,"Calculando...");
+  document.getElementById("emInfo").innerHTML=`<div class="loading"><div class="spinner"></div>Leyendo consumos...</div>`;
+  document.getElementById("emRotList").innerHTML="";
+  // 1) Universo de materiales de ESTA sede (incluye los de 0 movimiento)
+  const tubos=(_tubosCache.tubos||[]);
+  const tuboIdSet=new Set(tubos.map(t=>t.id));
+  // 2) Sumar consumo (mm) por tubo_id en el período (solo tipo=consumo)
+  const aggMm={};
   try{
     for(let from=0;;from+=1000){
-      let q=sb.from("movimientos").select("*").order("fecha",{ascending:false}).range(from,from+999);
+      let q=sb.from("movimientos").select("tubo_id,altura_usada,fecha,tipo").eq("tipo","consumo").range(from,from+999);
       if(desde) q=q.gte("fecha",desde);
       if(hasta) q=q.lte("fecha",hasta+"T23:59:59");
-      if(tipo) q=q.eq("tipo",tipo);
-      if(op){const safe=op.replace(/[%,]/g," ");q=q.ilike("op_numero",`%${safe}%`);}
       const {data,error}=await q;
       if(error) throw new Error(error.message);
-      movs=movs.concat(data||[]);
+      (data||[]).forEach(m=>{
+        if(!tuboIdSet.has(m.tubo_id)) return; // solo esta sede
+        aggMm[m.tubo_id]=(aggMm[m.tubo_id]||0)+(parseFloat(m.altura_usada)||0);
+      });
       if(!data||data.length<1000) break;
-      if(movs.length>=60000) break; // tope de seguridad
     }
-  }catch(err){setBtnLoading("btnExportMovs",false);document.getElementById("emInfo").innerHTML=`<span style="color:#e85a5a">Error: ${esc(err.message)}</span>`;return;}
-  if(!movs.length){setBtnLoading("btnExportMovs",false);document.getElementById("emInfo").innerHTML=`<span style="color:#f5a623">Sin movimientos con esos filtros.</span>`;return;}
-  // Nombres de material (tubo) y usuario
-  const tuboIds=[...new Set(movs.map(m=>m.tubo_id).filter(Boolean))];
-  const tuboMap={};
-  for(let i=0;i<tuboIds.length;i+=300){
-    const {data}=await sb.from("tubos").select("id,descripcion,codigo_mat,sede").in("id",tuboIds.slice(i,i+300));
-    (data||[]).forEach(t=>tuboMap[t.id]=t);
-  }
-  const uids=[...new Set(movs.map(m=>m.usuario_id).filter(Boolean))];
-  const uMap={};
-  if(uids.length){const {data:us}=await sb.from("perfiles").select("id,nombre,username").in("id",uids);(us||[]).forEach(u=>uMap[u.id]=u.nombre||u.username);}
-  // Construir Excel
-  const rows=[["Fecha","Tipo","Material","Código","Sede","Tubo #","Cantidad","mm","OP","Cliente","Nota","Usuario"]];
-  movs.forEach(m=>{
-    const t=tuboMap[m.tubo_id]||{};
-    rows.push([
-      m.fecha?new Date(m.fecha).toLocaleString("es-PE"):"",
-      m.tipo||"", t.descripcion||"", t.codigo_mat||"", t.sede||"",
-      m.tubo_instancia_id||"", m.cantidad??"", m.altura_usada??"",
-      m.op_numero||"", m.cliente||"", m.nota||"", uMap[m.usuario_id]||""
-    ]);
-  });
-  const wb=XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb,"Movimientos",XLSX.utils.aoa_to_sheet(rows));
-  XLSX.writeFile(wb,`Movimientos_${new Date().toISOString().slice(0,10)}.xlsx`);
-  setBtnLoading("btnExportMovs",false);
-  document.getElementById("emInfo").innerHTML=`<span style="color:#4caf8c">✓ ${movs.length.toLocaleString()} movimientos exportados.</span>`;
-  toast(`✓ ${movs.length.toLocaleString()} movimientos exportados`,"ok");
+  }catch(err){setBtnLoading("btnCalcRotacion",false);document.getElementById("emInfo").innerHTML=`<span style="color:#e85a5a">Error: ${esc(err.message)}</span>`;return;}
+  // 3) Construir filas con mm + tubos (filtrando por material si se eligió uno)
+  const matSel=document.getElementById("emMaterial")?.value||"";
+  _rotData=tubos.filter(t=>!matSel||parseMaterial(t.descripcion)===matSel).map(t=>{
+    const alt=t.altura_total||0;
+    const mm=aggMm[t.id]||0;
+    const tubos_=alt>0?mm/alt:0;
+    return {desc:t.descripcion||"",codigo:t.codigo_mat||"",alt,mm,tubos:tubos_};
+  }).sort((a,b)=>b.mm-a.mm);
+  setBtnLoading("btnCalcRotacion",false);
+  document.getElementById("btnPrintRotacion").style.display="inline-flex";
+  renderRotacion();
+}
+function renderRotacion(){
+  if(!_rotData){return;}
+  const clase=document.getElementById("emClase").value;
+  const cont=document.getElementById("emRotList");
+  // clasificar automáticamente por ranking (tercios)
+  const claseDe=_clasificarRotacion(_rotData);
+  const conClase=_rotData.map(r=>({...r,clase:claseDe(r)}));
+  const cuenta={sin:0,baja:0,media:0,alta:0};
+  conClase.forEach(r=>cuenta[r.clase]++);
+  const visibles=clase?conClase.filter(r=>r.clase===clase):conClase;
+  document.getElementById("emInfo").innerHTML=`<span style="color:#c8cce0">${_rotData.length} materiales</span> · <span style="color:#7a7d99">Sin: <strong style="color:#e85a5a">${cuenta.sin}</strong> · Baja: <strong style="color:#f5a623">${cuenta.baja}</strong> · Media: <strong style="color:#5b9bd5">${cuenta.media}</strong> · Alta: <strong style="color:#4caf8c">${cuenta.alta}</strong></span>`;
+  if(!visibles.length){cont.innerHTML=`<div class="no-data" style="padding:14px;font-size:12px">Sin materiales en esta clasificación.</div>`;return;}
+  const badge=c=>{const m={sin:["#2e1a1a","#e85a5a","SIN ROTACIÓN"],baja:["#2e2616","#f5a623","BAJA"],media:["#0f1e2e","#5b9bd5","MEDIA"],alta:["#13241a","#4caf8c","ALTA"]};const[bg,fg,tx]=m[c];return `<span style="background:${bg};color:${fg};font-size:9px;padding:1px 6px;border-radius:8px;white-space:nowrap">${tx}</span>`;};
+  cont.innerHTML=visibles.map(r=>`
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:7px 10px;border-bottom:.5px solid #1e2134">
+      <div style="font-size:12px;color:#f0f0f5;min-width:0;flex:1">
+        <div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(r.desc)}</div>
+        <div style="font-size:10px;color:#5a5e7a">${esc(r.codigo)||"—"}</div>
+      </div>
+      <div style="font-size:12px;white-space:nowrap;text-align:right">
+        <span style="color:#5b9bd5;font-weight:600">${r.mm.toFixed(0)}MM</span>
+        <span style="color:#5a5e7a">·</span>
+        <span style="color:#c8cce0;font-weight:600">${_fmtTubos(r.tubos)} T</span>
+      </div>
+      <div style="width:64px;text-align:right">${badge(r.clase)}</div>
+    </div>`).join("");
+}
+// Abre el reporte en una pestaña nueva (pantalla completa, imprimible / guardar PDF / copiar a Word)
+function imprimirRotacion(){
+  if(!_rotData){toast("Primero pulsa Calcular","err");return;}
+  const clase=document.getElementById("emClase").value;
+  const claseDe=_clasificarRotacion(_rotData);
+  const conClase=_rotData.map(r=>({...r,clase:claseDe(r)}));
+  const visibles=clase?conClase.filter(r=>r.clase===clase):conClase;
+  const cuenta={sin:0,baja:0,media:0,alta:0};conClase.forEach(r=>cuenta[r.clase]++);
+  const claseTxt={sin:"Sin rotación",baja:"Baja rotación",media:"Media rotación",alta:"Alta rotación"};
+  const claseColor={sin:"#c0392b",baja:"#b9770e",media:"#2471a3",alta:"#1e8449"};
+  const sede=(_tubosState.sede||"custom").toUpperCase();
+  const desde=document.getElementById("emDesde").value;
+  const hasta=document.getElementById("emHasta").value;
+  const matSel=document.getElementById("emMaterial")?.value||"";
+  const periodoTxt=(desde||hasta)?`${desde||"inicio"} → ${hasta||"hoy"}`:"Todo el historial";
+  const filas=visibles.map(r=>`<tr>
+      <td>${esc(r.desc)}</td>
+      <td style="font-family:monospace;font-size:11px;color:#555">${esc(r.codigo)||"—"}</td>
+      <td style="text-align:right;font-weight:600">${Math.round(r.mm)} mm</td>
+      <td style="text-align:right;font-weight:600">${_fmtTubos(r.tubos)} T</td>
+      <td style="text-align:center"><span style="color:${claseColor[r.clase]};font-weight:600">${claseTxt[r.clase]}</span></td>
+    </tr>`).join("");
+  const html=`<!doctype html><html lang="es"><head><meta charset="utf-8">
+    <title>Rotación de materiales — ${sede}</title>
+    <style>
+      *{box-sizing:border-box} body{font-family:Arial,Helvetica,sans-serif;margin:24px;color:#1a1a1a}
+      h1{font-size:20px;margin:0 0 4px} .sub{color:#666;font-size:13px;margin-bottom:14px}
+      .resumen{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:16px;font-size:13px}
+      .resumen b{font-size:16px}
+      table{border-collapse:collapse;width:100%;font-size:13px}
+      th,td{border:1px solid #ddd;padding:6px 9px}
+      th{background:#f3f3f3;text-align:left;position:sticky;top:0}
+      tr:nth-child(even) td{background:#fafafa}
+      .toolbar{margin-bottom:16px}
+      .toolbar button{padding:8px 16px;font-size:13px;cursor:pointer;border:1px solid #888;border-radius:6px;background:#fff;margin-right:8px}
+      @media print{.toolbar{display:none} body{margin:0} th{position:static}}
+    </style></head><body>
+    <div class="toolbar">
+      <button onclick="window.print()">🖨️ Imprimir / Guardar PDF</button>
+      <span style="font-size:12px;color:#666">Para Word: selecciona la tabla (Ctrl+A) → copia (Ctrl+C) → pega en Word.</span>
+    </div>
+    <h1>Rotación de materiales — Sede ${esc(sede)}</h1>
+    <div class="sub">Período: <b>${esc(periodoTxt)}</b>${matSel?` · Material: <b>${esc(matSel)}</b>`:""} · Generado: ${new Date().toLocaleString("es-PE")}</div>
+    <div class="resumen">
+      <span>Total: <b>${conClase.length}</b></span>
+      <span style="color:#c0392b">Sin rotación: <b>${cuenta.sin}</b></span>
+      <span style="color:#b9770e">Baja: <b>${cuenta.baja}</b></span>
+      <span style="color:#2471a3">Media: <b>${cuenta.media}</b></span>
+      <span style="color:#1e8449">Alta: <b>${cuenta.alta}</b></span>
+    </div>
+    <table>
+      <thead><tr><th>Material</th><th>Código</th><th style="text-align:right">Consumo</th><th style="text-align:right">Tubos</th><th style="text-align:center">Clasificación</th></tr></thead>
+      <tbody>${filas||`<tr><td colspan="5" style="text-align:center;color:#888;padding:20px">Sin materiales en esta clasificación.</td></tr>`}</tbody>
+    </table>
+    </body></html>`;
+  const w=window.open("","_blank");
+  if(!w){toast("El navegador bloqueó la ventana. Permite ventanas emergentes.","err");return;}
+  w.document.write(html);
+  w.document.close();
+}
+
+// Lee/oculta el marcador de IDs guardado en la nota de un movimiento de entrada.
+function _idsDesdeNota(nota){
+  const m=String(nota||"").match(/⟨#ids:([\d,]+)⟩/);
+  return m?m[1].split(",").map(Number).filter(Boolean):[];
+}
+function notaLimpia(nota){
+  return String(nota||"").replace(/\s*⟨#ids:[\d,]+⟩/,"").trim();
+}
+// Deshacer un ingreso completo: elimina los tubos físicos que creó esa entrada
+// (solo los que siguen disponibles y sin usar) y borra el movimiento.
+async function deshacerIngreso(movId){
+  if(!userCanCRUD("eliminar","Tubos")){toast("Sin permiso para eliminar","err");return;}
+  const {data:m}=await sb.from("movimientos").select("*").eq("id",movId).maybeSingle();
+  if(!m){toast("Movimiento no encontrado","err");return;}
+  const ids=_idsDesdeNota(m.nota);
+  if(!ids.length){toast("Este ingreso es anterior a esta función (no tiene tubos registrados). Usa la selección múltiple para borrarlos.","err");return;}
+  const {data:insts}=await sb.from("tubo_instancias").select("id,altura_usada,estado").in("id",ids);
+  const existentes=insts||[];
+  const borrables=existentes.filter(i=>(i.altura_usada||0)===0 && i.estado==="disponible").map(i=>i.id);
+  const usados=existentes.length-borrables.length;
+  let warn=`¿Deshacer este ingreso?\n\nSe eliminarán ${borrables.length} tubo(s) físico(s) creados por esta entrada.`;
+  if(usados>0) warn+=`\n\n⚠ ${usados} ya fueron usados/consumidos o cambiaron de estado — esos se CONSERVAN para no afectar consumos.`;
+  if(!confirm(warn))return;
+  showLoading(true,"Deshaciendo ingreso...");
+  try{
+    const CHUNK=200;
+    for(let i=0;i<borrables.length;i+=CHUNK){
+      const slice=borrables.slice(i,i+CHUNK);
+      await sb.from("movimientos").update({tubo_instancia_id:null}).in("tubo_instancia_id",slice);
+      await sb.from("tubo_instancias").delete().in("id",slice);
+    }
+    await sb.from("movimientos").delete().eq("id",movId);
+    showLoading(false);
+    toast(`✓ Ingreso deshecho · ${borrables.length} tubo(s) eliminado(s)${usados>0?` · ${usados} conservado(s)`:""}`,"ok");
+    clearCache("tubos_custom");clearCache("tubos_mecaniza");_consMatTuboCache=null;
+    if(_detalleTubo) verDetalleTubo(_detalleTubo.id); else loadTubos(true);
+  }catch(err){showLoading(false);toast("Error: "+err.message,"err");}
 }
 
 async function deleteMovimiento(id, instId){
@@ -5113,12 +5462,16 @@ async function saveTubo(){
     for(let i=0;i<l.cant;i++) insts.push({tubo_id:tuboId,altura_usada:0,estado:"disponible",altura_total:altInst});
     totalCant+=l.cant;
   });
-  const {error:ei}=await sb.from("tubo_instancias").insert(insts);
+  const {data:insIds,error:ei}=await sb.from("tubo_instancias").insert(insts).select("id");
   if(ei){setBtnLoading("btnSaveTubo",false);toast("Error: "+ei.message,"err");return;}
 
+  // Guardamos los IDs creados dentro de la nota (marcador invisible) para poder
+  // "Deshacer ingreso" más tarde sin tocar el esquema de la base de datos.
+  const idsCreadas=(insIds||[]).map(x=>x.id).filter(Boolean);
+  const notaBase=`Entrada ${origen}: ${lotes.map(l=>l.altura+"×"+l.cant).join(", ")} (Sede ${sede})`;
+  const nota=idsCreadas.length?`${notaBase} ⟨#ids:${idsCreadas.join(",")}⟩`:notaBase;
   await sb.from("movimientos").insert({
-    tubo_id:tuboId, tipo:"entrada", cantidad:totalCant, usuario_id:CU?.id,
-    nota:`Entrada ${origen}: ${lotes.map(l=>l.altura+"×"+l.cant).join(", ")} (Sede ${sede})`
+    tubo_id:tuboId, tipo:"entrada", cantidad:totalCant, usuario_id:CU?.id, nota
   });
 
   setBtnLoading("btnSaveTubo",false);
@@ -5678,7 +6031,6 @@ async function renderConsumos(){
         ${puedeEditarCons&&!histo?`
           ${!merma&&isOpen?`<button class="btn btn-green" style="padding:3px 7px;font-size:10px" onclick="openCierreOp('${String(c.op).replace(/'/g,"\\'")}')" title="Cerrar OP / descontar"><i class="ti ti-circle-check"></i> Cerrar</button>`:""}
           ${!merma?`<button class="btn btn-ghost" style="padding:3px 7px;font-size:10px" onclick="openModalConsumo(${c.id})" title="Editar"><i class="ti ti-edit"></i></button>`:""}
-          ${!merma&&c.tubo_instancia_id?`<button class="btn btn-amber" style="padding:3px 7px;font-size:10px" onclick="openMermaModal(${c.id})" title="MERMA"><i class="ti ti-trash-x"></i></button>`:""}
         `:""}
         ${puedeEliminarCons&&!histo?`<button class="btn btn-ghost" style="padding:3px 7px;font-size:10px;color:#e85a5a" onclick="deleteConsumo(${c.id})" title="Eliminar registro"><i class="ti ti-trash"></i></button>`:""}
       </td>
@@ -5772,6 +6124,11 @@ async function openModalConsumo(id=null){
   // Llenar autocomplete de clientes con la lista COMPLETA (todos los activos, ~5832)
   const clientesAll=await getClientesList();
   document.getElementById("consClientesList").innerHTML=clientesAll.map(c=>`<option value="${escAttr(c.nombre)}"></option>`).join("");
+  // Llenar autocomplete de materiales (catálogo + en stock)
+  getMaterialesList().then(mats=>{
+    const dl=document.getElementById("consMaterialesList");
+    if(dl) dl.innerHTML=mats.map(m=>`<option value="${escAttr(m)}"></option>`).join("");
+  });
 
   // Reset líneas y pre-llenar
   document.getElementById("co_lineas").innerHTML="";
@@ -5802,32 +6159,51 @@ function addConsumoLine(prefill=null){
   div.dataset.isEdit=isEdit?"1":"";
 
   if(isEdit){
-    // ─── MODO EDICIÓN: tubo y medidas LOCKED ─────────────────────────────
-    // El usuario ya eligió el tubo en el registro original. Aquí solo puede
-    // ajustar DEVUELTO (para que esos mm vuelvan al stock), observaciones,
-    // y la sugerencia de material óptimo.
+    // ─── MODO EDICIÓN: todos los campos editables (como un registro nuevo) ──
+    // El usuario puede cambiar medidas, material, tubo, ENVIADO y DEVUELTO.
+    // Si cambia el tubo, en saveConsumo se revertirá el viejo y se aplicará al nuevo.
     div.innerHTML=`
       <div style="position:absolute;top:8px;right:8px">
         <span style="font-size:10px;color:#5a5e7a;padding:3px 8px;background:#111318;border-radius:10px">#${idx+1}</span>
       </div>
-      <div style="font-size:10px;color:#7a7d99;text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px">Línea ${idx+1} — Editar DEVUELTO</div>
+      <div style="font-size:10px;color:#7a7d99;text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px">Línea ${idx+1} — edita cualquier campo (medidas, tubo, enviado, devuelto)</div>
 
-      <!-- Tarjeta de información del tubo (READONLY) -->
-      <div style="background:#111318;border:.5px solid #2e3042;border-radius:8px;padding:10px 12px;margin-bottom:10px;font-size:12px">
-        <div style="font-size:10px;color:#7a7d99;text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px">Tubo asignado</div>
-        <div style="color:#f0f0f5;font-weight:500" id="lockedTuboLabel_${idx}">Cargando...</div>
-        <div style="font-size:11px;color:#7a7d99;margin-top:2px">
-          DI ${prefill.di??"?"} · DE ${prefill.de??"?"} · L ${prefill.largo??"?"}mm · Material: <strong style="color:#c8cce0">${esc(prefill.material||"?")}</strong>
+      <div class="form-row-3" style="margin-bottom:6px">
+        <div class="form-group" style="margin:0">
+          <label class="form-label">DI (mm) <span class="req">*</span></label>
+          <input class="form-input cl-di" type="number" min="0" placeholder="0" oninput="onLineMedidaChange(this)">
         </div>
-        <div style="font-size:11px;color:#5b9bd5;margin-top:4px">
-          <i class="ti ti-arrow-up"></i> ENVIADO: <strong>${prefill.enviado??0}mm</strong> (no editable)
+        <div class="form-group" style="margin:0">
+          <label class="form-label">DE (mm) <span class="req">*</span></label>
+          <input class="form-input cl-de" type="number" min="0" placeholder="25" oninput="onLineMedidaChange(this)">
         </div>
+        <div class="form-group" style="margin:0">
+          <label class="form-label">LARGO (mm) <span class="req">*</span></label>
+          <input class="form-input cl-largo" type="number" min="1" placeholder="150" oninput="onLineMedidaChange(this)">
+        </div>
+      </div>
+
+      <div class="form-group" style="margin-bottom:6px">
+        <label class="form-label">Tubo a usar <span class="req">*</span> <span style="color:#7a7d99;font-weight:normal;font-size:10px">— si lo cambias, el stock del tubo anterior se restaura</span></label>
+        <select class="form-input cl-tubo" onchange="onLineTuboChange(this)" disabled>
+          <option value="">— Cargando tubos disponibles —</option>
+        </select>
+        <div class="cl-tubo-info" style="font-size:10px;color:#5a5e7a;margin-top:3px"></div>
+      </div>
+
+      <div class="form-group" style="margin-bottom:6px">
+        <label class="form-label">Material <span class="req">*</span> <span style="color:#7a7d99;font-weight:normal;font-size:10px">— elige de la lista o escribe uno nuevo</span></label>
+        <input class="form-input cl-material" list="consMaterialesList" autocomplete="off" placeholder="Ej: PU U500 ROJO">
       </div>
 
       <div class="form-row" style="margin-bottom:6px">
         <div class="form-group" style="margin:0">
-          <label class="form-label">DEVUELTO (mm) <span style="color:#4caf8c;font-weight:normal;font-size:10px">— al ingresar este valor, esos mm vuelven al stock</span></label>
-          <input class="form-input cl-devuelto" type="number" min="0" placeholder="Ej: 120" oninput="updateConsumoResumen()">
+          <label class="form-label">ENVIADO (mm) <span class="req">*</span></label>
+          <input class="form-input cl-enviado" type="number" min="0" placeholder="50" oninput="updateConsumoResumen()">
+        </div>
+        <div class="form-group" style="margin:0">
+          <label class="form-label">DEVUELTO (mm) <span style="color:#4caf8c;font-weight:normal;font-size:10px">— vuelven al stock</span></label>
+          <input class="form-input cl-devuelto" type="number" min="0" placeholder="0" oninput="updateConsumoResumen()">
         </div>
       </div>
       <div class="form-row" style="margin-bottom:0">
@@ -5840,38 +6216,43 @@ function addConsumoLine(prefill=null){
           <input class="form-input cl-optimo" placeholder="Opcional">
         </div>
       </div>
-
-      <!-- Inputs ocultos: mantienen las medidas, material, enviado y tubo originales -->
-      <input type="hidden" class="cl-di" value="${prefill.di??""}">
-      <input type="hidden" class="cl-de" value="${prefill.de??""}">
-      <input type="hidden" class="cl-largo" value="${prefill.largo??""}">
-      <input type="hidden" class="cl-material" value="${escAttr(prefill.material||"")}">
-      <input type="hidden" class="cl-enviado" value="${prefill.enviado??0}">
-      <input type="hidden" class="cl-tubo" value="${prefill.tubo_id||""}">
     `;
     cont.appendChild(div);
+    // Prefill básico
+    div.querySelector(".cl-di").value=prefill.di??"";
+    div.querySelector(".cl-de").value=prefill.de??"";
+    div.querySelector(".cl-largo").value=prefill.largo??"";
+    div.querySelector(".cl-material").value=prefill.material||"";
+    div.querySelector(".cl-enviado").value=prefill.enviado??"";
     div.querySelector(".cl-devuelto").value=prefill.devuelto??"";
     div.querySelector(".cl-observ").value=prefill.observaciones||"";
     div.querySelector(".cl-optimo").value=prefill.material_optimo||"";
     div.dataset.enviadoOrig=prefill.enviado||0;
     div.dataset.devueltoOrig=prefill.devuelto??"";
     div.dataset.tuboInstIdOrig=prefill.tubo_instancia_id||"";
+    div.dataset.tuboIdOrig=prefill.tubo_id||"";
     div.dataset.instId=prefill.tubo_instancia_id||"";
-
-    // Cargar el label del tubo desde el cache de tubos (o consulta directa si no está)
-    (async()=>{
-      const lbl=document.getElementById(`lockedTuboLabel_${idx}`);if(!lbl) return;
-      let tubo=null;
-      for(const mat of Object.keys(_consMatTuboCache?.byMaterial||{})){
-        const g=_consMatTuboCache.byMaterial[mat].find(g=>g.tubo.id===prefill.tubo_id);
-        if(g){tubo=g.tubo;break;}
+    // Poblar select de tubos con las medidas actuales y pre-seleccionar el original
+    onLineMedidaChange(div.querySelector(".cl-di"));
+    setTimeout(async()=>{
+      const sel=div.querySelector(".cl-tubo");
+      if(!sel||!prefill.tubo_id||!prefill.tubo_instancia_id) return;
+      const val=`${prefill.tubo_id}:${prefill.tubo_instancia_id}`;
+      // Si el tubo original ya no está en las opciones (no hay stock o cambió), inyectarlo como opción
+      if(![...sel.options].some(o=>o.value===val)){
+        let labelTubo=`Tubo original #${prefill.tubo_instancia_id}`;
+        try{
+          const {data:t}=await sb.from("tubos").select("descripcion,codigo_mat").eq("id",prefill.tubo_id).maybeSingle();
+          if(t) labelTubo=t.descripcion+(t.codigo_mat?` (${t.codigo_mat})`:"");
+        }catch(e){}
+        const opt=document.createElement("option");
+        opt.value=val;opt.textContent=`★ ${labelTubo} · T${prefill.tubo_instancia_id} (original)`;opt.dataset.material=prefill.material||"";
+        sel.insertBefore(opt,sel.options[1]||null);
+        sel.disabled=false;
       }
-      if(!tubo){
-        const {data}=await sb.from("tubos").select("descripcion,codigo_mat,altura_total").eq("id",prefill.tubo_id).maybeSingle();
-        tubo=data;
-      }
-      lbl.innerHTML=tubo?esc(tubo.descripcion||"")+(tubo.codigo_mat?` <span style="color:#7a7d99;font-size:10px;font-family:monospace">(${esc(tubo.codigo_mat)})</span>`:""):"Tubo no encontrado en cache";
-    })();
+      sel.value=val;
+      div.dataset.instId=prefill.tubo_instancia_id;
+    },50);
     updateConsumoResumen();
     return;
   }
@@ -5908,8 +6289,8 @@ function addConsumoLine(prefill=null){
     </div>
 
     <div class="form-group" style="margin-bottom:6px">
-      <label class="form-label">Material <span class="req">*</span> <span style="color:#7a7d99;font-weight:normal;font-size:10px">— auto al elegir tubo, o escríbelo</span></label>
-      <input class="form-input cl-material" placeholder="Ej: PU U500 ROJO">
+      <label class="form-label">Material <span class="req">*</span> <span style="color:#7a7d99;font-weight:normal;font-size:10px">— auto al elegir tubo, elige de la lista o escríbelo</span></label>
+      <input class="form-input cl-material" list="consMaterialesList" autocomplete="off" placeholder="Ej: PU U500 ROJO">
     </div>
 
     <div class="form-row" style="margin-bottom:6px">
@@ -6093,7 +6474,7 @@ async function saveConsumo(){
       const di=parseFloat(card.querySelector(".cl-di").value);
       const de=parseFloat(card.querySelector(".cl-de").value);
       const largo=parseFloat(card.querySelector(".cl-largo").value);
-      const material=card.querySelector(".cl-material").value.trim();
+      const material=normMaterial(card.querySelector(".cl-material").value);
       const enviado=parseFloat(card.querySelector(".cl-enviado").value);
       const observ=card.querySelector(".cl-observ").value.trim();
       const optimo=card.querySelector(".cl-optimo").value.trim();
@@ -6124,7 +6505,7 @@ async function saveConsumo(){
     if(error){toast("Error: "+error.message,"err");return;}
     closeModal("modalConsumo");
     toast(`✓ OP ${op} anotada · ${rows.length} línea${rows.length>1?"s":""} pendiente${rows.length>1?"s":""} de cerrar`,"ok");
-    clearCache("consumos");_consMatTuboCache=null;loadConsumos(true);
+    clearCache("consumos");clearCache("materiales_list");_consMatTuboCache=null;loadConsumos(true);
     return;
   }
 
@@ -6137,7 +6518,7 @@ async function saveConsumo(){
     const di=parseFloat(card.querySelector(".cl-di").value);
     const de=parseFloat(card.querySelector(".cl-de").value);
     const largo=parseFloat(card.querySelector(".cl-largo").value);
-    const material=card.querySelector(".cl-material").value.trim();
+    const material=normMaterial(card.querySelector(".cl-material").value);
     const enviado=parseFloat(card.querySelector(".cl-enviado").value);
     const devVal=card.querySelector(".cl-devuelto").value.trim();
     const devuelto=devVal===""?null:parseFloat(devVal);
@@ -6184,6 +6565,7 @@ async function saveConsumo(){
       enviadoOrig: parseFloat(card.dataset.enviadoOrig)||0,
       devueltoOrig: card.dataset.devueltoOrig===""?null:(parseFloat(card.dataset.devueltoOrig)||0),
       tuboInstIdOrig: parseInt(card.dataset.tuboInstIdOrig)||null,
+      tuboIdOrig: parseInt(card.dataset.tuboIdOrig)||null,
     });
   }
 
@@ -6194,10 +6576,40 @@ async function saveConsumo(){
   for(let i=0;i<lineas.length;i++){
     const L=lineas[i];
     try{
-      // 1) Calcular delta para descuento de tubo
+      // 1) Calcular consumos
       const consumoNuevo=L.enviado-(L.devuelto||0);
       const consumoOrig=id?(L.enviadoOrig-(L.devueltoOrig||0)):0;
-      const delta=consumoNuevo-consumoOrig;
+      const tuboCambio=id && L.tuboInstIdOrig && L.tuboInstIdOrig!==L.instancia?.id;
+
+      // Pre-check: si cambió el tubo, verificar que el NUEVO tenga espacio para consumoNuevo
+      if(tuboCambio && consumoNuevo>0 && L.instancia){
+        const altTot=L.tubo.altura_total||0;
+        const usadoActualBD=L.instancia.altura_usada||0;
+        if(usadoActualBD+consumoNuevo>altTot){
+          errors.push(`Línea ${i+1} (${L.material}): el tubo nuevo solo tiene ${altTot-usadoActualBD}mm libres, necesitas ${consumoNuevo}mm. No se aplicó el cambio.`);
+          continue;
+        }
+      }
+
+      // 1a) Si CAMBIÓ el tubo: revertir el viejo (devolver los mm) antes de aplicar al nuevo
+      if(tuboCambio && consumoOrig>0){
+        const {data:oldInst}=await sb.from("tubo_instancias").select("*").eq("id",L.tuboInstIdOrig).maybeSingle();
+        const {data:oldTubo}=await sb.from("tubos").select("altura_total").eq("id",L.tuboIdOrig).maybeSingle();
+        if(oldInst && oldTubo){
+          const altOld=oldTubo.altura_total||0;
+          const nuevoUsadoOld=Math.max(0,(oldInst.altura_usada||0)-consumoOrig);
+          const nuevoEstadoOld=oldInst.estado==="separado"?"separado":(nuevoUsadoOld>=altOld?"agotado":"disponible");
+          await sb.from("tubo_instancias").update({altura_usada:nuevoUsadoOld,estado:nuevoEstadoOld}).eq("id",L.tuboInstIdOrig);
+          await sb.from("movimientos").insert({
+            tubo_id:L.tuboIdOrig,tubo_instancia_id:L.tuboInstIdOrig,tipo:"ajuste",
+            altura_usada:consumoOrig,op_numero:op,usuario_id:CU?.id,
+            nota:`Edit OP ${op}: revertir +${consumoOrig}mm (tubo cambiado)`
+          });
+        }
+      }
+
+      // Delta a aplicar al tubo NUEVO: si cambió, es el consumo nuevo completo; si no, el delta
+      const delta = tuboCambio ? consumoNuevo : (consumoNuevo-consumoOrig);
 
       // 2) Aplicar al tubo (instancia) — con verificación POST-UPDATE
       if(L.instancia&&delta!==0){
@@ -6527,7 +6939,7 @@ function renderCierre(){
       <div class="form-row" style="margin-bottom:6px">
         <div class="form-group" style="margin:0;flex:2">
           <label class="form-label">Tubo del que se descuenta <span class="req">*</span></label>
-          <select class="form-input ck-tubo" ${matches.length?"":"disabled"}>${opts}</select>
+          <select class="form-input ck-tubo" ${matches.length?"":"disabled"} onchange="_cierreCalc(this)">${opts}</select>
         </div>
         <div class="form-group" style="margin:0;flex:1">
           <label class="form-label">DEVUELTO (mm) <span class="req">*</span></label>
@@ -6536,10 +6948,66 @@ function renderCierre(){
       </div>
       <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
         <div class="ck-info" style="font-size:11px;color:#5a5e7a"></div>
-        <button class="btn btn-green" style="padding:5px 12px;font-size:11px" onclick="guardarCierreLinea(${l.id},this)"><i class="ti ti-device-floppy"></i>Guardar línea</button>
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-amber ck-merma-btn" style="display:none;padding:5px 10px;font-size:11px;box-shadow:0 0 0 1px #f5a623" onclick="mermarCierreLinea(${l.id},this)" title="El tubo quedaría bajo el mínimo aprovechable — descártalo como MERMA"><i class="ti ti-trash-x"></i>Descartar tubo</button>
+          <button class="btn btn-green" style="padding:5px 12px;font-size:11px" onclick="guardarCierreLinea(${l.id},this)"><i class="ti ti-device-floppy"></i>Guardar línea</button>
+        </div>
       </div>
     </div>`;
   }).join("")||`<div class="no-data">Esta OP no tiene líneas registradas.</div>`;
+}
+
+// Marca el tubo seleccionado como MERMA desde dentro del modal Cerrar OP.
+// Inutiliza el tubo (altura_usada = altura_total, estado = agotado), marca la
+// línea como es_merma y guarda el motivo.
+async function mermarCierreLinea(lineId,btn){
+  if(!getEffectivePerms().editarConsumos){toast("Sin permiso","err");return;}
+  const card=btn.closest(".cierre-card");
+  const tuboVal=card.querySelector(".ck-tubo").value;
+  if(!tuboVal){toast("Elige primero el tubo a descartar","err");return;}
+  const found=_cierreFindTuboInst(tuboVal);
+  const desc=found?found.tubo.descripcion:"";
+  const mmRest=found?Math.max(0,instTot(found.inst,found.tubo)-(found.inst.altura_usada||0)):0;
+  if(!confirm(`¿Descartar (MERMA) el tubo${desc?` "${desc}"`:""}?\n\nQuedan ${mmRest}mm pero está bajo el mínimo aprovechable.\nEl tubo se marca como AGOTADO y sale del stock. Se registra en el historial.`)) return;
+  const motivo=`Descartado en cierre OP ${_cierreState.op} (bajo mínimo aprovechable)`;
+  const [tuboIdStr,instIdStr]=tuboVal.split(":");
+  const tuboId=parseInt(tuboIdStr),instId=parseInt(instIdStr);
+  setBtnLoading2(btn,true,"Procesando...");
+  try{
+    const {data:tubo}=await sb.from("tubos").select("altura_total").eq("id",tuboId).maybeSingle();
+    if(!tubo) throw new Error("Tubo no encontrado");
+    const {error:e1}=await sb.from("tubo_instancias").update({altura_usada:tubo.altura_total,estado:"agotado",separado_hasta:null,separado_motivo:null}).eq("id",instId);
+    if(e1) throw e1;
+    await sb.from("movimientos").insert({
+      tubo_id:tuboId,tubo_instancia_id:instId,tipo:"merma",
+      altura_usada:tubo.altura_total,op_numero:_cierreState.op,
+      usuario_id:CU?.id,motivo,nota:`MERMA en cierre OP ${_cierreState.op}: ${motivo}`
+    });
+    const {error:e2}=await sb.from("consumos_ops").update({
+      es_merma:true,motivo_merma:motivo,observaciones:`MERMA: ${motivo}`,
+      tubo_id:tuboId,tubo_instancia_id:instId,devuelto:0
+    }).eq("id",lineId);
+    if(e2) throw e2;
+    const L=_cierreState.lineas.find(x=>x.id===lineId);
+    if(L){L.es_merma=true;L.tubo_id=tuboId;L.tubo_instancia_id=instId;L.devuelto=0;L.motivo_merma=motivo;}
+    setBtnLoading2(btn,false);
+    toast("✓ MERMA registrada · tubo eliminado del stock","ok");
+    await loadConsMatTuboCache(true);
+    renderCierre();
+    clearCache("consumos");clearCache("tubos_custom");clearCache("tubos_mecaniza");
+  }catch(err){setBtnLoading2(btn,false);toast("Error: "+err.message,"err");}
+}
+
+// Localiza el tubo + instancia física desde el value "tuboId:instId" del select de cierre
+function _cierreFindTuboInst(tuboVal){
+  if(!tuboVal) return null;
+  const [tStr,iStr]=tuboVal.split(":");
+  const tuboId=parseInt(tStr),instId=parseInt(iStr);
+  for(const mat of Object.keys(_consMatTuboCache?.byMaterial||{})){
+    const g=_consMatTuboCache.byMaterial[mat].find(g=>g.tubo.id===tuboId);
+    if(g){const inst=g.instancias.find(i=>i.id===instId);if(inst) return {tubo:g.tubo,inst};}
+  }
+  return null;
 }
 
 function _cierreCalc(inp){
@@ -6548,20 +7016,43 @@ function _cierreCalc(inp){
   const dev=parseFloat(card.querySelector(".ck-dev").value)||0;
   const cons=env-dev;
   const info=card.querySelector(".ck-info");
-  if(dev>env){info.innerHTML=`<span style="color:#e85a5a"><i class="ti ti-alert-circle"></i> DEVUELTO no puede ser mayor que ENVIADO (${env})</span>`;}
-  else info.innerHTML=`Se descontarán <strong style="color:#f5a623">${cons}mm</strong> del tubo`;
+  const mermaBtn=card.querySelector(".ck-merma-btn");
+  const tuboVal=card.querySelector(".ck-tubo").value;
+  if(dev>env){
+    info.innerHTML=`<span style="color:#e85a5a"><i class="ti ti-alert-circle"></i> DEVUELTO no puede ser mayor que ENVIADO (${env})</span>`;
+    if(mermaBtn){mermaBtn.style.display="none";}
+    return;
+  }
+  let html=`Se descontarán <strong style="color:#f5a623">${cons}mm</strong> del tubo`;
+  let mermaSugerida=false, mmRestDespues=null, altMin=null;
+  const found=_cierreFindTuboInst(tuboVal);
+  if(found){
+    const {tubo,inst}=found;
+    const mmRestAhora=Math.max(0,instTot(inst,tubo)-(inst.altura_usada||0));
+    mmRestDespues=mmRestAhora-cons;
+    altMin=alturaMinPara(tubo);
+    if(mmRestDespues>0 && mmRestDespues<altMin){
+      mermaSugerida=true;
+      html+=` · <span style="color:#f5a623"><i class="ti ti-alert-triangle"></i> Quedarían <strong>${mmRestDespues}mm</strong> (bajo el mínimo de ${altMin}mm) — <strong>merma sugerida</strong></span>`;
+    }
+  }
+  info.innerHTML=html;
+  // El botón "Descartar tubo" solo aparece como SUGERENCIA cuando el tubo queda bajo el mínimo
+  if(mermaBtn){
+    mermaBtn.style.display = mermaSugerida ? "inline-flex" : "none";
+  }
 }
 
-async function guardarCierreLinea(lineId,btn){
+async function guardarCierreLinea(lineId,btn,skipRender=false){
   const card=btn.closest(".cierre-card");
   const env=parseFloat(card.dataset.enviado)||0;
   const tuboVal=card.querySelector(".ck-tubo").value;
   const devStr=card.querySelector(".ck-dev").value.trim();
-  if(!tuboVal){toast("Elige el tubo del que descontar","err");return;}
-  if(devStr===""){toast("Ingresa el DEVUELTO (usa 0 si no devolvió nada)","err");return;}
+  if(!tuboVal){if(!skipRender)toast("Elige el tubo del que descontar","err");return false;}
+  if(devStr===""){if(!skipRender)toast("Ingresa el DEVUELTO (usa 0 si no devolvió nada)","err");return false;}
   const devuelto=parseFloat(devStr);
-  if(isNaN(devuelto)||devuelto<0){toast("DEVUELTO inválido","err");return;}
-  if(devuelto>env&&!ruleBool("consumo_permitir_devuelto_mayor",false)){toast(`DEVUELTO (${devuelto}) no puede ser mayor que ENVIADO (${env})`,"err");return;}
+  if(isNaN(devuelto)||devuelto<0){if(!skipRender)toast("DEVUELTO inválido","err");return false;}
+  if(devuelto>env&&!ruleBool("consumo_permitir_devuelto_mayor",false)){if(!skipRender)toast(`DEVUELTO (${devuelto}) no puede ser mayor que ENVIADO (${env})`,"err");return false;}
   const [tuboIdStr,instIdStr]=tuboVal.split(":");
   const tuboId=parseInt(tuboIdStr), instId=parseInt(instIdStr);
   const consumido=env-devuelto;
@@ -6570,7 +7061,7 @@ async function guardarCierreLinea(lineId,btn){
   // Traer datos frescos del tubo e instancia
   const {data:tubo}=await sb.from("tubos").select("altura_total,descripcion,familia,subfamilia,altura_min_aprovechable").eq("id",tuboId).maybeSingle();
   const {data:inst}=await sb.from("tubo_instancias").select("*").eq("id",instId).maybeSingle();
-  if(!tubo||!inst){setBtnLoading2(btn,false);toast("Tubo/instancia no encontrado","err");return;}
+  if(!tubo||!inst){setBtnLoading2(btn,false);if(!skipRender)toast("Tubo/instancia no encontrado","err");return false;}
   const altTot=instTot(inst,tubo);
   const usado=inst.altura_usada||0;
   const nuevoUsado=Math.max(0,usado+consumido);
@@ -6587,8 +7078,8 @@ async function guardarCierreLinea(lineId,btn){
   // 1) Descontar instancia
   if(consumido>0){
     const {data:upd,error:eU}=await sb.from("tubo_instancias").update({altura_usada:nuevoUsado,estado:nuevoEstado}).eq("id",instId).select();
-    if(eU){setBtnLoading2(btn,false);toast("Error stock: "+eU.message,"err");return;}
-    if(!upd||!upd.length){setBtnLoading2(btn,false);toast("Tu rol no tiene permiso para descontar stock (consulta al admin)","err");return;}
+    if(eU){setBtnLoading2(btn,false);if(!skipRender)toast("Error stock: "+eU.message,"err");return false;}
+    if(!upd||!upd.length){setBtnLoading2(btn,false);if(!skipRender)toast("Tu rol no tiene permiso para descontar stock (consulta al admin)","err");return false;}
     await sb.from("movimientos").insert({
       tubo_id:tuboId, tubo_instancia_id:instId, tipo:"consumo",
       altura_usada:consumido, op_numero:_cierreState.op, usuario_id:CU?.id,
@@ -6598,14 +7089,17 @@ async function guardarCierreLinea(lineId,btn){
   // 2) Persistir cierre de la línea
   const {error:eC}=await sb.from("consumos_ops").update({tubo_id:tuboId,tubo_instancia_id:instId,devuelto}).eq("id",lineId);
   setBtnLoading2(btn,false);
-  if(eC){toast("Error registro: "+eC.message,"err");return;}
-  toast(`✓ Línea cerrada · -${consumido}mm`,"ok");
+  if(eC){if(!skipRender)toast("Error registro: "+eC.message,"err");return false;}
+  if(!skipRender) toast(`✓ Línea cerrada · -${consumido}mm`,"ok");
   // Actualizar estado local y re-render
   const L=_cierreState.lineas.find(x=>x.id===lineId);
   if(L){L.tubo_id=tuboId;L.tubo_instancia_id=instId;L.devuelto=devuelto;}
-  await loadConsMatTuboCache(true); // refrescar mm disponibles
-  renderCierre();
-  clearCache("consumos");clearCache("tubos_custom");clearCache("tubos_mecaniza");
+  if(!skipRender){
+    await loadConsMatTuboCache(true); // refrescar mm disponibles
+    renderCierre();
+    clearCache("consumos");clearCache("tubos_custom");clearCache("tubos_mecaniza");
+  }
+  return true;
 }
 
 async function revertirCierreLinea(lineId){
@@ -6717,14 +7211,40 @@ function renderRankingMateriales(){
   }).join("");
 }
 
-function finalizarOp(){
-  const pend=_cierreState.lineas.filter(l=>l.devuelto==null&&!l.es_merma).length;
-  if(pend>0){
-    if(!confirm(`Aún hay ${pend} línea(s) pendiente(s) de cerrar en esta OP.\n\nPuedes finalizar igual y volver luego para cerrarlas. ¿Continuar?`)) return;
+async function finalizarOp(){
+  if(!getEffectivePerms().editarConsumos){toast("Sin permiso","err");return;}
+  // Recolectar líneas pendientes con DEVUELTO y tubo completados → autoguardar
+  const pendIds=_cierreState.lineas.filter(l=>l.devuelto==null&&!l.es_merma).map(l=>l.id);
+  const listas=[];const incompletas=[];
+  for(const lineId of pendIds){
+    const card=document.querySelector(`.cierre-card[data-lineid="${lineId}"]`);
+    if(!card){incompletas.push(lineId);continue;}
+    const tuboVal=card.querySelector(".ck-tubo")?.value||"";
+    const devStr=(card.querySelector(".ck-dev")?.value||"").trim();
+    const devNum=parseFloat(devStr);
+    if(tuboVal&&devStr!==""&&!isNaN(devNum)&&devNum>=0){
+      listas.push({lineId,btn:card.querySelector("button.btn-green")});
+    }else incompletas.push(lineId);
+  }
+  let okAuto=0,errAuto=0;
+  if(listas.length){
+    showLoading(true,`Guardando ${listas.length} línea(s)...`);
+    for(const it of listas){
+      const ok=await guardarCierreLinea(it.lineId,it.btn,true);
+      if(ok) okAuto++; else errAuto++;
+    }
+    await loadConsMatTuboCache(true);
+    showLoading(false);
+  }
+  const pendRest=_cierreState.lineas.filter(l=>l.devuelto==null&&!l.es_merma).length;
+  if(pendRest>0){
+    renderCierre();
+    if(errAuto>0){toast(`${okAuto} guardadas · ${errAuto} con error · ${pendRest} pendientes`,"err");return;}
+    if(!confirm(`Aún hay ${pendRest} línea(s) sin DEVUELTO o sin tubo elegido.\n\n¿Cerrar la ventana y dejarlas pendientes?`)) return;
   }
   closeModal("modalCierre");
-  toast(pend>0?`OP ${_cierreState.op} guardada · ${pend} pendiente(s)`:`✓ OP ${_cierreState.op} cerrada completa`,"ok");
-  clearCache("consumos");_consMatTuboCache=null;loadConsumos(true);
+  toast(pendRest>0?`OP ${_cierreState.op} guardada · ${okAuto} cerrada(s) · ${pendRest} pendiente(s)`:`✓ OP ${_cierreState.op} cerrada completa${okAuto?` (${okAuto} línea${okAuto>1?"s":""} autoguardada${okAuto>1?"s":""})`:""}`,"ok");
+  clearCache("consumos");clearCache("tubos_custom");clearCache("tubos_mecaniza");_consMatTuboCache=null;loadConsumos(true);
 }
 
 // helper para botones inline sin id (setBtnLoading requiere id)
