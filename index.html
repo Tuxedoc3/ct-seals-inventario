@@ -787,15 +787,11 @@ input[type=number]{-moz-appearance:textfield;appearance:textfield}
         <div class="card-title"><i class="ti ti-layout-dashboard"></i>Dashboard y Reportes <span style="font-size:9px;color:#7a7d99;text-transform:none;margin-left:6px">(solo admin)</span></div>
         <div style="font-size:11px;color:#7a7d99;margin-bottom:12px">Personaliza qué widgets se muestran en el Dashboard y cómo se calculan reportes.</div>
 
-        <div style="font-size:10px;color:#7a7d99;text-transform:uppercase;letter-spacing:.5px;margin:14px 0 6px;padding-bottom:4px;border-bottom:.5px solid #2e3042">Widgets visibles</div>
-        <div class="cli-checks" style="flex-direction:column;gap:6px;align-items:flex-start">
-          <label class="cli-check"><input type="checkbox" id="cfgW_opsmes" checked> 📅 OPs del período (click muestra detalle por OP)</label>
-          <label class="cli-check"><input type="checkbox" id="cfgW_stockbajo" checked> ⚠️ Productos con stock crítico (MP + Almacén Custom + Almacén Mecaniza)</label>
-          <label class="cli-check"><input type="checkbox" id="cfgW_consumos" checked> 📊 Consumos por material (suma de coincidencias por código)</label>
-          <label class="cli-check"><input type="checkbox" id="cfgW_merma" checked> 🗑️ Mermas (cantidad y % sobre total)</label>
-          <label class="cli-check"><input type="checkbox" id="cfgW_eficiencia"> ♻️ Eficiencia (mm enviados vs devueltos)</label>
-        </div>
-        <button class="btn btn-red" id="btnSaveDashCfg" onclick="saveDashboardConfig()" style="margin-top:10px"><i class="ti ti-check"></i>Guardar widgets</button>
+        <div style="font-size:10px;color:#7a7d99;text-transform:uppercase;letter-spacing:.5px;margin:14px 0 6px;padding-bottom:4px;border-bottom:.5px solid #2e3042">Widgets por rol</div>
+        <div style="font-size:11px;color:#7a7d99;margin-bottom:8px">Elige un rol y marca qué widgets ve por defecto. Cada usuario luego puede ocultar los suyos con "Personalizar mi dashboard".</div>
+        <select class="form-input" id="cfgDashRol" style="max-width:240px;margin-bottom:8px" onchange="renderDashRolWidgets()"></select>
+        <div id="cfgDashRolWidgets" class="cli-checks" style="flex-direction:column;gap:6px;align-items:flex-start"></div>
+        <button class="btn btn-red" id="btnSaveDashCfg" onclick="saveDashboardConfig()" style="margin-top:10px"><i class="ti ti-check"></i>Guardar widgets del rol</button>
 
         <div style="font-size:10px;color:#7a7d99;text-transform:uppercase;letter-spacing:.5px;margin:18px 0 6px;padding-bottom:4px;border-bottom:.5px solid #2e3042">Rango y umbrales</div>
         <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0">
@@ -1577,6 +1573,19 @@ input[type=number]{-moz-appearance:textfield;appearance:textfield}
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modalRenameMat')">Cancelar</button>
       <button class="btn btn-red" id="btnConfirmRename" onclick="confirmRenameMat()"><i class="ti ti-check"></i>Confirmar y renombrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Personalizar mi dashboard (cada usuario) -->
+<div class="modal-overlay" id="modalPersDash" style="display:none" onclick="if(event.target===this)closeModalSafe('modalPersDash')">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-title"><i class="ti ti-adjustments" style="color:#5b9bd5"></i>Personalizar mi dashboard</div>
+    <div style="font-size:11px;color:#7a7d99;margin-bottom:10px">Activa u oculta los widgets que quieres ver en <strong>tu</strong> dashboard (de los que tu rol permite).</div>
+    <div id="pdashList" style="display:flex;flex-direction:column;gap:2px"></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modalPersDash')">Cancelar</button>
+      <button class="btn btn-red" id="btnSavePdash" onclick="saveMyDash()"><i class="ti ti-check"></i>Guardar</button>
     </div>
   </div>
 </div>
@@ -2768,8 +2777,7 @@ function loadConfigPage(){
   const dashCard=document.getElementById("cfgDashboardCard");
   if(dashCard) dashCard.style.display=CU?.rol==="admin"?"":"none";
   if(CU?.rol==="admin"){
-    const widgets=getEnabledWidgets();
-    Object.entries(widgets).forEach(([k,v])=>{const el=document.getElementById("cfgW_"+k);if(el)el.checked=v;});
+    poblarDashRolSelect();
     document.getElementById("cfgDashRange").value=cfg.dashboard_range||"3mo";
     const inclHist=cfg.dashboard_incl_historico==="true"||cfg.dashboard_incl_historico===true;
     document.getElementById("cfgDashHistTog").classList.toggle("on",inclHist);
@@ -3540,13 +3548,30 @@ async function cargarUsoDB(){
 // ────────────────────────────────────────────────────────────────────────────
 //  DASHBOARD — KPIs clickeables que abren modal con detalle
 // ────────────────────────────────────────────────────────────────────────────
-const DEFAULT_WIDGETS={opsmes:true,stockbajo:true,consumos:true,merma:true,eficiencia:false};
-function getEnabledWidgets(){
+const DEFAULT_WIDGETS={opsmes:true,stockbajo:true,consumos:true,merma:true,eficiencia:false,valorinv:true,comprasmes:true,tendencia:true,rotcli:true};
+// Etiquetas legibles (para la config por rol y por usuario)
+const WIDGET_LABELS={opsmes:"OPs del período",stockbajo:"Stock crítico",consumos:"Consumos por material",merma:"Mermas",eficiencia:"Eficiencia",valorinv:"Valor del inventario",comprasmes:"Compras del mes",tendencia:"Tendencia de consumo",rotcli:"Rotación + top clientes"};
+// Config de widgets por ROL (admin la define). Compatibilidad con la config global vieja.
+function getRoleWidgets(rol){
   try{
-    const raw=cfg.dashboard_widgets;
-    if(typeof raw==="string"&&raw.startsWith("{")) return {...DEFAULT_WIDGETS,...JSON.parse(raw)};
+    const raw=cfg.dashboard_widgets_roles;
+    const obj=typeof raw==="string"&&raw.startsWith("{")?JSON.parse(raw):(raw&&typeof raw==="object"?raw:{});
+    if(obj&&obj[rol]) return {...DEFAULT_WIDGETS,...obj[rol]};
   }catch(e){}
-  return DEFAULT_WIDGETS;
+  try{const old=cfg.dashboard_widgets;if(typeof old==="string"&&old.startsWith("{"))return {...DEFAULT_WIDGETS,...JSON.parse(old)};}catch(e){}
+  return {...DEFAULT_WIDGETS};
+}
+// Widgets efectivos: lo que el ROL permite, recortado por la preferencia del USUARIO.
+function getEnabledWidgets(){
+  const roleCfg=getRoleWidgets(CU?.rol||"admin");
+  let userCfg=null;
+  try{const u=CU?.dashboard_config;userCfg=(u&&typeof u==="object")?u:(typeof u==="string"&&u.startsWith("{")?JSON.parse(u):null);}catch(e){}
+  const result={};
+  Object.keys(DEFAULT_WIDGETS).forEach(w=>{
+    const roleOn=roleCfg[w]!==false;
+    result[w]= roleOn && (userCfg&&(w in userCfg) ? !!userCfg[w] : true);
+  });
+  return result;
 }
 function getDashRangeStart(){
   const r=cfg.dashboard_range||"3mo";
@@ -3565,17 +3590,22 @@ async function loadDashboard(){
   const cont=document.getElementById("dashResumen");
   cont.innerHTML="";
 
-  // Botón de configuración (solo admin)
-  const configHint=CU.rol==="admin"
-    ?`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 4px;margin-bottom:14px">
-        <div style="font-size:11px;color:var(--text-soft)">Rango: <strong style="color:var(--text)">${({"1mo":"último mes","3mo":"3 meses","6mo":"6 meses","12mo":"1 año","all":"todo"})[cfg.dashboard_range||"3mo"]}</strong>${cfg.dashboard_incl_historico==="true"||cfg.dashboard_incl_historico===true?" · incluye históricos":""}</div>
-        <button class="btn btn-ghost" style="font-size:11px;padding:5px 10px" onclick="goTo('config');setTimeout(()=>document.getElementById('cfgDashboardCard').scrollIntoView({behavior:'smooth'}),200)"><i class="ti ti-settings"></i>Configurar widgets</button>
-      </div>`
-    :"";
+  // Barra: rango + personalizar (todos) + configurar por rol (admin)
+  const configHint=`<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 4px;margin-bottom:14px;flex-wrap:wrap">
+      <div style="font-size:11px;color:var(--text-soft)">Rango: <strong style="color:var(--text)">${({"1mo":"último mes","3mo":"3 meses","6mo":"6 meses","12mo":"1 año","all":"todo"})[cfg.dashboard_range||"3mo"]}</strong>${cfg.dashboard_incl_historico==="true"||cfg.dashboard_incl_historico===true?" · incluye históricos":""}</div>
+      <div style="display:flex;gap:6px">
+        <button class="btn btn-ghost" style="font-size:11px;padding:5px 10px" onclick="openPersonalizarDash()"><i class="ti ti-adjustments"></i>Personalizar mi dashboard</button>
+        ${CU.rol==="admin"?`<button class="btn btn-ghost" style="font-size:11px;padding:5px 10px" onclick="goTo('config');setTimeout(()=>document.getElementById('cfgDashboardCard').scrollIntoView({behavior:'smooth'}),200)"><i class="ti ti-settings"></i>Configurar por rol</button>`:""}
+      </div>
+    </div>`;
   cont.innerHTML=configHint;
 
   // KPIs clickeables — todos cargan en paralelo
   document.getElementById("dashKpis").innerHTML=`
+    ${widgets.valorinv?`<div class="kpi clickable" id="kpiValorInv" onclick="openDashModal('valorinv')"><div class="kpi-label"><i class="ti ti-cash"></i> Valor del inventario</div><div class="kpi-val green" data-loading="…">…</div><div class="kpi-sub">stock × precio</div></div>`:""}
+    ${widgets.comprasmes?`<div class="kpi clickable" id="kpiComprasMes" onclick="openDashModal('comprasmes')"><div class="kpi-label"><i class="ti ti-shopping-cart"></i> Compras del mes</div><div class="kpi-val blue" data-loading="…">…</div><div class="kpi-sub">entradas a almacenes</div></div>`:""}
+    ${widgets.tendencia?`<div class="kpi clickable" id="kpiTendencia" onclick="openDashModal('tendencia')"><div class="kpi-label"><i class="ti ti-chart-line"></i> Consumo del mes</div><div class="kpi-val amber" data-loading="…">…</div><div class="kpi-sub">tendencia vs mes previo</div></div>`:""}
+    ${widgets.rotcli?`<div class="kpi clickable" id="kpiRotCli" onclick="openDashModal('rotcli')"><div class="kpi-label"><i class="ti ti-users"></i> Top cliente</div><div class="kpi-val violet" data-loading="…">…</div><div class="kpi-sub">rotación + clientes</div></div>`:""}
     ${widgets.opsmes?`<div class="kpi clickable" id="kpiOpsMes" onclick="openDashModal('opsmes')"><div class="kpi-label"><i class="ti ti-calendar"></i> OPs del mes</div><div class="kpi-val violet" data-loading="…">…</div><div class="kpi-sub">click para ver detalle</div></div>`:""}
     ${widgets.stockbajo?`<div class="kpi clickable" id="kpiStockBajo" onclick="openDashModal('stockbajo')"><div class="kpi-label"><i class="ti ti-alert-triangle"></i> Stock crítico</div><div class="kpi-val red" data-loading="…">…</div><div class="kpi-sub">productos bajo mínimo</div></div>`:""}
     ${widgets.consumos?`<div class="kpi clickable" id="kpiConsumos" onclick="openDashModal('consumos')"><div class="kpi-label"><i class="ti ti-clipboard-list"></i> Consumos por material</div><div class="kpi-val amber" data-loading="…">…</div><div class="kpi-sub">mm total · click para lista</div></div>`:""}
@@ -3593,6 +3623,10 @@ async function loadDashboard(){
 
   // Calcular y poblar KPIs en paralelo
   const tasks=[];
+  if(widgets.valorinv) tasks.push(calcValorInventario());
+  if(widgets.comprasmes) tasks.push(calcComprasMes());
+  if(widgets.tendencia) tasks.push(calcTendenciaConsumo());
+  if(widgets.rotcli) tasks.push(calcRotCli());
   if(widgets.opsmes) tasks.push(calcOpsMes());
   if(widgets.stockbajo) tasks.push(calcStockBajo());
   if(widgets.consumos) tasks.push(calcConsumosPorMaterial());
@@ -3806,6 +3840,143 @@ async function calcEficiencia(){
   document.querySelector("#kpiEficiencia .kpi-sub").textContent=`${tDev.toLocaleString()} de ${tEnv.toLocaleString()}mm`;
 }
 
+// Personalización del dashboard por usuario (guarda en perfiles.dashboard_config)
+function openPersonalizarDash(){
+  const roleCfg=getRoleWidgets(CU?.rol||"admin");
+  let userCfg={};try{const u=CU?.dashboard_config;userCfg=(u&&typeof u==="object")?u:(typeof u==="string"&&u.startsWith("{")?JSON.parse(u):{});}catch(e){}
+  const avail=Object.keys(DEFAULT_WIDGETS).filter(w=>roleCfg[w]!==false);
+  const cont=document.getElementById("pdashList");
+  cont.innerHTML=avail.length?avail.map(w=>{
+    const on=(w in userCfg)?!!userCfg[w]:true;
+    return `<label class="cli-check" style="display:flex;align-items:center;gap:8px;padding:6px 2px;cursor:pointer"><input type="checkbox" class="pdash-chk" data-w="${w}" ${on?"checked":""}> ${esc(WIDGET_LABELS[w]||w)}</label>`;
+  }).join(""):`<div class="no-data" style="padding:12px">Tu rol no tiene widgets disponibles.</div>`;
+  document.getElementById("modalPersDash").style.display="flex";
+}
+async function saveMyDash(){
+  const obj={};
+  document.querySelectorAll("#pdashList .pdash-chk").forEach(c=>{obj[c.dataset.w]=c.checked;});
+  setBtnLoading("btnSavePdash",true,"Guardando...");
+  const {error}=await sb.from("perfiles").update({dashboard_config:obj}).eq("id",CU.id);
+  setBtnLoading("btnSavePdash",false);
+  if(error){toast("Error: "+error.message,"err");return;}
+  CU.dashboard_config=obj;
+  closeModal("modalPersDash");
+  toast("✓ Tu dashboard fue personalizado","ok");
+  loadDashboard();
+}
+
+// ── Helpers de los widgets nuevos ──
+function _tcambio(){return {eur:parseFloat(cfg.tipo_cambio_eur_pen)||3.8, usd:parseFloat(cfg.tipo_cambio_usd_pen)||3.78};}
+function _aPen(v,mon){v=Number(v)||0;const {eur,usd}=_tcambio();if(mon==="USD")return v*usd;if(mon==="EUR")return v*eur;return v;}
+function _sIni(){const d=new Date();d.setDate(1);return d.toISOString().slice(0,10);}
+
+async function calcValorInventario(){
+  const [merc,alm,tubos,inst]=await Promise.all([
+    sb.from("mercaderias").select("stock_actual,precio_unitario,moneda").eq("activo",true).limit(5000),
+    sb.from("alm_mecaniza_productos").select("stock_actual,precio_unitario,moneda").eq("activo",true).limit(5000),
+    sb.from("tubos").select("id,precio,moneda").limit(20000),
+    sb.from("tubo_instancias").select("tubo_id").eq("estado","disponible").limit(99999)
+  ]);
+  let vMerc=0,vAlm=0,vMp=0;
+  (merc.data||[]).forEach(p=>vMerc+=_aPen(p.precio_unitario,p.moneda)*(Number(p.stock_actual)||0));
+  (alm.data||[]).forEach(p=>vAlm+=_aPen(p.precio_unitario,p.moneda)*(Number(p.stock_actual)||0));
+  const disp={};(inst.data||[]).forEach(i=>disp[i.tubo_id]=(disp[i.tubo_id]||0)+1);
+  (tubos.data||[]).forEach(t=>vMp+=_aPen(t.precio,t.moneda)*(disp[t.id]||0));
+  const total=vMerc+vAlm+vMp;
+  const el=document.querySelector("#kpiValorInv .kpi-val");if(el)el.textContent="S/ "+Math.round(total).toLocaleString();
+  const s=document.querySelector("#kpiValorInv .kpi-sub");if(s)s.textContent=`Almacenes S/${Math.round(vMerc+vAlm).toLocaleString()} · MP S/${Math.round(vMp).toLocaleString()}`;
+}
+async function calcComprasMes(){
+  const ini=_sIni();
+  const [m1,m2]=await Promise.all([
+    sb.from("mercaderia_movimientos").select("cantidad,precio_unitario,moneda,proveedor").eq("tipo","entrada").gte("fecha",ini).limit(50000),
+    sb.from("alm_mecaniza_movimientos").select("cantidad,precio_unitario,moneda,proveedor").eq("tipo","entrada").gte("fecha",ini).limit(50000),
+  ]);
+  const all=[...(m1.data||[]),...(m2.data||[])];
+  let total=0;const porProv={};
+  all.forEach(r=>{const v=_aPen(r.precio_unitario,r.moneda)*(Number(r.cantidad)||0);total+=v;const p=(r.proveedor||"").trim()||"(sin prov.)";porProv[p]=(porProv[p]||0)+v;});
+  const top=Object.entries(porProv).sort((a,b)=>b[1]-a[1])[0];
+  const el=document.querySelector("#kpiComprasMes .kpi-val");if(el)el.textContent="S/ "+Math.round(total).toLocaleString();
+  const s=document.querySelector("#kpiComprasMes .kpi-sub");if(s)s.textContent=all.length?`${all.length} compra(s)${top?` · top: ${top[0]}`:""}`:"sin compras este mes";
+}
+async function calcTendenciaConsumo(){
+  const since=new Date();since.setMonth(since.getMonth()-6);
+  const {data}=await sb.from("consumos_ops").select("fecha,consumido").eq("es_historico",false).gte("fecha",since.toISOString().slice(0,10)).limit(50000);
+  const byM={};(data||[]).forEach(c=>{const m=String(c.fecha||"").slice(0,7);if(m)byM[m]=(byM[m]||0)+(Number(c.consumido)||0);});
+  const keys=Object.keys(byM).sort();
+  const ult=keys.length?byM[keys[keys.length-1]]:0, prev=keys.length>1?byM[keys[keys.length-2]]:0;
+  const pct=prev>0?Math.round((ult-prev)/prev*100):0;
+  const el=document.querySelector("#kpiTendencia .kpi-val");if(el)el.textContent=Math.round(ult).toLocaleString()+"mm";
+  const s=document.querySelector("#kpiTendencia .kpi-sub");if(s)s.textContent=keys.length>1?`${pct>=0?"▲":"▼"} ${Math.abs(pct)}% vs mes previo`:"consumo del mes";
+}
+async function calcRotCli(){
+  const since=getDashRangeStart();
+  let q=sb.from("consumos_ops").select("cliente_nombre,consumido").eq("es_historico",false).limit(50000);
+  if(since) q=q.gte("fecha",since);
+  const {data}=await q;
+  const porCli={};(data||[]).forEach(c=>{const cl=(c.cliente_nombre||"").trim();if(cl)porCli[cl]=(porCli[cl]||0)+(Number(c.consumido)||0);});
+  const top=Object.entries(porCli).sort((a,b)=>b[1]-a[1])[0];
+  const el=document.querySelector("#kpiRotCli .kpi-val");if(el)el.textContent=top?(top[0].length>15?top[0].slice(0,15)+"…":top[0]):"—";
+  const s=document.querySelector("#kpiRotCli .kpi-sub");if(s)s.textContent=top?`${Object.keys(porCli).length} clientes · click para rotación`:"sin datos de clientes";
+}
+
+// Detalles (modales) de los widgets nuevos
+async function dashDetalleValorInv(){
+  const [merc,alm,tubos,inst]=await Promise.all([
+    sb.from("mercaderias").select("nombre,stock_actual,precio_unitario,moneda").eq("activo",true).limit(5000),
+    sb.from("alm_mecaniza_productos").select("nombre,stock_actual,precio_unitario,moneda").eq("activo",true).limit(5000),
+    sb.from("tubos").select("id,descripcion,precio,moneda").limit(20000),
+    sb.from("tubo_instancias").select("tubo_id").eq("estado","disponible").limit(99999)
+  ]);
+  const items=[];
+  (merc.data||[]).forEach(p=>{const v=_aPen(p.precio_unitario,p.moneda)*(Number(p.stock_actual)||0);if(v>0)items.push({label:`${p.nombre} (Custom)`,val:v});});
+  (alm.data||[]).forEach(p=>{const v=_aPen(p.precio_unitario,p.moneda)*(Number(p.stock_actual)||0);if(v>0)items.push({label:`${p.nombre} (Mecaniza)`,val:v});});
+  const disp={};(inst.data||[]).forEach(i=>disp[i.tubo_id]=(disp[i.tubo_id]||0)+1);
+  (tubos.data||[]).forEach(t=>{const v=_aPen(t.precio,t.moneda)*(disp[t.id]||0);if(v>0)items.push({label:`${t.descripcion} (MP)`,val:v});});
+  items.sort((a,b)=>b.val-a.val);
+  const tot=items.reduce((a,i)=>a+i.val,0);
+  if(!items.length) return `<div class="no-data" style="padding:20px">Aún no hay precios cargados en tus productos. Agrega precios para ver el valor del inventario.</div>`;
+  const items2=items.slice(0,20).map(i=>({label:i.label,val:i.val,display:"S/ "+Math.round(i.val).toLocaleString()}));
+  return `<div style="font-size:12px;color:var(--text-soft);margin-bottom:10px">Valor total: <strong style="color:#4caf8c">S/ ${Math.round(tot).toLocaleString()}</strong> · top 20 por valor</div>`+barChart(items2,null,()=>"#4caf8c");
+}
+async function dashDetalleComprasMes(){
+  const ini=_sIni();
+  const [m1,m2]=await Promise.all([
+    sb.from("mercaderia_movimientos").select("cantidad,precio_unitario,moneda,proveedor").eq("tipo","entrada").gte("fecha",ini).limit(50000),
+    sb.from("alm_mecaniza_movimientos").select("cantidad,precio_unitario,moneda,proveedor").eq("tipo","entrada").gte("fecha",ini).limit(50000),
+  ]);
+  const all=[...(m1.data||[]),...(m2.data||[])];
+  if(!all.length) return `<div class="no-data" style="padding:20px">Sin compras registradas este mes.</div>`;
+  const porProv={};let tot=0;
+  all.forEach(r=>{const v=_aPen(r.precio_unitario,r.moneda)*(Number(r.cantidad)||0);tot+=v;const p=(r.proveedor||"").trim()||"(sin prov.)";porProv[p]=(porProv[p]||0)+v;});
+  const items=Object.entries(porProv).map(([k,v])=>({label:k,val:v,display:"S/ "+Math.round(v).toLocaleString()})).sort((a,b)=>b.val-a.val);
+  return `<div style="font-size:12px;color:var(--text-soft);margin-bottom:10px">Total comprado este mes: <strong style="color:#5b9bd5">S/ ${Math.round(tot).toLocaleString()}</strong> · ${all.length} compra(s) · por proveedor</div>`+barChart(items,null,()=>"#5b9bd5");
+}
+async function dashDetalleTendencia(){
+  const since=new Date();since.setMonth(since.getMonth()-11);
+  const {data}=await sb.from("consumos_ops").select("fecha,consumido").eq("es_historico",false).gte("fecha",since.toISOString().slice(0,10)).limit(50000);
+  const byM={};(data||[]).forEach(c=>{const m=String(c.fecha||"").slice(0,7);if(m)byM[m]=(byM[m]||0)+(Number(c.consumido)||0);});
+  const keys=Object.keys(byM).sort();
+  if(!keys.length) return `<div class="no-data" style="padding:20px">Sin consumos en los últimos meses.</div>`;
+  const items=keys.map(k=>({label:k,val:byM[k],display:Math.round(byM[k]).toLocaleString()+"mm"}));
+  return `<div style="font-size:12px;color:var(--text-soft);margin-bottom:10px">Consumo (mm) por mes · últimos ${keys.length} meses</div>`+barChart(items,null,()=>"#f5a623");
+}
+async function dashDetalleRotCli(){
+  const since=getDashRangeStart();
+  let q=sb.from("consumos_ops").select("cliente_nombre,consumido,material").eq("es_historico",false).limit(50000);
+  if(since) q=q.gte("fecha",since);
+  const {data}=await q;
+  const porCli={},porMat={};
+  (data||[]).forEach(c=>{const cl=(c.cliente_nombre||"").trim();if(cl)porCli[cl]=(porCli[cl]||0)+(Number(c.consumido)||0);const mt=(c.material||"").trim();if(mt)porMat[mt]=(porMat[mt]||0)+(Number(c.consumido)||0);});
+  const cli=Object.entries(porCli).map(([k,v])=>({label:k,val:v,display:Math.round(v).toLocaleString()+"mm"})).sort((a,b)=>b.val-a.val).slice(0,15);
+  const mats=Object.values(porMat);
+  const conMov=mats.filter(v=>v>0).length, sinMov=mats.filter(v=>v<=0).length;
+  let html=`<div style="font-size:12px;color:var(--text-soft);margin-bottom:8px">Materiales con consumo: <strong style="color:#4caf8c">${conMov}</strong> · sin consumo: <strong style="color:#e85a5a">${sinMov}</strong></div>`;
+  html+=`<div style="font-size:11px;color:#7a7d99;text-transform:uppercase;margin:10px 0 6px">Top clientes por consumo</div>`;
+  html+=cli.length?barChart(cli,null,()=>"#a78bfa"):`<div class="no-data">Sin clientes con consumo</div>`;
+  return html;
+}
+
 // ── MODAL DETALLE DEL DASHBOARD ──
 async function openDashModal(tipo){
   const titles={
@@ -3813,7 +3984,11 @@ async function openDashModal(tipo){
     stockbajo:"Productos con stock crítico",
     consumos:"Consumos por material",
     merma:"Mermas registradas",
-    eficiencia:"Eficiencia de uso de material"
+    eficiencia:"Eficiencia de uso de material",
+    valorinv:"Valor del inventario",
+    comprasmes:"Compras del mes",
+    tendencia:"Tendencia de consumo",
+    rotcli:"Rotación y top clientes"
   };
   let html=`<div id="dashModalOverlay" class="modal-overlay" onclick="if(event.target===this)document.getElementById('dashModalOverlay').remove()">
     <div class="modal" style="max-width:780px;max-height:88vh">
@@ -3832,6 +4007,10 @@ async function openDashModal(tipo){
   else if(tipo==="consumos") body.innerHTML=await dashDetalleConsumos();
   else if(tipo==="merma") body.innerHTML=await dashDetalleMerma();
   else if(tipo==="eficiencia") body.innerHTML=await dashDetalleEficiencia();
+  else if(tipo==="valorinv") body.innerHTML=await dashDetalleValorInv();
+  else if(tipo==="comprasmes") body.innerHTML=await dashDetalleComprasMes();
+  else if(tipo==="tendencia") body.innerHTML=await dashDetalleTendencia();
+  else if(tipo==="rotcli") body.innerHTML=await dashDetalleRotCli();
 }
 
 async function dashDetalleOps(){
@@ -4158,16 +4337,37 @@ async function widgetOpsMes(){
   </div>`;
 }
 
-// ── CONFIG dashboard helpers ──
-function saveDashboardConfig(){
-  const widgets={
-    opsmes:document.getElementById("cfgW_opsmes")?.checked||false,
-    stockbajo:document.getElementById("cfgW_stockbajo")?.checked||false,
-    consumos:document.getElementById("cfgW_consumos")?.checked||false,
-    merma:document.getElementById("cfgW_merma")?.checked||false,
-    eficiencia:document.getElementById("cfgW_eficiencia")?.checked||false,
-  };
-  saveConfig("dashboard_widgets",JSON.stringify(widgets));
+// ── CONFIG dashboard por rol (admin) ──
+function getDashRolesObj(){
+  try{const raw=cfg.dashboard_widgets_roles;if(typeof raw==="string"&&raw.startsWith("{"))return JSON.parse(raw);if(raw&&typeof raw==="object")return raw;}catch(e){}
+  return {};
+}
+function poblarDashRolSelect(){
+  const sel=document.getElementById("cfgDashRol");if(!sel)return;
+  const roles=getRolesDisponibles?getRolesDisponibles():["admin","gerente","supervisor","almacen","produccion","vendedor"];
+  const prev=sel.value;
+  sel.innerHTML=roles.map(r=>`<option value="${escAttr(r)}">${r.charAt(0).toUpperCase()+r.slice(1)}</option>`).join("");
+  if(prev&&roles.includes(prev))sel.value=prev;
+  renderDashRolWidgets();
+}
+function renderDashRolWidgets(){
+  const sel=document.getElementById("cfgDashRol");const cont=document.getElementById("cfgDashRolWidgets");
+  if(!sel||!cont)return;
+  const rol=sel.value;
+  const obj=getDashRolesObj();
+  const rolCfg={...DEFAULT_WIDGETS,...(obj[rol]||{})};
+  cont.innerHTML=Object.keys(DEFAULT_WIDGETS).map(w=>`<label class="cli-check"><input type="checkbox" class="dashrol-chk" data-w="${w}" ${rolCfg[w]!==false?"checked":""}> ${esc(WIDGET_LABELS[w]||w)}</label>`).join("");
+}
+async function saveDashboardConfig(){
+  const sel=document.getElementById("cfgDashRol");if(!sel)return;
+  const rol=sel.value;
+  const obj=getDashRolesObj();
+  const rolCfg={};
+  document.querySelectorAll("#cfgDashRolWidgets .dashrol-chk").forEach(c=>{rolCfg[c.dataset.w]=c.checked;});
+  obj[rol]=rolCfg;
+  if(await saveConfigRaw("dashboard_widgets_roles",JSON.stringify(obj))){
+    toast(`✓ Widgets del rol "${rol}" guardados`,"ok");
+  }
 }
 function toggleConfig(clave,togId){
   const tog=document.getElementById(togId);
