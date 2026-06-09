@@ -8852,7 +8852,7 @@ async function loadUsuarios(){
         <div style="font-size:11px;color:#7a7d99;margin-top:2px">
           <span class="rol-badge" style="background:${color}22;color:${color};border:.5px solid ${color}44">${esc(u.rol)}</span>
           ${u.must_change_password?'<span style="color:#f5a623;margin-left:6px"><i class="ti ti-key"></i> debe cambiar pw</span>':''}
-          ${u.ultimo_acceso?`<span style="margin-left:6px">Último: ${new Date(u.ultimo_acceso).toLocaleDateString("es-PE")}</span>`:'<span style="margin-left:6px">Nunca ingresó</span>'}
+          ${u.ultimo_acceso?`<span style="margin-left:6px">Último: ${new Date(u.ultimo_acceso).toLocaleString("es-PE",{dateStyle:"short",timeStyle:"short"})}</span>`:'<span style="margin-left:6px">Nunca ingresó</span>'}
         </div>
       </div>
       <div class="toggle ${u.activo?"on":""}" onclick="toggleUsuarioActivo('${u.id}',${!u.activo})" title="${u.activo?"Activo":"Inactivo"}"></div>
