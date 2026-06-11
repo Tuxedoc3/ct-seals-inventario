@@ -582,6 +582,7 @@ tbody tr:hover td{transition:background .12s ease}
           <button class="btn btn-ghost" id="btnNuevaCatMerc" onclick="openCategoriaModal('merc')"><i class="ti ti-category-plus"></i>+ Categoría</button>
           <button class="btn btn-ghost" onclick="openRepMov('merc')"><i class="ti ti-report"></i>Reporte mov.</button>
           <button class="btn btn-ghost" id="btnConteoMerc" onclick="openConteoAlm('merc')"><i class="ti ti-clipboard-check"></i>Conteo físico</button>
+          <button class="btn btn-ghost" id="btnRotMerc" onclick="openRotProd('merc')"><i class="ti ti-arrows-shuffle"></i>Rotación</button>
           <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:#94a3b8;cursor:pointer;white-space:nowrap;margin-left:auto">
             <input type="checkbox" id="mercVerAgotados" onchange="renderMercaderias()" style="cursor:pointer">
             Mostrar agotados
@@ -594,9 +595,9 @@ tbody tr:hover td{transition:background .12s ease}
             <thead><tr>
               <th>Código</th><th>Nombre</th><th>Categoría</th>
               <th>Medidas</th><th style="text-align:right">Stock</th><th style="text-align:right">Precio</th>
-              <th>Ubicación</th><th>Acciones</th>
+              <th>Acciones</th>
             </tr></thead>
-            <tbody id="merc-tbody"><tr><td colspan="8" class="no-data"><div class="loading"><div class="spinner"></div>Cargando...</div></td></tr></tbody>
+            <tbody id="merc-tbody"><tr><td colspan="7" class="no-data"><div class="loading"><div class="spinner"></div>Cargando...</div></td></tr></tbody>
           </table>
         </div>
         <div class="tbl-footer" id="mercFooter"></div>
@@ -633,7 +634,8 @@ tbody tr:hover td{transition:background .12s ease}
           <button class="btn btn-red" id="btnNuevoAlm" onclick="openModalAlm()"><i class="ti ti-plus"></i>Nuevo producto</button>
           <button class="btn btn-ghost" id="btnNuevaCatAlm" onclick="openCategoriaModal('merc')"><i class="ti ti-category-plus"></i>+ Categoría</button>
           <button class="btn btn-ghost" onclick="openRepMov('alm')"><i class="ti ti-report"></i>Reporte mov.</button>
-          <button class="btn btn-ghost" onclick="openConteoAlm('alm')"><i class="ti ti-clipboard-check"></i>Conteo físico</button>
+          <button class="btn btn-ghost" id="btnConteoAlm" onclick="openConteoAlm('alm')"><i class="ti ti-clipboard-check"></i>Conteo físico</button>
+          <button class="btn btn-ghost" id="btnRotAlm" onclick="openRotProd('alm')"><i class="ti ti-arrows-shuffle"></i>Rotación</button>
           <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:#94a3b8;cursor:pointer;white-space:nowrap;margin-left:auto">
             <input type="checkbox" id="almVerAgotados" onchange="renderAlmMecaniza()" style="cursor:pointer">
             Mostrar agotados
@@ -646,9 +648,9 @@ tbody tr:hover td{transition:background .12s ease}
             <thead><tr>
               <th>Código</th><th>Nombre</th><th>Categoría</th><th>Medidas</th>
               <th style="text-align:right">Stock</th><th style="text-align:right">Precio</th>
-              <th>Ubicación</th><th>Acciones</th>
+              <th>Acciones</th>
             </tr></thead>
-            <tbody id="alm-tbody"><tr><td colspan="8" class="no-data"><div class="loading"><div class="spinner"></div>Cargando...</div></td></tr></tbody>
+            <tbody id="alm-tbody"><tr><td colspan="7" class="no-data"><div class="loading"><div class="spinner"></div>Cargando...</div></td></tr></tbody>
           </table>
         </div>
         <div class="tbl-footer" id="almFooter"></div>
@@ -677,6 +679,7 @@ tbody tr:hover td{transition:background .12s ease}
           <button class="btn btn-ghost" id="btnNuevaCatSum" onclick="openCategoriaModal('sum')"><i class="ti ti-category-plus"></i>+ Categoría</button>
           <button class="btn btn-ghost" onclick="openRepMov('sum')"><i class="ti ti-report"></i>Reporte mov.</button>
           <button class="btn btn-ghost" id="btnConteoSum" onclick="openConteoAlm('sum')"><i class="ti ti-clipboard-check"></i>Conteo físico</button>
+          <button class="btn btn-ghost" id="btnRotSum" onclick="openRotProd('sum')"><i class="ti ti-arrows-shuffle"></i>Rotación</button>
           <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:#94a3b8;cursor:pointer;white-space:nowrap;margin-left:auto">
             <input type="checkbox" id="sumVerAgotados" onchange="renderSuministros()" style="cursor:pointer">
             Mostrar agotados
@@ -687,11 +690,11 @@ tbody tr:hover td{transition:background .12s ease}
         <div class="tbl-wrap" style="max-height:none">
           <table>
             <thead><tr>
-              <th>Código</th><th>Nombre</th><th>Categoría</th><th>Medidas</th>
+              <th>Código</th><th>Nombre</th><th>Categoría</th>
               <th style="text-align:right">Stock</th><th style="text-align:right">Precio</th>
-              <th>Ubicación</th><th>Acciones</th>
+              <th>Acciones</th>
             </tr></thead>
-            <tbody id="sum-tbody"><tr><td colspan="8" class="no-data"><div class="loading"><div class="spinner"></div>Cargando...</div></td></tr></tbody>
+            <tbody id="sum-tbody"><tr><td colspan="6" class="no-data"><div class="loading"><div class="spinner"></div>Cargando...</div></td></tr></tbody>
           </table>
         </div>
         <div class="tbl-footer" id="sumFooter"></div>
@@ -1628,25 +1631,17 @@ tbody tr:hover td{transition:background .12s ease}
     </div>
     <div class="form-group"><label class="form-label">Nombre <span class="req">*</span></label><input class="form-input" id="s_nombre"></div>
     <div class="form-group"><label class="form-label">Descripción</label><input class="form-input" id="s_descripcion"></div>
-    <div class="form-row-3">
+    <div class="form-row">
       <div class="form-group"><label class="form-label">Categoría</label><select class="form-input" id="s_categoria"></select></div>
-      <div class="form-group"><label class="form-label">Material</label><input class="form-input" id="s_material" placeholder="Acero, plástico..."></div>
-      <div class="form-group"><label class="form-label">Dureza</label><input class="form-input" id="s_dureza"></div>
-    </div>
-    <div class="form-row-3">
-      <div class="form-group"><label class="form-label">DI (mm)</label><input class="form-input" id="s_di" type="number" step="0.01"></div>
-      <div class="form-group"><label class="form-label">DE (mm)</label><input class="form-input" id="s_de" type="number" step="0.01"></div>
-      <div class="form-group"><label class="form-label">Grosor (mm)</label><input class="form-input" id="s_grosor" type="number" step="0.01"></div>
-    </div>
-    <div class="form-row-3">
       <div class="form-group"><label class="form-label">Marca</label><input class="form-input" id="s_marca"></div>
+    </div>
+    <div class="form-row">
       <div class="form-group"><label class="form-label">Stock actual</label><input class="form-input" id="s_stock_actual" type="number" min="0" value="0"></div>
       <div class="form-group"><label class="form-label">Stock mínimo</label><input class="form-input" id="s_stock_minimo" type="number" min="0" value="0"></div>
     </div>
-    <div class="form-row-3">
+    <div class="form-row">
       <div class="form-group"><label class="form-label">Precio</label><input class="form-input" id="s_precio" type="number" step="0.01"></div>
       <div class="form-group"><label class="form-label">Moneda</label><select class="form-input" id="s_moneda"><option value="PEN">PEN S/</option><option value="USD">USD $</option><option value="EUR">EUR €</option></select></div>
-      <div class="form-group"><label class="form-label">Ubicación</label><input class="form-input" id="s_ubicacion"></div>
     </div>
     <div class="form-group"><label class="form-label">Proveedor</label><input class="form-input" id="s_proveedor"></div>
     <div class="form-group"><label class="form-label">Notas</label><input class="form-input" id="s_notas"></div>
@@ -1814,10 +1809,7 @@ tbody tr:hover td{transition:background .12s ease}
   <div class="modal" style="max-width:480px">
     <div class="modal-title"><i class="ti ti-clipboard-check" style="color:#5b9bd5"></i>Hoja de conteo físico</div>
     <div style="font-size:11px;color:var(--text-soft);margin-bottom:10px">Genera una hoja A4 para imprimir y anotar a mano tu inventario. Incluye <strong>solo materiales con stock</strong> (tubos enteros + retazos).</div>
-    <div class="form-row">
-      <div class="form-group"><label class="form-label">Tipo de material</label><select class="form-input" id="cf_tipo"><option value="">Todos</option></select></div>
-      <div class="form-group"><label class="form-label">Familia</label><select class="form-input" id="cf_familia"><option value="">Todas</option></select></div>
-    </div>
+    <div class="form-group"><label class="form-label">Tipo de material</label><select class="form-input" id="cf_tipo"><option value="">Todos</option></select></div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modalConteo')">Cancelar</button>
       <button class="btn btn-red" id="btnGenConteo" onclick="generarConteoFisico()"><i class="ti ti-printer"></i>Generar hoja</button>
@@ -1839,6 +1831,73 @@ tbody tr:hover td{transition:background .12s ease}
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modalConteoAlm')">Cancelar</button>
       <button class="btn btn-red" id="btnGenConteoAlm" onclick="generarConteoAlm()"><i class="ti ti-printer"></i>Generar hoja</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Rotación de productos (Custom / Mecaniza / Suministros) -->
+<div class="modal-overlay" id="modalRotProd" style="display:none" onclick="if(event.target===this)closeModal('modalRotProd')">
+  <div class="modal" style="max-width:680px">
+    <div class="modal-title"><i class="ti ti-arrows-shuffle" style="color:#5b9bd5"></i><span id="modalRotProdTitle">Rotación de productos</span></div>
+    <div style="font-size:11px;color:var(--text-soft);margin-bottom:10px">Clasifica los productos por cuántas unidades <strong>salieron</strong> en el período. La clasificación es <strong>automática por ranking</strong>: el tercio que más se movió = <strong>alta rotación</strong>, el del medio = <strong>media</strong>, el que menos = <strong>baja</strong>; sin salidas = <strong>sin rotación</strong>.</div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Desde</label><input class="form-input" id="rpDesde" type="date"></div>
+      <div class="form-group"><label class="form-label">Hasta</label><input class="form-input" id="rpHasta" type="date"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Categoría</label>
+        <select class="form-input" id="rpCat"><option value="">Todas las categorías</option></select>
+      </div>
+      <div class="form-group"><label class="form-label">Mostrar</label>
+        <select class="form-input" id="rpClase" onchange="renderRotProd()">
+          <option value="">Todos</option>
+          <option value="sin">Sin rotación</option>
+          <option value="baja">Baja rotación</option>
+          <option value="media">Media rotación</option>
+          <option value="alta">Alta rotación</option>
+        </select>
+      </div>
+    </div>
+    <div style="display:flex;gap:6px;margin-bottom:8px">
+      <button class="btn btn-red" id="btnCalcRotProd" onclick="calcularRotProd()"><i class="ti ti-calculator"></i>Calcular</button>
+      <button class="btn btn-ghost" id="btnPrintRotProd" onclick="imprimirRotProd()" style="display:none"><i class="ti ti-printer"></i>Reporte</button>
+    </div>
+    <div id="rpInfo" style="font-size:11px;color:var(--text-soft);margin:4px 0"></div>
+    <div id="rpRotList" style="max-height:380px;overflow:auto"></div>
+    <input type="hidden" id="rp_scope">
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modalRotProd')">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Reporte de movimientos de Materia Prima (con balance de compras) -->
+<div class="modal-overlay" id="modalRepMovTubos" style="display:none" onclick="if(event.target===this)closeModalSafe('modalRepMovTubos')">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-title"><i class="ti ti-report" style="color:#5b9bd5"></i><span id="rmtTitle">Reporte de movimientos — Materia Prima</span></div>
+    <div style="font-size:11px;color:var(--text-soft);margin-bottom:10px">Lista los movimientos del período. Para las <strong>entradas</strong> muestra el precio y el total, con el <strong>total gastado</strong> (balance de compras) — útil para el material nacional.</div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Desde</label><input class="form-input" id="rmt_desde" type="date"></div>
+      <div class="form-group"><label class="form-label">Hasta</label><input class="form-input" id="rmt_hasta" type="date"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Tipo de movimiento</label>
+        <select class="form-input" id="rmt_tipo">
+          <option value="">Todos</option>
+          <option value="entrada">Entradas (compras)</option>
+          <option value="consumo">Consumos</option>
+          <option value="salida">Salidas</option>
+          <option value="merma">Mermas</option>
+          <option value="ajuste">Ajustes</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">Tipo de material</label>
+        <select class="form-input" id="rmt_mat"><option value="">Todos</option></select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modalRepMovTubos')">Cancelar</button>
+      <button class="btn btn-red" id="btnGenRepMovTubos" onclick="generarRepMovTubos()"><i class="ti ti-printer"></i>Generar reporte</button>
     </div>
   </div>
 </div>
@@ -2051,10 +2110,12 @@ tbody tr:hover td{transition:background .12s ease}
       </select>
     </div>
     <div class="form-group">
-      <label class="form-label">Modo de ingreso</label>
-      <div class="cli-checks">
-        <label class="cli-check"><input type="checkbox" id="t_manual" onchange="toggleTuboManual()"> Manual (Nacionales sin código)</label>
-      </div>
+      <label class="form-label">Origen <span class="req">*</span></label>
+      <select class="form-input" id="t_origen" onchange="toggleTuboOrigen()">
+        <option value="Nacional">Nacional</option>
+        <option value="Importado">Importado</option>
+      </select>
+      <div class="form-hint" id="t_origen_hint">Nacional: puedes escribir el material a mano y registrar su precio de compra.</div>
     </div>
     <div id="t_manual_fields">
       <div class="form-group">
@@ -2073,12 +2134,15 @@ tbody tr:hover td{transition:background .12s ease}
       <button class="btn btn-ghost" style="margin-top:6px;padding:4px 10px;font-size:11px" onclick="addTuboLote()"><i class="ti ti-plus"></i>Añadir otra medida</button>
       <div style="font-size:10px;color:var(--text-faint);margin-top:4px">Cada fila: <strong>Altura (mm) × Cantidad</strong>. Ej.: 150×3 (enteros) y 130×1, 90×2 (retazos). Solo números enteros mayores a 0.</div>
     </div>
-    <div class="form-group">
-      <label class="form-label">Origen <span class="req">*</span></label>
-      <select class="form-input" id="t_origen">
-        <option value="Nacional">Nacional</option>
-        <option value="Importado">Importado</option>
-      </select>
+    <div class="form-group" id="t_precio_group" style="display:none">
+      <label class="form-label">Precio unitario <span style="color:var(--text-faint);font-weight:normal;font-size:10px">(opcional · por tubo)</span></label>
+      <div style="display:flex;gap:6px">
+        <input class="form-input" id="t_precio" type="number" step="0.01" min="0" placeholder="Ej: 25.50" style="flex:1">
+        <select class="form-input" id="t_moneda" style="width:96px">
+          <option value="PEN">S/ PEN</option><option value="USD">$ USD</option><option value="EUR">€ EUR</option>
+        </select>
+      </div>
+      <div style="font-size:10px;color:var(--text-faint);margin-top:4px">Se guarda en el historial de compras y actualiza el precio del material.</div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modalTubo')">Cancelar</button>
@@ -5040,15 +5104,15 @@ async function generarRepMov(){
     const filtered=movs.filter(m=>{const p=prodMap[m[fk]];if(cat&&(!p||p.categoria!==cat))return false;return true;});
     if(!filtered.length){setBtnLoading("btnGenRepMov",false);toast("Sin movimientos con esos filtros","err");return;}
     const aoa=[["Fecha","Código","Producto","Categoría","Tipo","Cantidad","Precio","Moneda","Proveedor/Cliente","Cotización","Motivo","Usuario"]];
-    let tEnt=0,tSal=0;
+    let tEnt=0,tSal=0,gastadoPen=0;
     filtered.forEach(m=>{
       const p=prodMap[m[fk]]||{};
       const esEnt=m.tipo==="entrada"||m.tipo==="transferencia_in";
-      if(esEnt)tEnt+=Number(m.cantidad)||0; else tSal+=Number(m.cantidad)||0;
+      if(esEnt){tEnt+=Number(m.cantidad)||0; if(m.precio_unitario!=null) gastadoPen+=_aPen(m.precio_unitario*(Number(m.cantidad)||0),m.moneda||"PEN");} else tSal+=Number(m.cantidad)||0;
       aoa.push([new Date(m.fecha).toLocaleString("es-PE"),p.codigo||"",p.nombre||"",_d.catLabel(p.categoria)||"",m.tipo,(esEnt?"+":"-")+m.cantidad,m.precio_unitario??"",m.moneda||"",m.proveedor||m.cliente_nombre||"",m.op_numero||"",m.motivo||"",umap[m.usuario_id]||""]);
     });
     const nombreAlm=_d.nombre;
-    const resumen=`<div style="display:flex;gap:14px;margin-bottom:14px;font-size:13px"><span style="color:#1e8449">Entradas: <b>+${tEnt}</b></span><span style="color:#b9770e">Salidas: <b>-${tSal}</b></span><span>Movimientos: <b>${filtered.length}</b></span></div>`;
+    const resumen=`<div style="display:flex;gap:14px;margin-bottom:14px;font-size:13px;flex-wrap:wrap"><span style="color:#1e8449">Entradas: <b>+${tEnt}</b></span><span style="color:#b9770e">Salidas: <b>-${tSal}</b></span><span>Movimientos: <b>${filtered.length}</b></span><span style="color:#1e8449">Total comprado: <b>S/ ${Math.round(gastadoPen).toLocaleString()}</b></span></div>`;
     const sub=`${nombreAlm}${cat?` · ${_d.catLabel(cat)}`:""}${(desde||hasta)?` · ${desde||"inicio"} → ${hasta||"hoy"}`:""}`;
     setBtnLoading("btnGenRepMov",false);
     closeModal("modalRepMov");
@@ -5188,11 +5252,12 @@ async function loadTubos(forceReload=false){
   const cacheBadge=cacheLbl?`<span style="font-size:10px;color:var(--text-faint);margin-left:6px">📦 ${cacheLbl}</span>`:"";
   const btnExport=perm.exportar?`<button class="btn btn-ghost" onclick="openConteoFisico()"><i class="ti ti-clipboard-check"></i>Conteo físico</button>`:"";
   const btnMuerto=""; // "Sin movimiento" retirado: cubierto por "Sin rotación" en Rotación de materiales
+  const btnRepMov=perm.verMovimientos?`<button class="btn btn-ghost" onclick="openRepMovTubos()"><i class="ti ti-report"></i>Reporte mov.</button>`:"";
   const btnMovs=perm.verMovimientos?`<button class="btn btn-ghost" onclick="openExportMovs()"><i class="ti ti-arrows-shuffle"></i>Rotación de materiales</button>`:"";
   const btnsCrear=userCanCRUD("crear","Tubos")
     ?`<button class="btn btn-red" onclick="openModalMaterial()"><i class="ti ti-plus"></i>Nuevo material</button>
       <button class="btn btn-ghost" onclick="openCategoriaModal('mp')"><i class="ti ti-settings-cog"></i>Gestionar materiales</button>`:"";
-  actRow.innerHTML=`${btnsCrear}${btnExport}${btnMuerto}${btnMovs}<button class="btn btn-ghost" onclick="loadTubos(true)"><i class="ti ti-refresh"></i>Actualizar</button>${cacheBadge}`;
+  actRow.innerHTML=`${btnsCrear}${btnExport}${btnRepMov}${btnMuerto}${btnMovs}<button class="btn btn-ghost" onclick="loadTubos(true)"><i class="ti ti-refresh"></i>Actualizar</button>${cacheBadge}`;
 
   wireTubosSearch();
 
@@ -5893,17 +5958,13 @@ function openConteoFisico(){
   const tipos=[...new Set((_tubosCache.tubos||[]).map(t=>_tipoMaterial(t)).filter(Boolean))].sort();
   const selT=document.getElementById("cf_tipo");
   if(selT) selT.innerHTML=`<option value="">Todos</option>`+tipos.map(t=>`<option value="${escAttr(t)}">${escAttr(t)}</option>`).join("");
-  const selF=document.getElementById("cf_familia");
-  if(selF) selF.innerHTML=`<option value="">Todas</option>`+getCategoriasMP().map(c=>`<option value="${escAttr(c.code)}">${escAttr(c.label)}</option>`).join("");
   document.getElementById("modalConteo").style.display="flex";
 }
 async function generarConteoFisico(){
   const sede=_tubosState.sede||"custom";
   const tipoSel=document.getElementById("cf_tipo").value;
-  const famSel=document.getElementById("cf_familia").value;
   let tubos=(_tubosCache.tubos||[]).filter(t=>(t.sede||"custom")===sede);
   if(tipoSel) tubos=tubos.filter(t=>_tipoMaterial(t)===tipoSel);
-  if(famSel) tubos=tubos.filter(t=>(t.familia||"")===famSel);
   if(!tubos.length){toast("No hay materiales con ese filtro","err");return;}
   setBtnLoading("btnGenConteo",true,"Generando...");
   // Traer instancias de esos tubos
@@ -5942,7 +6003,7 @@ async function generarConteoFisico(){
   setBtnLoading("btnGenConteo",false);
   if(!filas.length){toast("No hay materiales con stock para contar","err");return;}
   closeModal("modalConteo");
-  const sub=`Sede ${sede.toUpperCase()}${tipoSel?` · Tipo: ${tipoSel}`:""}${famSel?` · Familia: ${famLabelMP(famSel)}`:""} · ${filas.length} materiales con stock`;
+  const sub=`Sede ${sede.toUpperCase()}${tipoSel?` · Tipo: ${tipoSel}`:""} · ${filas.length} materiales con stock`;
   const rowsHtml=filas.map((f,i)=>`<tr>
     <td style="text-align:center;color:#666">${i+1}</td>
     <td><div>${esc(f.desc)}</div><div style="font-size:8px;color:#777">${esc(f.cod)||"—"}</div></td>
@@ -5985,6 +6046,7 @@ async function generarConteoFisico(){
 
 // ── Conteo físico para almacenes de productos (Custom / Mecaniza / Suministros) ──
 function openConteoAlm(almT){
+  if(!getEffectivePerms().exportar){toast("Sin permiso para exportar","err");return;}
   const _d=_almT(almT);
   document.getElementById("ca_scope").value=almT;
   document.getElementById("modalConteoAlmTitle").textContent=`Conteo físico — ${_d.nombre}`;
@@ -6053,6 +6115,145 @@ function generarConteoAlm(){
   const w=window.open("","_blank");
   if(!w){toast("El navegador bloqueó la ventana. Permite ventanas emergentes.","err");return;}
   w.document.write(html);w.document.close();
+}
+
+// ── Rotación de productos (Custom / Mecaniza / Suministros) ──
+// Suma las SALIDAS (unidades) de cada producto en el período y clasifica por
+// ranking en tercios (igual que Rotación de materiales en MP). El campo de
+// consumo se guarda como "mm" para reusar _clasificarRotacion.
+let _rotProdData=null; // [{nombre,codigo,cat,unidad,mm:unidades salidas}]
+function openRotProd(almT){
+  if(!getEffectivePerms().verMovimientos){toast("Sin permiso para ver movimientos","err");return;}
+  const _d=_almT(almT);
+  document.getElementById("rp_scope").value=almT;
+  document.getElementById("modalRotProdTitle").textContent=`Rotación de productos — ${_d.nombre}`;
+  ["rpDesde","rpHasta"].forEach(id=>document.getElementById(id).value="");
+  document.getElementById("rpClase").value="";
+  document.getElementById("rpInfo").innerHTML="";
+  document.getElementById("rpRotList").innerHTML="";
+  document.getElementById("btnPrintRotProd").style.display="none";
+  const cats=almT==="sum"?getCategoriasSum():getCategoriasMerc();
+  const selC=document.getElementById("rpCat");
+  if(selC) selC.innerHTML=`<option value="">Todas las categorías</option>`+cats.map(c=>`<option value="${escAttr(c.code)}">${escAttr(c.label)}</option>`).join("");
+  _rotProdData=null;
+  document.getElementById("modalRotProd").style.display="flex";
+}
+async function calcularRotProd(){
+  const almT=document.getElementById("rp_scope").value;
+  const _d=_almT(almT);
+  const desde=document.getElementById("rpDesde").value;
+  const hasta=document.getElementById("rpHasta").value;
+  setBtnLoading("btnCalcRotProd",true,"Calculando...");
+  document.getElementById("rpInfo").innerHTML=`<div class="loading"><div class="spinner"></div>Leyendo salidas...</div>`;
+  document.getElementById("rpRotList").innerHTML="";
+  // 1) Sumar salidas (unidades) por producto en el período
+  const agg={};
+  try{
+    for(let from=0;;from+=1000){
+      let q=sb.from(_d.mov).select(`${_d.fk},cantidad,tipo,fecha`).in("tipo",["salida","transferencia_out"]).range(from,from+999);
+      if(desde) q=q.gte("fecha",desde);
+      if(hasta) q=q.lte("fecha",hasta+"T23:59:59");
+      const {data,error}=await q;
+      if(error) throw new Error(error.message);
+      (data||[]).forEach(m=>{agg[m[_d.fk]]=(agg[m[_d.fk]]||0)+(parseFloat(m.cantidad)||0);});
+      if(!data||data.length<1000) break;
+    }
+  }catch(err){setBtnLoading("btnCalcRotProd",false);document.getElementById("rpInfo").innerHTML=`<span style="color:#e85a5a">Error: ${esc(err.message)}</span>`;return;}
+  // 2) Universo: todos los productos del almacén (incluye los de 0 movimiento)
+  const catSel=document.getElementById("rpCat")?.value||"";
+  _rotProdData=(_d.getCache()||[]).filter(p=>!catSel||p.categoria===catSel).map(p=>({
+    nombre:p.nombre||"",codigo:p.codigo||"",cat:p.categoria,unidad:p.unidad||"und",mm:agg[p.id]||0
+  })).sort((a,b)=>b.mm-a.mm);
+  setBtnLoading("btnCalcRotProd",false);
+  document.getElementById("btnPrintRotProd").style.display="inline-flex";
+  renderRotProd();
+}
+function renderRotProd(){
+  if(!_rotProdData) return;
+  const almT=document.getElementById("rp_scope").value;
+  const _d=_almT(almT);
+  const clase=document.getElementById("rpClase").value;
+  const cont=document.getElementById("rpRotList");
+  const claseDe=_clasificarRotacion(_rotProdData);
+  const conClase=_rotProdData.map(r=>({...r,clase:claseDe(r)}));
+  const cuenta={sin:0,baja:0,media:0,alta:0};
+  conClase.forEach(r=>cuenta[r.clase]++);
+  const visibles=clase?conClase.filter(r=>r.clase===clase):conClase;
+  document.getElementById("rpInfo").innerHTML=`<span style="color:var(--text)">${_rotProdData.length} productos</span> · <span style="color:var(--text-soft)">Sin: <strong style="color:#e85a5a">${cuenta.sin}</strong> · Baja: <strong style="color:#f5a623">${cuenta.baja}</strong> · Media: <strong style="color:#5b9bd5">${cuenta.media}</strong> · Alta: <strong style="color:#4caf8c">${cuenta.alta}</strong></span>`;
+  if(!visibles.length){cont.innerHTML=`<div class="no-data" style="padding:14px;font-size:12px">Sin productos en esta clasificación.</div>`;return;}
+  const badge=c=>{const m={sin:["#2e1a1a","#e85a5a","SIN ROTACIÓN"],baja:["#2e2616","#f5a623","BAJA"],media:["#0f1e2e","#5b9bd5","MEDIA"],alta:["#13241a","#4caf8c","ALTA"]};const[bg,fg,tx]=m[c];return `<span style="background:${bg};color:${fg};font-size:9px;padding:1px 6px;border-radius:8px;white-space:nowrap">${tx}</span>`;};
+  cont.innerHTML=visibles.map(r=>`
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:7px 10px;border-bottom:.5px solid var(--border-soft)">
+      <div style="font-size:12px;color:var(--text-strong);min-width:0;flex:1">
+        <div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(r.nombre)}</div>
+        <div style="font-size:10px;color:var(--text-faint)">${esc(r.codigo)||"—"} · ${esc(_d.catLabel(r.cat))}</div>
+      </div>
+      <div style="font-size:12px;white-space:nowrap;text-align:right">
+        <span style="color:#5b9bd5;font-weight:600">${Math.round(r.mm*100)/100}</span>
+        <span style="color:var(--text-faint);font-size:10px">${esc(r.unidad)} salidas</span>
+      </div>
+      <div style="width:64px;text-align:right">${badge(r.clase)}</div>
+    </div>`).join("");
+}
+function imprimirRotProd(){
+  if(!_rotProdData){toast("Primero pulsa Calcular","err");return;}
+  const almT=document.getElementById("rp_scope").value;
+  const _d=_almT(almT);
+  const clase=document.getElementById("rpClase").value;
+  const claseDe=_clasificarRotacion(_rotProdData);
+  const conClase=_rotProdData.map(r=>({...r,clase:claseDe(r)}));
+  const visibles=clase?conClase.filter(r=>r.clase===clase):conClase;
+  const cuenta={sin:0,baja:0,media:0,alta:0};conClase.forEach(r=>cuenta[r.clase]++);
+  const claseTxt={sin:"Sin rotación",baja:"Baja rotación",media:"Media rotación",alta:"Alta rotación"};
+  const claseColor={sin:"#c0392b",baja:"#b9770e",media:"#2471a3",alta:"#1e8449"};
+  const desde=document.getElementById("rpDesde").value;
+  const hasta=document.getElementById("rpHasta").value;
+  const catSel=document.getElementById("rpCat")?.value||"";
+  const periodoTxt=(desde||hasta)?`${desde||"inicio"} → ${hasta||"hoy"}`:"Todo el historial";
+  const filas=visibles.map(r=>`<tr>
+      <td>${esc(r.nombre)}</td>
+      <td style="font-family:monospace;font-size:11px;color:#555">${esc(r.codigo)||"—"}</td>
+      <td>${esc(_d.catLabel(r.cat))}</td>
+      <td style="text-align:right;font-weight:600">${Math.round(r.mm*100)/100} ${esc(r.unidad)}</td>
+      <td style="text-align:center"><span style="color:${claseColor[r.clase]};font-weight:600">${claseTxt[r.clase]}</span></td>
+    </tr>`).join("");
+  const html=`<!doctype html><html lang="es"><head><meta charset="utf-8">
+    <title>Rotación de productos — ${esc(_d.nombre)}</title>
+    <style>
+      *{box-sizing:border-box} body{font-family:Arial,Helvetica,sans-serif;margin:24px;color:#1a1a1a}
+      h1{font-size:20px;margin:0 0 4px} .sub{color:#666;font-size:13px;margin-bottom:14px}
+      .resumen{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:16px;font-size:13px}
+      .resumen b{font-size:16px}
+      table{border-collapse:collapse;width:100%;font-size:13px}
+      th,td{border:1px solid #ddd;padding:6px 9px}
+      th{background:#f3f3f3;text-align:left;position:sticky;top:0}
+      tr:nth-child(even) td{background:#fafafa}
+      .toolbar{margin-bottom:16px}
+      .toolbar button{padding:8px 16px;font-size:13px;cursor:pointer;border:1px solid #888;border-radius:6px;background:#fff;margin-right:8px}
+      @media print{.toolbar{display:none} body{margin:0} th{position:static}}
+    </style></head><body>
+    <div class="toolbar">
+      <button onclick="window.print()">🖨️ Imprimir / Guardar PDF</button>
+      <span style="font-size:12px;color:#666">Para Word: selecciona la tabla (Ctrl+A) → copia (Ctrl+C) → pega en Word.</span>
+    </div>
+    <h1>Rotación de productos — ${esc(_d.nombre)}</h1>
+    <div class="sub">Período: <b>${esc(periodoTxt)}</b>${catSel?` · Categoría: <b>${esc(_d.catLabel(catSel))}</b>`:""} · Generado: ${new Date().toLocaleString("es-PE")}</div>
+    <div class="resumen">
+      <span>Total: <b>${conClase.length}</b></span>
+      <span style="color:#c0392b">Sin rotación: <b>${cuenta.sin}</b></span>
+      <span style="color:#b9770e">Baja: <b>${cuenta.baja}</b></span>
+      <span style="color:#2471a3">Media: <b>${cuenta.media}</b></span>
+      <span style="color:#1e8449">Alta: <b>${cuenta.alta}</b></span>
+    </div>
+    <table>
+      <thead><tr><th>Producto</th><th>Código</th><th>Categoría</th><th style="text-align:right">Salidas</th><th style="text-align:center">Clasificación</th></tr></thead>
+      <tbody>${filas||`<tr><td colspan="5" style="text-align:center;color:#888;padding:20px">Sin productos en esta clasificación.</td></tr>`}</tbody>
+    </table>
+    </body></html>`;
+  const w=window.open("","_blank");
+  if(!w){toast("El navegador bloqueó la ventana. Permite ventanas emergentes.","err");return;}
+  w.document.write(html);
+  w.document.close();
 }
 
 async function exportTubosExcel(){
@@ -6331,6 +6532,75 @@ function imprimirRotacion(){
   w.document.close();
 }
 
+// ── Reporte de movimientos de Materia Prima (con balance de compras) ──
+function openRepMovTubos(){
+  if(!getEffectivePerms().verMovimientos){toast("Sin permiso para ver movimientos","err");return;}
+  const sede=_tubosState.sede||"custom";
+  document.getElementById("rmtTitle").textContent=`Reporte de movimientos — Materia Prima ${sede==="custom"?"Custom":"Mecaniza"}`;
+  ["rmt_desde","rmt_hasta"].forEach(id=>document.getElementById(id).value="");
+  document.getElementById("rmt_tipo").value="";
+  const tipos=[...new Set((_tubosCache.tubos||[]).map(t=>_tipoMaterial(t)).filter(Boolean))].sort();
+  const sel=document.getElementById("rmt_mat");
+  if(sel) sel.innerHTML=`<option value="">Todos</option>`+tipos.map(t=>`<option value="${escAttr(t)}">${escAttr(t)}</option>`).join("");
+  document.getElementById("modalRepMovTubos").style.display="flex";
+}
+async function generarRepMovTubos(){
+  const sede=_tubosState.sede||"custom";
+  const desde=document.getElementById("rmt_desde").value, hasta=document.getElementById("rmt_hasta").value;
+  const tipo=document.getElementById("rmt_tipo").value, matSel=document.getElementById("rmt_mat").value;
+  setBtnLoading("btnGenRepMovTubos",true,"Generando...");
+  try{
+    // Mapa de tubos de ESTA sede: id → {desc,cod,tipoMat}
+    const tuboMap={};
+    (_tubosCache.tubos||[]).forEach(t=>{tuboMap[t.id]={desc:t.descripcion||"",cod:t.codigo_mat||"",tipoMat:_tipoMaterial(t)};});
+    // Movimientos del período
+    let movs=[];
+    for(let from=0;;from+=1000){
+      let q=sb.from("movimientos").select("*").order("fecha",{ascending:false}).range(from,from+999);
+      if(desde) q=q.gte("fecha",desde);
+      if(hasta) q=q.lte("fecha",hasta+"T23:59:59");
+      if(tipo) q=q.eq("tipo",tipo);
+      const {data,error}=await q;
+      if(error) throw error;
+      if(!data?.length) break;
+      movs=movs.concat(data);
+      if(data.length<1000) break;
+      if(movs.length>=50000) break;
+    }
+    // Solo movimientos de tubos de ESTA sede (+ filtro por tipo de material)
+    const filtered=movs.filter(m=>{
+      const t=tuboMap[m.tubo_id];
+      if(!t) return false;
+      if(matSel && t.tipoMat!==matSel) return false;
+      return true;
+    });
+    if(!filtered.length){setBtnLoading("btnGenRepMovTubos",false);toast("Sin movimientos con esos filtros","err");return;}
+    const uids=[...new Set(filtered.map(m=>m.usuario_id).filter(Boolean))];
+    const umap={};
+    if(uids.length){const {data:us}=await sb.from("perfiles").select("id,nombre,username").in("id",uids);(us||[]).forEach(u=>umap[u.id]=u.nombre||u.username);}
+    const tipoLabel={entrada:"Entrada",consumo:"Consumo",consumo_extra:"Consumo extra",salida:"Salida",merma:"Merma",ajuste:"Ajuste",transferencia_in:"Transf. +",transferencia_out:"Transf. -"};
+    const aoa=[["Fecha","Código","Material","Tipo","Cantidad","mm","Precio unit.","Total","Moneda","Usuario"]];
+    let tEnt=0,gastadoPen=0;
+    filtered.forEach(m=>{
+      const t=tuboMap[m.tubo_id]||{};
+      const cant=m.cantidad??"";
+      const total=(m.precio_unitario!=null&&m.cantidad)?(m.precio_unitario*m.cantidad):null;
+      if(m.tipo==="entrada"){tEnt+=Number(m.cantidad)||0; if(total!=null) gastadoPen+=_aPen(total,m.moneda||"PEN");}
+      aoa.push([new Date(m.fecha).toLocaleString("es-PE"),t.cod||"",t.desc||"",tipoLabel[m.tipo]||m.tipo,cant,m.altura_usada??"",m.precio_unitario??"",total!=null?Math.round(total*100)/100:"",m.moneda||"",umap[m.usuario_id]||""]);
+    });
+    const nombreSede=`Materia Prima ${sede==="custom"?"Custom":"Mecaniza"}`;
+    const resumen=`<div style="display:flex;gap:14px;margin-bottom:14px;font-size:13px;flex-wrap:wrap">
+      <span style="color:#1e8449">Tubos ingresados: <b>${tEnt}</b></span>
+      <span>Movimientos: <b>${filtered.length}</b></span>
+      <span style="color:#1e8449">Total comprado: <b>S/ ${Math.round(gastadoPen).toLocaleString()}</b></span>
+    </div>`;
+    const sub=`${nombreSede}${matSel?` · ${matSel}`:""}${tipo?` · ${tipoLabel[tipo]||tipo}`:""}${(desde||hasta)?` · ${desde||"inicio"} → ${hasta||"hoy"}`:""}`;
+    setBtnLoading("btnGenRepMovTubos",false);
+    closeModal("modalRepMovTubos");
+    abrirReporteHTML(`Movimientos — ${nombreSede}`, sub, aoa, resumen);
+  }catch(err){setBtnLoading("btnGenRepMovTubos",false);toast("Error: "+err.message,"err");}
+}
+
 // Lee/oculta el marcador de IDs guardado en la nota de un movimiento de entrada.
 function _idsDesdeNota(nota){
   const m=String(nota||"").match(/⟨#ids:([\d,]+)⟩/);
@@ -6529,10 +6799,17 @@ async function clearStock(){
   loadTubos(true);
 }
 
-function toggleTuboManual(){
-  const isManual=document.getElementById("t_manual").checked;
-  document.getElementById("t_manual_fields").style.display=isManual?"block":"none";
-  if(!isManual){
+// El "Origen" gobierna el formulario: Nacional → permite escribir el material a
+// mano (cuando no hay material fijo) y registrar precio de compra. Importado →
+// solo se elige de la lista, sin precio.
+function toggleTuboOrigen(){
+  const esNacional=document.getElementById("t_origen").value==="Nacional";
+  const tieneTarget=!!document.getElementById("t_target_id").value;
+  // Precio: solo para nacional
+  document.getElementById("t_precio_group").style.display=esNacional?"":"none";
+  // Campos manuales (código/descripción): solo en "entrada general" (sin material fijo) y nacional
+  document.getElementById("t_manual_fields").style.display=(esNacional&&!tieneTarget)?"block":"none";
+  if(!(esNacional&&!tieneTarget)&&!tieneTarget){
     document.getElementById("t_cod").value="";
     document.getElementById("t_desc").value="";
   }
@@ -6579,13 +6856,14 @@ function resetTuboLotes(prefAltura=""){
 
 function openModalTubo(){
   document.getElementById("modalTuboTitle").textContent="Registrar entrada de tubos";
-  ["t_cod","t_desc","t_altura","t_target_id"].forEach(id=>document.getElementById(id).value="");
-  document.getElementById("t_manual").checked=false;
-  document.getElementById("t_manual_fields").style.display="none";
+  ["t_cod","t_desc","t_altura","t_target_id","t_precio"].forEach(id=>document.getElementById(id).value="");
+  document.getElementById("t_moneda").value=cfgStr("general_moneda_default","PEN");
+  document.getElementById("t_origen").value="Importado";
   // Modo entrada general: el material se elige del desplegable y la altura es editable
   document.getElementById("t_mat_select_group").style.display="";
   resetTuboLotes();
   document.getElementById("t_mat_select").innerHTML=`<option value="">-- Seleccione un material --</option>`;
+  toggleTuboOrigen();
 
   const sede=_tubosState.sede||"custom";
   sb.from("tubos").select("id,descripcion").eq("sede",sede).order("descripcion").then(({data})=>{
@@ -6612,20 +6890,27 @@ function openModalTuboFor(tuboId){
   document.getElementById("t_desc").value=t.descripcion||"";
   document.getElementById("t_altura").value=t.altura_total||"";
   resetTuboLotes(t.altura_total||""); // primera fila con la altura del material; puedes añadir más medidas
-  document.getElementById("t_manual").checked=false;
   document.getElementById("t_manual_fields").style.display="none";
+  // Precio: precargar el del material (si lo tiene) y dejar listo el campo
+  document.getElementById("t_precio").value="";
+  document.getElementById("t_moneda").value=t.moneda||cfgStr("general_moneda_default","PEN");
+  document.getElementById("t_origen").value="Nacional";
   // Ocultamos el selector de material: ya está fijado a este
   document.getElementById("t_mat_select_group").style.display="none";
+  toggleTuboOrigen();
   document.getElementById("modalTubo").style.display="flex";
 }
 async function saveTubo(){
   const targetId=document.getElementById("t_target_id").value;
   const matId=document.getElementById("t_mat_select").value;
-  const isManual=document.getElementById("t_manual").checked;
   const cod=document.getElementById("t_cod").value.trim()||null;
   const desc=document.getElementById("t_desc").value.trim();
   const origen=document.getElementById("t_origen").value;
   const sede=_tubosState.sede||"custom";
+  // Precio de compra (opcional, solo para Nacional)
+  const _precioRaw=parseFloat(document.getElementById("t_precio").value);
+  const precioVal=(origen==="Nacional"&&!isNaN(_precioRaw)&&_precioRaw>=0)?_precioRaw:null;
+  const monedaVal=document.getElementById("t_moneda").value||cfgStr("general_moneda_default","PEN");
 
   // ── Leer y VALIDAR las medidas (lotes): solo enteros > 0 ──
   const rows=[...document.querySelectorAll("#t_lotes .t-lote-row")];
@@ -6646,7 +6931,7 @@ async function saveTubo(){
   let tuboId;
   if(targetId){
     tuboId=targetId; // agregar al mismo material (sin duplicar)
-  } else if(matId && !isManual){
+  } else if(matId){
     tuboId=matId;
   } else {
     const altNominal=lotes[0].altura; // material manual: altura nominal = la 1ra medida
@@ -6682,12 +6967,17 @@ async function saveTubo(){
   const notaBase=`${_invInicial?"Inventario inicial · ":""}Entrada ${origen}: ${lotes.map(l=>l.altura+"×"+l.cant).join(", ")} (Sede ${sede})`;
   const nota=idsCreadas.length?`${notaBase} ⟨#ids:${idsCreadas.join(",")}⟩`:notaBase;
   await sb.from("movimientos").insert({
-    tubo_id:tuboId, tipo:"entrada", cantidad:totalCant, usuario_id:CU?.id, nota
+    tubo_id:tuboId, tipo:"entrada", cantidad:totalCant, usuario_id:CU?.id, nota,
+    precio_unitario:precioVal, moneda:precioVal!=null?monedaVal:null
   });
+  // Si registró un precio, actualizar el precio del material (último precio de compra)
+  if(precioVal!=null){
+    await sb.from("tubos").update({precio:precioVal,moneda:monedaVal}).eq("id",tuboId);
+  }
 
   setBtnLoading("btnSaveTubo",false);
   closeModal("modalTubo");
-  toast(`✓ ${totalCant} tubo${totalCant>1?"s":""} registrado${totalCant>1?"s":""} (${lotes.length} medida${lotes.length>1?"s":""})`,"ok");
+  toast(`✓ ${totalCant} tubo${totalCant>1?"s":""} registrado${totalCant>1?"s":""} (${lotes.length} medida${lotes.length>1?"s":""})${precioVal!=null?` · precio ${monedaVal} ${precioVal}`:""}`,"ok");
   clearCache(`tubos_${sede}`);
   loadTubos(true);
 }
@@ -8656,12 +8946,14 @@ async function loadMercaderias(forceReload=false){
   const perm=getEffectivePerms();
   document.getElementById("btnNuevoMerc").style.display=userCanCRUD("crear","Merc")?"inline-flex":"none";
   const bC=document.getElementById("btnNuevaCatMerc");if(bC)bC.style.display=userCanCRUD("crear","Merc")?"inline-flex":"none";
+  const bCnt=document.getElementById("btnConteoMerc");if(bCnt)bCnt.style.display=perm.exportar?"inline-flex":"none";
+  const bRot=document.getElementById("btnRotMerc");if(bRot)bRot.style.display=perm.verMovimientos?"inline-flex":"none";
   poblarCategoriasMerc();
   if(!forceReload){
     const cached=getCached("mercaderias");
     if(cached){_mercCache=cached;renderMercaderias();return;}
   }
-  document.getElementById("merc-tbody").innerHTML=`<tr><td colspan="8" class="no-data"><div class="loading"><div class="spinner"></div>Cargando mercaderías...</div></td></tr>`;
+  document.getElementById("merc-tbody").innerHTML=`<tr><td colspan="7" class="no-data"><div class="loading"><div class="spinner"></div>Cargando mercaderías...</div></td></tr>`;
   showLoading(true,"Cargando mercaderías...","O-rings, wipers, etc.");
   let all=[];
   for(let from=0;;from+=1000){
@@ -8740,16 +9032,15 @@ function renderMercaderias(){
       <td style="color:var(--text);font-size:10px">${med}</td>
       <td style="text-align:right"><span style="color:${colorStock};font-weight:600">${m.stock_actual}</span><span style="color:var(--text-faint);font-size:10px"> ${esc(m.unidad)}</span>${(m.stock_minimo||0)>0?`<div style="font-size:9px;color:var(--text-faint)">mín ${m.stock_minimo}</div>`:""}</td>
       <td style="text-align:right;color:var(--text)">${m.precio_unitario!=null?`${m.precio_unitario} <span style="font-size:9px;color:var(--text-faint)">${esc(m.moneda)}</span>`:"—"}</td>
-      <td style="font-size:10px;color:var(--text-soft)">${esc(m.ubicacion)||"—"}</td>
-      <td style="white-space:nowrap">
-        ${perm.editarMerc?`<button class="btn btn-green" style="padding:3px 7px;font-size:10px" onclick="openMercMov(${m.id},'entrada')" title="Entrada"><i class="ti ti-arrow-down"></i></button>
-        <button class="btn btn-amber" style="padding:3px 7px;font-size:10px" onclick="openMercMov(${m.id},'salida')" title="Salida"><i class="ti ti-arrow-up"></i></button>
-        <button class="btn btn-ghost" style="padding:3px 7px;font-size:10px" onclick="openModalMerc(${m.id})" title="Editar"><i class="ti ti-edit"></i></button>`:`<button class="btn btn-ghost" style="padding:3px 7px;font-size:10px" onclick="openModalMerc(${m.id})"><i class="ti ti-eye"></i></button>`}
-        ${perm.verMovimientos?`<button class="btn btn-blue" style="padding:3px 7px;font-size:10px" onclick="openHistorial('merc',${m.id})" title="Historial"><i class="ti ti-history"></i></button>`:""}
-        ${userCanCRUD("eliminar","Merc")?`<button class="btn btn-ghost" style="padding:3px 7px;font-size:10px;color:#e85a5a" onclick="deleteMerc(${m.id})" title="Eliminar producto"><i class="ti ti-trash"></i></button>`:""}
-      </td>
+      <td style="white-space:nowrap;padding-left:14px"><div style="display:flex;gap:6px">
+        ${perm.editarMerc?`<button class="btn btn-green" style="padding:5px 10px;font-size:11px" onclick="openMercMov(${m.id},'entrada')" title="Registrar entrada de stock"><i class="ti ti-arrow-down"></i>Entrada</button>
+        <button class="btn btn-amber" style="padding:5px 10px;font-size:11px" onclick="openMercMov(${m.id},'salida')" title="Registrar salida de stock"><i class="ti ti-arrow-up"></i>Salida</button>
+        <button class="btn btn-ghost" style="padding:5px 10px;font-size:11px" onclick="openModalMerc(${m.id})" title="Editar producto"><i class="ti ti-edit"></i>Editar</button>`:`<button class="btn btn-ghost" style="padding:5px 10px;font-size:11px" onclick="openModalMerc(${m.id})" title="Ver producto"><i class="ti ti-eye"></i>Ver</button>`}
+        ${perm.verMovimientos?`<button class="btn btn-blue" style="padding:5px 10px;font-size:11px" onclick="openHistorial('merc',${m.id})" title="Historial de movimientos"><i class="ti ti-history"></i>Historial</button>`:""}
+        ${userCanCRUD("eliminar","Merc")?`<button class="btn btn-ghost" style="padding:5px 10px;font-size:11px;color:#e85a5a" onclick="deleteMerc(${m.id})" title="Eliminar producto"><i class="ti ti-trash"></i>Eliminar</button>`:""}
+      </div></td>
     </tr>`;
-  }).join(""):`<tr><td colspan="8" class="no-data">Sin resultados</td></tr>`;
+  }).join(""):`<tr><td colspan="7" class="no-data">Sin resultados</td></tr>`;
 
   document.getElementById("mercFooter").innerHTML=`
     <div class="row-info">Mostrando ${total?start+1:0}–${Math.min(start+per,total)} de ${total}</div>
@@ -9010,12 +9301,14 @@ async function loadAlmMecaniza(forceReload=false){
   const perm=getEffectivePerms();
   document.getElementById("btnNuevoAlm").style.display=userCanCRUD("crear","AlmMec")?"inline-flex":"none";
   const bCA=document.getElementById("btnNuevaCatAlm");if(bCA)bCA.style.display=userCanCRUD("crear","AlmMec")?"inline-flex":"none";
+  const bCntA=document.getElementById("btnConteoAlm");if(bCntA)bCntA.style.display=perm.exportar?"inline-flex":"none";
+  const bRotA=document.getElementById("btnRotAlm");if(bRotA)bRotA.style.display=perm.verMovimientos?"inline-flex":"none";
   poblarCategoriasMerc();
   if(!forceReload){
     const cached=getCached("alm_mecaniza");
     if(cached){_almCache=cached;renderAlmMecaniza();return;}
   }
-  document.getElementById("alm-tbody").innerHTML=`<tr><td colspan="8" class="no-data"><div class="loading"><div class="spinner"></div>Cargando...</div></td></tr>`;
+  document.getElementById("alm-tbody").innerHTML=`<tr><td colspan="7" class="no-data"><div class="loading"><div class="spinner"></div>Cargando...</div></td></tr>`;
   showLoading(true,"Cargando productos...","Almacén Mecaniza");
   let all=[];
   for(let from=0;;from+=1000){
@@ -9088,16 +9381,15 @@ function renderAlmMecaniza(){
       <td style="color:var(--text);font-size:10px">${med}</td>
       <td style="text-align:right"><span style="color:${colorStock};font-weight:600">${a.stock_actual}</span><span style="color:var(--text-faint);font-size:10px"> ${esc(a.unidad)}</span>${(a.stock_minimo||0)>0?`<div style="font-size:9px;color:var(--text-faint)">mín ${a.stock_minimo}</div>`:""}</td>
       <td style="text-align:right;color:var(--text)">${a.precio_unitario!=null?`${a.precio_unitario} <span style="font-size:9px;color:var(--text-faint)">${esc(a.moneda)}</span>`:"—"}</td>
-      <td style="font-size:10px;color:var(--text-soft)">${esc(a.ubicacion)||"—"}</td>
-      <td style="white-space:nowrap">
-        ${perm.editarAlmMec?`<button class="btn btn-green" style="padding:3px 7px;font-size:10px" onclick="openAlmMov(${a.id},'entrada')" title="Entrada"><i class="ti ti-arrow-down"></i></button>
-        <button class="btn btn-amber" style="padding:3px 7px;font-size:10px" onclick="openAlmMov(${a.id},'salida')" title="Salida"><i class="ti ti-arrow-up"></i></button>
-        <button class="btn btn-ghost" style="padding:3px 7px;font-size:10px" onclick="openModalAlm(${a.id})" title="Editar"><i class="ti ti-edit"></i></button>`:`<button class="btn btn-ghost" style="padding:3px 7px;font-size:10px" onclick="openModalAlm(${a.id})"><i class="ti ti-eye"></i></button>`}
-        ${perm.verMovimientos?`<button class="btn btn-blue" style="padding:3px 7px;font-size:10px" onclick="openHistorial('alm',${a.id})" title="Historial"><i class="ti ti-history"></i></button>`:""}
-        ${userCanCRUD("eliminar","AlmMec")?`<button class="btn btn-ghost" style="padding:3px 7px;font-size:10px;color:#e85a5a" onclick="deleteAlm(${a.id})" title="Eliminar producto"><i class="ti ti-trash"></i></button>`:""}
-      </td>
+      <td style="white-space:nowrap;padding-left:14px"><div style="display:flex;gap:6px">
+        ${perm.editarAlmMec?`<button class="btn btn-green" style="padding:5px 10px;font-size:11px" onclick="openAlmMov(${a.id},'entrada')" title="Registrar entrada de stock"><i class="ti ti-arrow-down"></i>Entrada</button>
+        <button class="btn btn-amber" style="padding:5px 10px;font-size:11px" onclick="openAlmMov(${a.id},'salida')" title="Registrar salida de stock"><i class="ti ti-arrow-up"></i>Salida</button>
+        <button class="btn btn-ghost" style="padding:5px 10px;font-size:11px" onclick="openModalAlm(${a.id})" title="Editar producto"><i class="ti ti-edit"></i>Editar</button>`:`<button class="btn btn-ghost" style="padding:5px 10px;font-size:11px" onclick="openModalAlm(${a.id})" title="Ver producto"><i class="ti ti-eye"></i>Ver</button>`}
+        ${perm.verMovimientos?`<button class="btn btn-blue" style="padding:5px 10px;font-size:11px" onclick="openHistorial('alm',${a.id})" title="Historial de movimientos"><i class="ti ti-history"></i>Historial</button>`:""}
+        ${userCanCRUD("eliminar","AlmMec")?`<button class="btn btn-ghost" style="padding:5px 10px;font-size:11px;color:#e85a5a" onclick="deleteAlm(${a.id})" title="Eliminar producto"><i class="ti ti-trash"></i>Eliminar</button>`:""}
+      </div></td>
     </tr>`;
-  }).join(""):`<tr><td colspan="8" class="no-data">Sin resultados</td></tr>`;
+  }).join(""):`<tr><td colspan="7" class="no-data">Sin resultados</td></tr>`;
 
   document.getElementById("almFooter").innerHTML=`
     <div class="row-info">Mostrando ${total?start+1:0}–${Math.min(start+per,total)} de ${total}</div>
@@ -9278,12 +9570,14 @@ async function loadSuministros(forceReload=false){
   const perm=getEffectivePerms();
   document.getElementById("btnNuevoSum").style.display=userCanCRUD("crear","Sum")?"inline-flex":"none";
   const bCS=document.getElementById("btnNuevaCatSum");if(bCS)bCS.style.display=userCanCRUD("crear","Sum")?"inline-flex":"none";
+  const bCntS=document.getElementById("btnConteoSum");if(bCntS)bCntS.style.display=perm.exportar?"inline-flex":"none";
+  const bRotS=document.getElementById("btnRotSum");if(bRotS)bRotS.style.display=perm.verMovimientos?"inline-flex":"none";
   poblarCategoriasSum();
   if(!forceReload){
     const cached=getCached("suministros");
     if(cached){_sumCache=cached;renderSuministros();return;}
   }
-  document.getElementById("sum-tbody").innerHTML=`<tr><td colspan="8" class="no-data"><div class="loading"><div class="spinner"></div>Cargando...</div></td></tr>`;
+  document.getElementById("sum-tbody").innerHTML=`<tr><td colspan="6" class="no-data"><div class="loading"><div class="spinner"></div>Cargando...</div></td></tr>`;
   showLoading(true,"Cargando productos...","Almacén Suministros");
   let all=[];
   for(let from=0;;from+=1000){
@@ -9347,24 +9641,21 @@ function renderSuministros(){
   const catBadge=c=>{const map={herramientas:"#f5a623",economatos:"#3b82f6",otro:"#64748b"};const col=map[c]||"#16a34a";return `<span class="rol-badge" style="background:${col}22;color:${col};border:1px solid ${col}55">${esc(sumCatLabel(c))}</span>`;};
   document.getElementById("sum-tbody").innerHTML=visible.length?visible.map(a=>{
     const colorStock=a.stock_actual<=0?"#e85a5a":a.stock_actual<(a.stock_minimo||0)?"#f5a623":"#4caf8c";
-    const med=[a.di,a.de,a.grosor].filter(x=>x!=null).join(" × ")||"—";
     return `<tr>
       <td style="font-family:monospace;font-size:10px;color:var(--text-soft)">${esc(a.codigo)}</td>
-      <td><div style="color:var(--text-strong);font-weight:500">${esc(a.nombre)}</div>${a.material||a.descripcion?`<div style="font-size:10px;color:var(--text-faint)">${esc(a.material||a.descripcion)}${a.material&&a.dureza?` · ${esc(a.dureza)}`:""}</div>`:""}</td>
+      <td><div style="color:var(--text-strong);font-weight:500">${esc(a.nombre)}</div>${a.descripcion?`<div style="font-size:10px;color:var(--text-faint)">${esc(a.descripcion)}</div>`:""}</td>
       <td>${catBadge(a.categoria)}</td>
-      <td style="color:var(--text);font-size:10px">${med}</td>
       <td style="text-align:right"><span style="color:${colorStock};font-weight:600">${a.stock_actual}</span><span style="color:var(--text-faint);font-size:10px"> ${esc(a.unidad)}</span>${(a.stock_minimo||0)>0?`<div style="font-size:9px;color:var(--text-faint)">mín ${a.stock_minimo}</div>`:""}</td>
       <td style="text-align:right;color:var(--text)">${a.precio_unitario!=null?`${a.precio_unitario} <span style="font-size:9px;color:var(--text-faint)">${esc(a.moneda)}</span>`:"—"}</td>
-      <td style="font-size:10px;color:var(--text-soft)">${esc(a.ubicacion)||"—"}</td>
-      <td style="white-space:nowrap">
-        ${perm.editarSum?`<button class="btn btn-green" style="padding:3px 7px;font-size:10px" onclick="openSumMov(${a.id},'entrada')" title="Entrada"><i class="ti ti-arrow-down"></i></button>
-        <button class="btn btn-amber" style="padding:3px 7px;font-size:10px" onclick="openSumMov(${a.id},'salida')" title="Salida"><i class="ti ti-arrow-up"></i></button>
-        <button class="btn btn-ghost" style="padding:3px 7px;font-size:10px" onclick="openModalSum(${a.id})" title="Editar"><i class="ti ti-edit"></i></button>`:`<button class="btn btn-ghost" style="padding:3px 7px;font-size:10px" onclick="openModalSum(${a.id})"><i class="ti ti-eye"></i></button>`}
-        ${perm.verMovimientos?`<button class="btn btn-blue" style="padding:3px 7px;font-size:10px" onclick="openHistorial('sum',${a.id})" title="Historial"><i class="ti ti-history"></i></button>`:""}
-        ${userCanCRUD("eliminar","Sum")?`<button class="btn btn-ghost" style="padding:3px 7px;font-size:10px;color:#e85a5a" onclick="deleteSum(${a.id})" title="Eliminar producto"><i class="ti ti-trash"></i></button>`:""}
-      </td>
+      <td style="white-space:nowrap;padding-left:14px"><div style="display:flex;gap:6px">
+        ${perm.editarSum?`<button class="btn btn-green" style="padding:5px 10px;font-size:11px" onclick="openSumMov(${a.id},'entrada')" title="Registrar entrada de stock"><i class="ti ti-arrow-down"></i>Entrada</button>
+        <button class="btn btn-amber" style="padding:5px 10px;font-size:11px" onclick="openSumMov(${a.id},'salida')" title="Registrar salida de stock"><i class="ti ti-arrow-up"></i>Salida</button>
+        <button class="btn btn-ghost" style="padding:5px 10px;font-size:11px" onclick="openModalSum(${a.id})" title="Editar producto"><i class="ti ti-edit"></i>Editar</button>`:`<button class="btn btn-ghost" style="padding:5px 10px;font-size:11px" onclick="openModalSum(${a.id})" title="Ver producto"><i class="ti ti-eye"></i>Ver</button>`}
+        ${perm.verMovimientos?`<button class="btn btn-blue" style="padding:5px 10px;font-size:11px" onclick="openHistorial('sum',${a.id})" title="Historial de movimientos"><i class="ti ti-history"></i>Historial</button>`:""}
+        ${userCanCRUD("eliminar","Sum")?`<button class="btn btn-ghost" style="padding:5px 10px;font-size:11px;color:#e85a5a" onclick="deleteSum(${a.id})" title="Eliminar producto"><i class="ti ti-trash"></i>Eliminar</button>`:""}
+      </div></td>
     </tr>`;
-  }).join(""):`<tr><td colspan="8" class="no-data">Sin resultados</td></tr>`;
+  }).join(""):`<tr><td colspan="6" class="no-data">Sin resultados</td></tr>`;
 
   document.getElementById("sumFooter").innerHTML=`
     <div class="row-info">Mostrando ${total?start+1:0}–${Math.min(start+per,total)} de ${total}</div>
@@ -9386,9 +9677,6 @@ function openModalSum(id=null){
   set("s_nombre",a?.nombre||"");
   set("s_descripcion",a?.descripcion||"");
   set("s_categoria",a?.categoria||"herramientas");
-  set("s_material",a?.material||"");
-  set("s_dureza",a?.dureza||"");
-  set("s_di",a?.di??"");set("s_de",a?.de??"");set("s_grosor",a?.grosor??"");
   set("s_marca",a?.marca||"");
   set("s_unidad",a?.unidad||"unidad");
   set("s_stock_actual",a?.stock_actual??0);
@@ -9396,7 +9684,6 @@ function openModalSum(id=null){
   set("s_precio",a?.precio_unitario??"");
   set("s_moneda",a?.moneda||"PEN");
   set("s_proveedor",a?.proveedor||"");
-  set("s_ubicacion",a?.ubicacion||"");
   set("s_notas",a?.notas||"");
   const editable=perm.editarSum;
   document.querySelectorAll("#modalSum .form-input").forEach(el=>el.disabled=!editable);
@@ -9415,9 +9702,6 @@ async function saveSum(){
     codigo,nombre,
     categoria:document.getElementById("s_categoria")?.value||"otro",
     descripcion:v("s_descripcion")||null,
-    material:v("s_material")||null,
-    dureza:v("s_dureza")||null,
-    di:num("s_di"),de:num("s_de"),grosor:num("s_grosor"),
     marca:v("s_marca")||null,
     unidad:v("s_unidad")||"unidad",
     stock_actual:num("s_stock_actual")||0,
@@ -9425,7 +9709,6 @@ async function saveSum(){
     precio_unitario:num("s_precio"),
     moneda:v("s_moneda")||"PEN",
     proveedor:v("s_proveedor")||null,
-    ubicacion:v("s_ubicacion")||null,
     notas:v("s_notas")||null,
     fec_act:new Date().toISOString(),
     user_act:CU?.id,
