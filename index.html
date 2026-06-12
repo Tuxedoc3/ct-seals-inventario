@@ -160,13 +160,15 @@ tbody tr:hover td{background:var(--bg-card-2)}
 .tubo-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px}
 .tubo-title{font-size:13px;font-weight:500;color:var(--text-strong)}
 .tubo-sub{font-size:11px;color:var(--text-soft);margin-top:2px}
-.tubo-stats{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:10px}
-.tubo-stat{text-align:center}
-.tubo-stat-val{font-size:16px;font-weight:500}
-.tubo-stat-lbl{font-size:10px;color:var(--text-faint)}
-.instancias-grid{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
-.inst-bloque{border-radius:8px;padding:8px 6px;text-align:center;cursor:pointer;transition:all .2s;min-width:52px;position:relative;border:1.5px solid transparent;overflow:hidden}
-.inst-bloque:hover{transform:translateY(-2px)}
+.tubo-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:14px}
+.tubo-stat{display:flex;align-items:center;gap:13px;text-align:left;background:linear-gradient(135deg,rgba(255,255,255,.045),rgba(255,255,255,0));border:1px solid var(--border);border-radius:14px;padding:14px 16px;transition:transform .15s ease,border-color .15s ease,box-shadow .15s ease}
+.tubo-stat:hover{transform:translateY(-2px);border-color:rgba(255,255,255,.2);box-shadow:0 6px 18px rgba(0,0,0,.25)}
+.tubo-stat-ic{width:40px;height:40px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:21px;flex-shrink:0}
+.tubo-stat-val{font-size:27px;font-weight:700;line-height:1}
+.tubo-stat-lbl{font-size:10px;color:var(--text-faint);margin-top:4px;text-transform:uppercase;letter-spacing:.5px}
+.instancias-grid{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.inst-bloque{border-radius:11px;padding:11px 9px;text-align:center;cursor:pointer;transition:transform .18s ease,box-shadow .18s ease,background .2s;min-width:66px;height:68px;display:flex;flex-direction:column;justify-content:center;position:relative;border:1.5px solid transparent;overflow:hidden}
+.inst-bloque:hover{transform:translateY(-3px);box-shadow:0 8px 20px rgba(0,0,0,.3)}
 .inst-bloque.completo{background:rgba(34,197,94,.08);border-color:rgba(34,197,94,.35)}
 .inst-bloque.completo:hover{background:rgba(34,197,94,.15);border-color:var(--green)}
 .inst-bloque.en-uso{background:rgba(245,158,11,.1);border-color:var(--amber);box-shadow:0 0 0 1px rgba(245,158,11,.2)}
@@ -176,9 +178,16 @@ tbody tr:hover td{background:var(--bg-card-2)}
 .inst-bloque.agotado{background:rgba(239,68,68,.08);border-color:rgba(239,68,68,.3);opacity:.55;cursor:default}
 .inst-bloque.merma{background:rgba(239,68,68,.15);border-color:var(--red);opacity:.45}
 .inst-bloque.merma::before{content:"AGOTADO";position:absolute;top:2px;right:3px;font-size:7px;color:var(--red);font-weight:700;letter-spacing:.3px;background:rgba(239,68,68,.2);padding:1px 4px;border-radius:3px;line-height:1}
-.inst-fill{position:absolute;bottom:0;left:0;width:100%;transition:height .4s;opacity:.15}
-.inst-mm{position:relative;font-size:11px;font-weight:600}
-.inst-label{position:relative;font-size:9px;opacity:.7}
+.inst-fill{position:absolute;bottom:0;left:0;width:100%;transition:height .4s;opacity:.18}
+.inst-mm{position:relative;font-size:14px;font-weight:700}
+.inst-label{position:relative;font-size:10px;opacity:.75;margin-top:2px}
+/* Menú desplegable "Acciones" de cada tubo físico */
+.acc-menu{position:relative;display:inline-block}
+.acc-menu>summary{list-style:none;cursor:pointer}
+.acc-menu>summary::-webkit-details-marker{display:none}
+.acc-menu-list{position:absolute;right:0;top:calc(100% + 4px);background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:5px;min-width:185px;z-index:60;box-shadow:0 10px 28px rgba(0,0,0,.45);display:flex;flex-direction:column;gap:2px;backdrop-filter:blur(8px)}
+.acc-menu-list button{display:flex;align-items:center;gap:9px;width:100%;text-align:left;background:none;border:none;color:var(--text);font-size:12px;padding:8px 10px;border-radius:7px;cursor:pointer;white-space:nowrap;transition:background .12s}
+.acc-menu-list button:hover{background:var(--bg-input)}
 
 /* UPLOAD */
 .upload-zone{background:var(--bg-card);border:1.5px dashed var(--border);border-radius:12px;padding:32px 20px;text-align:center;cursor:pointer;transition:border .2s}
@@ -1871,6 +1880,40 @@ tbody tr:hover td{transition:background .12s ease}
   </div>
 </div>
 
+<!-- MODAL: Historial de movimientos de un material (Materia Prima) -->
+<div class="modal-overlay" id="modalHistTubo" style="display:none" onclick="if(event.target===this)closeModalSafe('modalHistTubo')">
+  <div class="modal" style="max-width:900px">
+    <div class="modal-title"><i class="ti ti-history" style="color:#5b9bd5"></i><span id="htTitle">Historial — Materia Prima</span></div>
+    <div id="htInfo" style="background:var(--bg-card);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--text);margin-bottom:10px"></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+      <div style="flex:1;min-width:120px"><label class="form-label">Desde</label><input class="form-input" id="htDesde" type="date" onchange="renderHistTubo()"></div>
+      <div style="flex:1;min-width:120px"><label class="form-label">Hasta</label><input class="form-input" id="htHasta" type="date" onchange="renderHistTubo()"></div>
+      <div style="flex:1;min-width:120px"><label class="form-label">Tipo</label>
+        <select class="form-input" id="htTipo" onchange="renderHistTubo()">
+          <option value="">Todos</option>
+          <option value="entrada">Entradas</option>
+          <option value="consumo">Consumos</option>
+          <option value="ajuste">Ajustes</option>
+          <option value="transferencia">Transferencias</option>
+          <option value="salida">Salidas</option>
+        </select>
+      </div>
+      <div style="display:flex;align-items:flex-end"><button class="btn btn-ghost" onclick="histTuboLimpiar()" title="Limpiar filtros"><i class="ti ti-refresh"></i></button></div>
+    </div>
+    <div id="htKpis" class="kpi-grid" style="margin-bottom:10px"></div>
+    <div class="card" style="padding:0;max-height:380px;overflow-y:auto">
+      <table>
+        <thead><tr>
+          <th>Fecha</th><th>Tipo</th><th style="text-align:right">Tubos</th><th style="text-align:right">mm</th>
+          <th>OP</th><th>Detalle</th><th>Usuario</th><th>Acciones</th>
+        </tr></thead>
+        <tbody id="htTbody"><tr><td colspan="8" class="no-data"><div class="loading"><div class="spinner"></div>Cargando...</div></td></tr></tbody>
+      </table>
+    </div>
+    <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('modalHistTubo')">Cerrar</button></div>
+  </div>
+</div>
+
 <!-- MODAL: Reporte de movimientos de Materia Prima (con balance de compras) -->
 <div class="modal-overlay" id="modalRepMovTubos" style="display:none" onclick="if(event.target===this)closeModalSafe('modalRepMovTubos')">
   <div class="modal" style="max-width:520px">
@@ -2333,6 +2376,27 @@ function alturaMinPara(tubo){
 
 // Confirmación de borrado gobernada por config (general_confirmar_borrado, default on)
 function confirmDel(msg){if(!ruleBool("general_confirmar_borrado",true))return true;return confirm(msg);}
+// Inserta en una tabla y, si falla por "duplicate key ..._pkey" (contador de IDs
+// desfasado tras importar/restaurar), resincroniza la secuencia en la base y
+// reintenta UNA vez automáticamente. Evita el error sin intervención manual.
+async function _insertConFix(tabla,payload){
+  let res=await sb.from(tabla).insert(payload).select();
+  if(res.error&&res.error.code==="23505"&&/pkey/i.test(res.error.message||"")){
+    try{await sb.rpc("fix_sequence",{p_tabla:tabla});}catch(e){}
+    res=await sb.from(tabla).insert(payload).select();
+  }
+  return res;
+}
+// Traduce errores típicos de guardado a un mensaje claro (código duplicado, etc.)
+function errProducto(error){
+  const m=(error?.message||"").toLowerCase();
+  if(error?.code==="23505"||m.includes("duplicate")||m.includes("unique")){
+    if(m.includes("codigo")||m.includes("_codigo_")) return "Ya existe un producto con ese CÓDIGO. Usa un código distinto (el nombre sí puede repetirse, el código no).";
+    if(m.includes("pkey")) return "Conflicto de ID interno (secuencia desfasada). Corre la Sección 8 del SQL de addons y vuelve a intentar.";
+    return "Ya existe un registro con ese valor (código duplicado).";
+  }
+  return "Error: "+(error?.message||"desconocido");
+}
 
 // ── UI: Reglas por rol (admin) ──
 function renderReglasRol(){
@@ -3103,6 +3167,10 @@ async function loadConfig(){
   const {data}=await sb.from("configuracion").select("*");
   if(data) data.forEach(r=>{cfg[r.clave]=parseFloat(r.valor)||r.valor;});
   rebuildPermisos();
+  // Reconstruir el menú con los permisos YA cargados (roles personalizados +
+  // overrides por usuario). buildSidebar() corre antes que esto en el login, así
+  // que sin esta línea el menú podía quedar con los permisos por defecto.
+  if(CU){try{buildSidebar();}catch(e){}}
 }
 function loadConfigPage(){
   document.getElementById("cfgEur").value=cfg.tipo_cambio_eur_pen||3.8;
@@ -5497,20 +5565,6 @@ async function verDetalleTubo(tuboId){
   showLoading(true);
   const {data:insts}=await sb.from("tubo_instancias").select("*").eq("tubo_id",tuboId);
   const allInsts=insts||[];
-  let movs=[];
-  {
-    // Traer TODOS los movimientos del material (entradas ligadas al material +
-    // consumos/ajustes ligados a cada tubo físico). Todos tienen tubo_id.
-    const {data:md}=await sb.from("movimientos").select("*").eq("tubo_id",tuboId).order("fecha",{ascending:false});
-    movs=md||[];
-    // Nombres de usuario para mostrar "quién hizo el movimiento"
-    const uids=[...new Set(movs.map(m=>m.usuario_id).filter(Boolean))];
-    if(uids.length){
-      const {data:us}=await sb.from("perfiles").select("id,nombre,username").in("id",uids);
-      const umap={};(us||[]).forEach(u=>umap[u.id]=u.nombre||u.username);
-      movs.forEach(m=>m._usuario=umap[m.usuario_id]||null);
-    }
-  }
   showLoading(false);
 
   const altTotal=t.altura_total||0;
@@ -5539,19 +5593,6 @@ async function verDetalleTubo(tuboId){
     </div>`;
   }).join("");
 
-  // El admin SIEMPRE ve el autor; otros roles solo si la regla está activada en Configuración.
-  const verAutor=(CU?.rol==="admin")||cfgBool("mp_ver_autor",false);
-  const movsHtml=movs.slice(0,10).map(m=>{
-    const puedeDeshacer=m.tipo==="entrada"&&_idsDesdeNota(m.nota).length>0&&userCanCRUD("eliminar","Tubos");
-    return `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:.5px solid var(--border-soft);font-size:11px">
-    <div style="flex:1;color:var(--text)">${esc(m.tipo)}${m.altura_usada?` · ${m.altura_usada}mm`:""}${m.op_numero?` · OP ${esc(m.op_numero)}`:""}${m.nota?` · ${esc(notaLimpia(m.nota))}`:""}${verAutor&&m._usuario?` · <span style="color:#5b9bd5"><i class="ti ti-user" style="font-size:11px"></i> ${esc(m._usuario)}</span>`:""}</div>
-      <div style="display:flex;align-items:center;gap:8px">
-        <span style="color:#3a3e5a;font-size:10px">${new Date(m.fecha).toLocaleDateString("es-PE")}</span>
-        ${puedeDeshacer?`<button class="btn-ghost" style="padding:2px 7px;border-radius:4px;color:#f5a623;font-size:10px" onclick="deshacerIngreso(${m.id})" title="Deshacer este ingreso (elimina los tubos que creó)"><i class="ti ti-arrow-back-up" style="font-size:12px"></i> Deshacer</button>`:""}
-        ${userCanCRUD("eliminar","Tubos")?`<button class="btn-ghost" style="padding:2px 5px;border-radius:4px;color:#e85a5a" onclick="deleteMovimiento(${m.id},${m.tubo_instancia_id||"null"})" title="Eliminar"><i class="ti ti-trash" style="font-size:12px"></i></button>`:""}
-      </div>
-  </div>`;}).join("");
-
   // Exponer al resto de funciones de gestión
   _detalleInsts=allInsts;_detalleTubo=t;
   const altMinInst=alturaMinPara(t);
@@ -5560,6 +5601,7 @@ async function verDetalleTubo(tuboId){
   const headerHtml=`<div class="btn-row">
     <button class="btn btn-ghost" onclick="loadTubos()"><i class="ti ti-arrow-left"></i>Volver al resumen</button>
     ${pCrearT?`<button class="btn btn-ghost" onclick="openModalTuboFor(${t.id})"><i class="ti ti-plus"></i>Agregar tubos</button>`:""}
+    ${perm.verMovimientos?`<button class="btn btn-ghost" style="color:#5b9bd5" onclick="openHistTubo(${t.id})"><i class="ti ti-history"></i>Historial</button>`:""}
     ${pEditT?`<button class="btn btn-ghost" onclick="openModalMaterial(${t.id})"><i class="ti ti-edit"></i>Editar material</button>`:""}
     ${pEditT?`<button class="btn btn-ghost" style="color:#3a9bd5" onclick="recalcularTuboDesdeConsumos(${t.id})"><i class="ti ti-refresh"></i>Recalcular stock</button>`:""}
     ${pCrearT?`<button class="btn btn-ghost" style="color:#a78bfa" onclick="copiarMaterialAOtraSede(${t.id})"><i class="ti ti-copy"></i>Copiar a ${t.sede==="custom"?"Mecaniza":"Custom"}</button>`:""}
@@ -5571,9 +5613,10 @@ async function verDetalleTubo(tuboId){
     <div style="border-top:.5px solid var(--border);padding-top:8px;margin-top:8px">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px;flex-wrap:wrap">
         <div style="font-size:10px;color:var(--text-faint);text-transform:uppercase"><i class="ti ti-settings"></i> Gestión de tubos físicos</div>
-        ${pElimT&&allInsts.length?`<div style="display:flex;gap:6px;align-items:center">
+        ${(pElimT||pEditT)&&allInsts.length?`<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
           <label style="font-size:10px;color:#94a3b8;display:flex;align-items:center;gap:4px;cursor:pointer"><input type="checkbox" id="chkAllInst" onclick="toggleAllInst(this)"> Seleccionar todos</label>
-          <button class="btn btn-ghost" style="padding:3px 9px;font-size:10px;color:#e85a5a" onclick="deleteInstanciasSeleccionadas(${t.id})"><i class="ti ti-trash"></i> Eliminar seleccionados</button>
+          ${pEditT&&t.sede==="custom"?`<button class="btn btn-ghost" style="padding:3px 9px;font-size:10px;color:#5b9bd5" onclick="trasladarInstanciasSeleccionadas(${t.id})"><i class="ti ti-arrow-right"></i> Trasladar a Mecaniza</button>`:""}
+          ${pElimT?`<button class="btn btn-ghost" style="padding:3px 9px;font-size:10px;color:#e85a5a" onclick="deleteInstanciasSeleccionadas(${t.id})"><i class="ti ti-trash"></i> Eliminar seleccionados</button>`:""}
         </div>`:""}
       </div>
       <div style="display:flex;flex-direction:column;gap:6px">
@@ -5601,19 +5644,25 @@ async function verDetalleTubo(tuboId){
           }
           // Alerta de merma sugerida: tubo aprovechable pero por debajo del mínimo del material.
           const mermaSugerida=mmR>0&&mmR<altMinInst&&(inst.estado==="disponible"||inst.estado==="en_uso");
+          const accItems=[];
+          if(pEditT){
+            accItems.push(`<button onclick="openInstModal(${inst.id})"><i class="ti ti-edit"></i> Editar mm y estado</button>`);
+            accItems.push(`<button onclick="resetInstancia(${inst.id})"><i class="ti ti-rotate" style="color:#4caf8c"></i> Resetear a nuevo</button>`);
+            if(puedeSeparar) accItems.push(`<button onclick="toggleSepararInstancia(${inst.id})"><i class="ti ti-${esSeparado?"lock-open":"bookmark"}" style="color:#5b9bd5"></i> ${esSeparado?"Liberar reserva":"Separar / reservar"}</button>`);
+            if(!esAgotado) accItems.push(`<button onclick="agotarInstancia(${inst.id})"><i class="ti ti-ban" style="color:#e85a5a"></i> Marcar agotado</button>`);
+            if(esTrasladable) accItems.push(`<button onclick="trasladarTuboInstancia(${inst.id},${t.id})"><i class="ti ti-arrow-right" style="color:#5b9bd5"></i> Trasladar a Mecaniza</button>`);
+          }
+          if(pElimT) accItems.push(`<button onclick="deleteInstancia(${inst.id})"><i class="ti ti-trash" style="color:#e85a5a"></i> Eliminar tubo</button>`);
+          const accHtml=accItems.length?`<details class="acc-menu">
+              <summary class="btn btn-ghost" style="padding:5px 12px;font-size:11px"><i class="ti ti-dots-vertical"></i> Acciones</summary>
+              <div class="acc-menu-list">${accItems.join("")}</div>
+            </details>`:"";
           return `<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;background:var(--bg-card);border:.5px solid ${mermaSugerida?"#7a5a2a":"var(--border)"};border-radius:8px;padding:6px 10px;flex-wrap:wrap">
             <div style="font-size:11px;color:var(--text);flex:1;min-width:150px;display:flex;align-items:center;gap:8px">
-              ${pElimT?`<input type="checkbox" class="inst-chk" value="${inst.id}" style="cursor:pointer">`:""}
+              ${(pElimT||pEditT)?`<input type="checkbox" class="inst-chk" value="${inst.id}" style="cursor:pointer">`:""}
               <span>T${idx+1} · <strong>${mmR}mm</strong> de ${aTot}mm · <span style="color:${ec};text-transform:uppercase;font-size:10px">${estLabel}</span>${sepInfo}${mermaSugerida?` · <span style="color:#f5a623;font-size:10px" title="Por debajo del mínimo aprovechable (${altMinInst}mm)"><i class="ti ti-alert-triangle"></i> merma sugerida</span>`:""}</span>
             </div>
-            <div style="display:flex;gap:4px;flex-wrap:wrap">
-              ${pEditT?`<button class="btn btn-ghost" style="padding:3px 7px;font-size:10px" onclick="openInstModal(${inst.id})" title="Editar mm y estado"><i class="ti ti-edit"></i> Editar</button>
-              <button class="btn btn-ghost" style="padding:3px 7px;font-size:10px;color:#4caf8c" onclick="resetInstancia(${inst.id})" title="Volver a tubo nuevo (0 usado)"><i class="ti ti-rotate"></i> Resetear</button>
-              ${puedeSeparar?`<button class="btn btn-ghost" style="padding:3px 7px;font-size:10px;color:#5b9bd5" onclick="toggleSepararInstancia(${inst.id})" title="${esSeparado?"Liberar (volver a disponible)":"Separar / reservar este tubo"}"><i class="ti ti-${esSeparado?"lock-open":"bookmark"}"></i> ${esSeparado?"Liberar":"Separar"}</button>`:""}
-              ${!esAgotado?`<button class="btn btn-ghost" style="padding:3px 7px;font-size:10px;color:#e85a5a" onclick="agotarInstancia(${inst.id})" title="Marcar como agotado (fin de vida útil)"><i class="ti ti-ban"></i> Agotar</button>`:""}
-              ${esTrasladable?`<button class="btn btn-ghost" style="padding:3px 7px;font-size:10px;color:#5b9bd5" onclick="trasladarTuboInstancia(${inst.id},${t.id})" title="Trasladar a Mecaniza"><i class="ti ti-arrow-right"></i> A Mecaniza</button>`:""}`:""}
-              ${pElimT?`<button class="btn btn-ghost" style="padding:3px 7px;font-size:10px;color:#e85a5a" onclick="deleteInstancia(${inst.id})" title="Eliminar este tubo físico"><i class="ti ti-trash"></i></button>`:""}
-            </div>
+            ${accHtml}
           </div>`;
         }).join(""):`<div style="font-size:11px;color:var(--text-soft)">No hay tubos físicos. Usa "Agregar tubos".</div>`}
       </div>
@@ -5627,15 +5676,14 @@ async function verDetalleTubo(tuboId){
       </div>
     </div>
     <div class="tubo-stats">
-      <div class="tubo-stat"><div class="tubo-stat-val" style="color:${colorG}">${disponibles.length}</div><div class="tubo-stat-lbl">Disponibles</div></div>
-      <div class="tubo-stat"><div class="tubo-stat-val" style="color:#5b9bd5">${mmRest.toFixed(0)}<span style="font-size:10px">mm</span></div><div class="tubo-stat-lbl">mm restantes</div></div>
-      <div class="tubo-stat"><div class="tubo-stat-val" style="color:#e85a5a">${mmUsado.toFixed(0)}<span style="font-size:10px">mm</span></div><div class="tubo-stat-lbl">consumidos</div></div>
-      <div class="tubo-stat"><div class="tubo-stat-val" style="color:var(--text-soft)">${agotados.length}</div><div class="tubo-stat-lbl">Agotados</div></div>
+      <div class="tubo-stat"><div class="tubo-stat-ic" style="background:${colorG}22;color:${colorG}"><i class="ti ti-circle-check"></i></div><div><div class="tubo-stat-val" style="color:${colorG}">${disponibles.length}</div><div class="tubo-stat-lbl">Disponibles</div></div></div>
+      <div class="tubo-stat"><div class="tubo-stat-ic" style="background:#5b9bd522;color:#5b9bd5"><i class="ti ti-ruler-2"></i></div><div><div class="tubo-stat-val" style="color:#5b9bd5">${mmRest.toFixed(0)}<span style="font-size:13px;font-weight:600">mm</span></div><div class="tubo-stat-lbl">mm restantes</div></div></div>
+      <div class="tubo-stat"><div class="tubo-stat-ic" style="background:#e85a5a22;color:#e85a5a"><i class="ti ti-flame"></i></div><div><div class="tubo-stat-val" style="color:#e85a5a">${mmUsado.toFixed(0)}<span style="font-size:13px;font-weight:600">mm</span></div><div class="tubo-stat-lbl">consumidos</div></div></div>
+      <div class="tubo-stat"><div class="tubo-stat-ic" style="background:#64748b22;color:#94a3b8"><i class="ti ti-ban"></i></div><div><div class="tubo-stat-val" style="color:var(--text-soft)">${agotados.length}</div><div class="tubo-stat-lbl">Agotados</div></div></div>
     </div>
     <div style="font-size:10px;color:var(--text-faint);margin:8px 0 5px;text-transform:uppercase">Tubos físicos</div>
     <div class="instancias-grid">${bloquesHtml}</div>
     ${gestionHtml}
-    ${movs.length&&perm.verMovimientos?`<div style="border-top:.5px solid var(--border);padding-top:8px;margin-top:8px"><div style="font-size:10px;color:var(--text-faint);margin-bottom:5px;text-transform:uppercase">Últimos movimientos</div>${movsHtml}</div>`:""}
   </div>`;
 }
 
@@ -5670,13 +5718,68 @@ async function trasladarTuboInstancia(instId,tuboCustomId){
       origen_id:tuboCustomId, destino_id:mecaTuboId, cantidad:1,
       motivo:`Traslado tubo #${instId} (${t.descripcion})`, usuario_id:CU?.id
     });
-    // 4) Movimientos de auditoría
+    // 4) Movimientos de auditoría (con los mm restantes del tubo trasladado)
+    const _inst=(_detalleInsts||[]).find(i=>i.id===instId);
+    const _mm=_inst?Math.max(0,instTot(_inst,t)-(_inst.altura_usada||0)):null;
     await sb.from("movimientos").insert([
-      {tubo_id:tuboCustomId, tubo_instancia_id:instId, tipo:"transferencia_out", cantidad:1, usuario_id:CU?.id, nota:`Traslado a Mecaniza: ${t.descripcion}`},
-      {tubo_id:mecaTuboId,   tubo_instancia_id:instId, tipo:"transferencia_in",  cantidad:1, usuario_id:CU?.id, nota:`Recibido de Custom: ${t.descripcion}`}
+      {tubo_id:tuboCustomId, tubo_instancia_id:instId, tipo:"transferencia_out", cantidad:1, altura_usada:_mm, usuario_id:CU?.id, nota:`Traslado a Mecaniza: ${t.descripcion}`},
+      {tubo_id:mecaTuboId,   tubo_instancia_id:instId, tipo:"transferencia_in",  cantidad:1, altura_usada:_mm, usuario_id:CU?.id, nota:`Recibido de Custom: ${t.descripcion}`}
     ]);
     showLoading(false);
     toast("✓ Tubo trasladado a Mecaniza","ok");
+    clearCache("tubos_custom");clearCache("tubos_mecaniza");_consMatTuboCache=null;
+    loadTubos(true);
+  }catch(err){showLoading(false);toast("Error: "+err.message,"err");}
+}
+
+// Traslada VARIOS tubos físicos seleccionados de Custom a Mecaniza de una vez.
+async function trasladarInstanciasSeleccionadas(tuboCustomId){
+  if(!userCanCRUD("editar","Tubos")){toast("Sin permiso para trasladar","err");return;}
+  const t=_tubosCache.tubos.find(x=>x.id===tuboCustomId)||_detalleTubo;
+  if(!t){toast("Material no encontrado","err");return;}
+  if((t.sede||"custom")!=="custom"){toast("Solo se traslada desde Custom","err");return;}
+  const ids=[...document.querySelectorAll(".inst-chk:checked")].map(c=>parseInt(c.value)).filter(Boolean);
+  if(!ids.length){toast("Selecciona al menos un tubo","err");return;}
+  const insts=(_detalleInsts||[]).filter(i=>ids.includes(i.id)&&!(i.estado==="agotado"||i.estado==="merma"));
+  if(!insts.length){toast("Los tubos seleccionados no se pueden trasladar (están agotados)","err");return;}
+  if(!confirm(`¿Trasladar ${insts.length} tubo(s) de "${t.descripcion}" a la sede MECANIZA?\n\nSalen de Custom y aparecerán en Mecaniza con sus mm restantes.`))return;
+  showLoading(true,"Trasladando a Mecaniza...");
+  try{
+    // 1) Buscar o crear el modelo equivalente en Mecaniza
+    let {data:mtub}=await sb.from("tubos").select("id")
+      .eq("descripcion",t.descripcion).eq("altura_total",t.altura_total).eq("sede","mecaniza").maybeSingle();
+    let mecaTuboId=mtub?.id;
+    if(!mecaTuboId){
+      const {data:ins,error:eIns}=await sb.from("tubos").insert({
+        codigo_mat:t.codigo_mat, descripcion:t.descripcion, altura_total:t.altura_total, sede:"mecaniza",
+        familia:t.familia, subfamilia:t.subfamilia, dureza:t.dureza, color:t.color, marca:t.marca,
+        di:t.di, de:t.de, precio:t.precio, moneda:t.moneda, proveedor:t.proveedor, origen:t.origen,
+        stock_minimo:t.stock_minimo, notas:t.notas
+      }).select("id").single();
+      if(eIns){showLoading(false);toast("Error creando tubo en Mecaniza: "+eIns.message,"err");return;}
+      mecaTuboId=ins.id;
+    }
+    // 2) Mover todas las instancias seleccionadas
+    const instIds=insts.map(i=>i.id);
+    const {data:moved,error:eMov}=await sb.from("tubo_instancias").update({tubo_id:mecaTuboId}).in("id",instIds).select();
+    if(eMov){showLoading(false);toast("Error al mover los tubos: "+eMov.message,"err");return;}
+    if(!moved||!moved.length){showLoading(false);toast("Tu rol no tiene permiso para trasladar (consulta al admin)","err");return;}
+    // 3) Registrar la transferencia
+    await sb.from("transferencias").insert({
+      origen_almacen:"mp_custom", destino_almacen:"mp_mecaniza",
+      origen_id:tuboCustomId, destino_id:mecaTuboId, cantidad:insts.length,
+      motivo:`Traslado de ${insts.length} tubos (${t.descripcion})`, usuario_id:CU?.id
+    });
+    // 4) Movimientos de auditoría con los mm de cada tubo
+    const movRows=[];
+    insts.forEach(i=>{
+      const mm=Math.max(0,instTot(i,t)-(i.altura_usada||0));
+      movRows.push({tubo_id:tuboCustomId, tubo_instancia_id:i.id, tipo:"transferencia_out", cantidad:1, altura_usada:mm, usuario_id:CU?.id, nota:`Traslado a Mecaniza: ${t.descripcion}`});
+      movRows.push({tubo_id:mecaTuboId,   tubo_instancia_id:i.id, tipo:"transferencia_in",  cantidad:1, altura_usada:mm, usuario_id:CU?.id, nota:`Recibido de Custom: ${t.descripcion}`});
+    });
+    await sb.from("movimientos").insert(movRows);
+    showLoading(false);
+    toast(`✓ ${insts.length} tubo(s) trasladado(s) a Mecaniza`,"ok");
     clearCache("tubos_custom");clearCache("tubos_mecaniza");_consMatTuboCache=null;
     loadTubos(true);
   }catch(err){showLoading(false);toast("Error: "+err.message,"err");}
@@ -6601,6 +6704,83 @@ async function generarRepMovTubos(){
   }catch(err){setBtnLoading("btnGenRepMovTubos",false);toast("Error: "+err.message,"err");}
 }
 
+// ── Historial de movimientos de un material (modal estilo almacenes) ──
+let _histTuboState={tuboId:null,nombre:"",codigo:"",data:[]};
+async function openHistTubo(tuboId){
+  if(!getEffectivePerms().verMovimientos){toast("Sin permiso para ver movimientos","err");return;}
+  const t=_tubosCache.tubos.find(x=>x.id===tuboId)||_detalleTubo;
+  _histTuboState={tuboId,nombre:t?.descripcion||"",codigo:t?.codigo_mat||"",data:[]};
+  document.getElementById("htTitle").textContent=`Historial — Materia Prima ${(t?.sede||"custom")==="custom"?"Custom":"Mecaniza"}`;
+  document.getElementById("htInfo").innerHTML=`<strong style="color:var(--text-strong)">${esc(_histTuboState.nombre)}</strong> <span style="color:var(--text-soft)">(${esc(_histTuboState.codigo)})</span>`;
+  ["htDesde","htHasta"].forEach(id=>document.getElementById(id).value="");
+  document.getElementById("htTipo").value="";
+  document.getElementById("htTbody").innerHTML=`<tr><td colspan="8" class="no-data"><div class="loading"><div class="spinner"></div>Cargando movimientos...</div></td></tr>`;
+  document.getElementById("modalHistTubo").style.display="flex";
+  showLoading(true);
+  let all=[];
+  for(let from=0;;from+=1000){
+    const {data,error}=await sb.from("movimientos").select("*").eq("tubo_id",tuboId).order("fecha",{ascending:false}).range(from,from+999);
+    if(error){toast("Error: "+error.message,"err");break;}
+    if(!data?.length) break;
+    all=all.concat(data);
+    if(data.length<1000) break;
+  }
+  const uids=[...new Set(all.map(m=>m.usuario_id).filter(Boolean))];
+  const umap={};
+  if(uids.length){const {data:us}=await sb.from("perfiles").select("id,nombre,username").in("id",uids);(us||[]).forEach(u=>umap[u.id]=u.nombre||u.username);}
+  showLoading(false);
+  _histTuboState.data=all.map(m=>({...m,_usuario:umap[m.usuario_id]||null}));
+  renderHistTubo();
+}
+function histTuboLimpiar(){["htDesde","htHasta"].forEach(id=>document.getElementById(id).value="");document.getElementById("htTipo").value="";renderHistTubo();}
+function renderHistTubo(){
+  const desde=document.getElementById("htDesde")?.value||"";
+  const hasta=document.getElementById("htHasta")?.value||"";
+  const tipo=document.getElementById("htTipo")?.value||"";
+  const lista=_histTuboState.data.filter(m=>{
+    const f=String(m.fecha||"").slice(0,10);
+    if(desde&&f<desde) return false;
+    if(hasta&&f>hasta) return false;
+    if(tipo){
+      if(tipo==="transferencia"){ if(!String(m.tipo).includes("transferencia")) return false; }
+      else if(m.tipo!==tipo) return false;
+    }
+    return true;
+  });
+  const esIn=m=>m.tipo==="entrada"||m.tipo==="transferencia_in";
+  const esOut=m=>m.tipo==="salida"||m.tipo==="transferencia_out";
+  const tIn=lista.filter(esIn).reduce((a,m)=>a+(m.cantidad||0),0);
+  const tOut=lista.filter(esOut).reduce((a,m)=>a+(m.cantidad||0),0);
+  const mmCons=lista.filter(m=>m.tipo==="consumo"||m.tipo==="consumo_extra").reduce((a,m)=>a+(m.altura_usada||0),0);
+  document.getElementById("htKpis").innerHTML=`
+    <div class="kpi"><div class="kpi-label">Movimientos</div><div class="kpi-val white">${lista.length}</div></div>
+    <div class="kpi"><div class="kpi-label">Entradas (tubos)</div><div class="kpi-val green">+${tIn}</div></div>
+    <div class="kpi"><div class="kpi-label">Salidas (tubos)</div><div class="kpi-val amber">-${tOut}</div></div>
+    <div class="kpi"><div class="kpi-label">mm consumidos</div><div class="kpi-val red">${mmCons.toFixed(0)}</div></div>`;
+  const tipoColor={entrada:"#4caf8c",salida:"#f5a623",consumo:"#e85a5a",consumo_extra:"#e85a5a",ajuste:"#5b9bd5",transferencia_in:"#a78bfa",transferencia_out:"#a78bfa",merma:"#e85a5a"};
+  const tipoLabel={entrada:"ENTRADA",salida:"SALIDA",consumo:"CONSUMO",consumo_extra:"CONSUMO+",ajuste:"AJUSTE",transferencia_in:"TRANS+",transferencia_out:"TRANS-",merma:"MERMA"};
+  const verAutor=(CU?.rol==="admin")||cfgBool("mp_ver_autor",false);
+  const pElim=userCanCRUD("eliminar","Tubos");
+  document.getElementById("htTbody").innerHTML=lista.length?lista.map(m=>{
+    const col=tipoColor[m.tipo]||"var(--text-soft)";
+    const puedeDeshacer=m.tipo==="entrada"&&_idsDesdeNota(m.nota).length>0&&pElim;
+    const signo=esIn(m)?"+":((esOut(m)||m.tipo==="consumo"||m.tipo==="consumo_extra")?"-":"");
+    return `<tr>
+      <td style="font-size:11px;color:var(--text)">${new Date(m.fecha).toLocaleString("es-PE",{dateStyle:"short",timeStyle:"short"})}</td>
+      <td><span style="background:${col}22;color:${col};font-size:10px;padding:2px 8px;border-radius:10px;font-weight:500">${tipoLabel[m.tipo]||esc(m.tipo)}</span></td>
+      <td style="text-align:right;color:${col};font-weight:500">${m.cantidad?signo+m.cantidad:"—"}</td>
+      <td style="text-align:right;color:var(--text)">${m.altura_usada!=null?m.altura_usada+"mm":"—"}</td>
+      <td style="font-family:monospace;font-size:10px;color:var(--text-soft)">${esc(m.op_numero)||"—"}</td>
+      <td style="font-size:11px;color:var(--text)">${esc(notaLimpia(m.nota))||"—"}</td>
+      <td style="font-size:10px;color:var(--text-soft)">${verAutor?(esc(m._usuario)||"—"):"—"}</td>
+      <td style="white-space:nowrap">
+        ${puedeDeshacer?`<button class="btn btn-ghost" style="padding:3px 7px;font-size:10px;color:#f5a623" onclick="closeModal('modalHistTubo');deshacerIngreso(${m.id})" title="Deshacer este ingreso"><i class="ti ti-arrow-back-up"></i></button>`:""}
+        ${pElim?`<button class="btn btn-ghost" style="padding:3px 7px;font-size:10px;color:#e85a5a" onclick="closeModal('modalHistTubo');deleteMovimiento(${m.id},${m.tubo_instancia_id||"null"})" title="Eliminar movimiento"><i class="ti ti-trash"></i></button>`:""}
+      </td>
+    </tr>`;
+  }).join(""):`<tr><td colspan="8" class="no-data">Sin movimientos con esos filtros</td></tr>`;
+}
+
 // Lee/oculta el marcador de IDs guardado en la nota de un movimiento de entrada.
 function _idsDesdeNota(nota){
   const m=String(nota||"").match(/⟨#ids:([\d,]+)⟩/);
@@ -6799,14 +6979,16 @@ async function clearStock(){
   loadTubos(true);
 }
 
+// Recuerda el último "Origen" usado (durante la sesión) para precargarlo al
+// volver a abrir el modal de ingreso de tubos.
+let _lastTuboOrigen="Importado";
 // El "Origen" gobierna el formulario: Nacional → permite escribir el material a
-// mano (cuando no hay material fijo) y registrar precio de compra. Importado →
-// solo se elige de la lista, sin precio.
+// mano (cuando no hay material fijo). El precio de compra es opcional en ambos.
 function toggleTuboOrigen(){
   const esNacional=document.getElementById("t_origen").value==="Nacional";
   const tieneTarget=!!document.getElementById("t_target_id").value;
-  // Precio: solo para nacional
-  document.getElementById("t_precio_group").style.display=esNacional?"":"none";
+  // Precio: opcional para cualquier origen (Nacional e Importado)
+  document.getElementById("t_precio_group").style.display="";
   // Campos manuales (código/descripción): solo en "entrada general" (sin material fijo) y nacional
   document.getElementById("t_manual_fields").style.display=(esNacional&&!tieneTarget)?"block":"none";
   if(!(esNacional&&!tieneTarget)&&!tieneTarget){
@@ -6858,7 +7040,7 @@ function openModalTubo(){
   document.getElementById("modalTuboTitle").textContent="Registrar entrada de tubos";
   ["t_cod","t_desc","t_altura","t_target_id","t_precio"].forEach(id=>document.getElementById(id).value="");
   document.getElementById("t_moneda").value=cfgStr("general_moneda_default","PEN");
-  document.getElementById("t_origen").value="Importado";
+  document.getElementById("t_origen").value=_lastTuboOrigen;
   // Modo entrada general: el material se elige del desplegable y la altura es editable
   document.getElementById("t_mat_select_group").style.display="";
   resetTuboLotes();
@@ -6894,7 +7076,7 @@ function openModalTuboFor(tuboId){
   // Precio: precargar el del material (si lo tiene) y dejar listo el campo
   document.getElementById("t_precio").value="";
   document.getElementById("t_moneda").value=t.moneda||cfgStr("general_moneda_default","PEN");
-  document.getElementById("t_origen").value="Nacional";
+  document.getElementById("t_origen").value=_lastTuboOrigen;
   // Ocultamos el selector de material: ya está fijado a este
   document.getElementById("t_mat_select_group").style.display="none";
   toggleTuboOrigen();
@@ -6907,9 +7089,9 @@ async function saveTubo(){
   const desc=document.getElementById("t_desc").value.trim();
   const origen=document.getElementById("t_origen").value;
   const sede=_tubosState.sede||"custom";
-  // Precio de compra (opcional, solo para Nacional)
+  // Precio de compra (opcional, para cualquier origen)
   const _precioRaw=parseFloat(document.getElementById("t_precio").value);
-  const precioVal=(origen==="Nacional"&&!isNaN(_precioRaw)&&_precioRaw>=0)?_precioRaw:null;
+  const precioVal=(!isNaN(_precioRaw)&&_precioRaw>=0)?_precioRaw:null;
   const monedaVal=document.getElementById("t_moneda").value||cfgStr("general_moneda_default","PEN");
 
   // ── Leer y VALIDAR las medidas (lotes): solo enteros > 0 ──
@@ -6975,6 +7157,7 @@ async function saveTubo(){
     await sb.from("tubos").update({precio:precioVal,moneda:monedaVal}).eq("id",tuboId);
   }
 
+  _lastTuboOrigen=origen; // recordar el origen para el próximo ingreso (sesión)
   setBtnLoading("btnSaveTubo",false);
   closeModal("modalTubo");
   toast(`✓ ${totalCant} tubo${totalCant>1?"s":""} registrado${totalCant>1?"s":""} (${lotes.length} medida${lotes.length>1?"s":""})${precioVal!=null?` · precio ${monedaVal} ${precioVal}`:""}`,"ok");
@@ -9113,9 +9296,9 @@ async function saveMerc(){
   const id=document.getElementById("m_id").value;
   let res;
   if(id){res=await sb.from("mercaderias").update(payload).eq("id",id);}
-  else{payload.user_crea=CU?.id;res=await sb.from("mercaderias").insert(payload);}
+  else{payload.user_crea=CU?.id;res=await _insertConFix("mercaderias",payload);}
   setBtnLoading("btnSaveMerc",false);
-  if(res.error){toast("Error: "+res.error.message,"err");return;}
+  if(res.error){toast(errProducto(res.error),"err");return;}
   closeModal("modalMerc");
   toast("✓ Producto guardado","ok");
   clearCache("mercaderias");loadMercaderias(true);
@@ -9125,9 +9308,10 @@ async function deleteMerc(id){
   const m=_mercCache.find(x=>x.id===id);
   if(!confirmDel(`¿Eliminar el producto "${m?.nombre||id}"?\n\nSe borrará también su historial de movimientos. Esta acción no se puede deshacer.`))return;
   showLoading(true,"Eliminando producto...");
-  const {error}=await sb.from("mercaderias").delete().eq("id",id);
+  const {data:del,error}=await sb.from("mercaderias").delete().eq("id",id).select();
   showLoading(false);
   if(error){toast("Error: "+error.message,"err");return;}
+  if(!del||!del.length){toast("No se eliminó (la base lo bloqueó: solo el admin puede borrar productos). El producto sigue existiendo.","err");return;}
   toast("✓ Producto eliminado","ok");
   clearCache("mercaderias");loadMercaderias(true);
 }
@@ -9458,9 +9642,9 @@ async function saveAlm(){
   const id=document.getElementById("a_id").value;
   let res;
   if(id){res=await sb.from("alm_mecaniza_productos").update(payload).eq("id",id);}
-  else{payload.user_crea=CU?.id;res=await sb.from("alm_mecaniza_productos").insert(payload);}
+  else{payload.user_crea=CU?.id;res=await _insertConFix("alm_mecaniza_productos",payload);}
   setBtnLoading("btnSaveAlm",false);
-  if(res.error){toast("Error: "+res.error.message,"err");return;}
+  if(res.error){toast(errProducto(res.error),"err");return;}
   closeModal("modalAlm");
   toast("✓ Producto guardado","ok");
   clearCache("alm_mecaniza");loadAlmMecaniza(true);
@@ -9470,9 +9654,10 @@ async function deleteAlm(id){
   const a=_almCache.find(x=>x.id===id);
   if(!confirmDel(`¿Eliminar el producto "${a?.nombre||id}" del Almacén Mecaniza?\n\nSe borrará también su historial de movimientos. Esta acción no se puede deshacer.`))return;
   showLoading(true,"Eliminando producto...");
-  const {error}=await sb.from("alm_mecaniza_productos").delete().eq("id",id);
+  const {data:del,error}=await sb.from("alm_mecaniza_productos").delete().eq("id",id).select();
   showLoading(false);
   if(error){toast("Error: "+error.message,"err");return;}
+  if(!del||!del.length){toast("No se eliminó (la base lo bloqueó: solo el admin puede borrar productos). El producto sigue existiendo.","err");return;}
   toast("✓ Producto eliminado","ok");
   clearCache("alm_mecaniza");loadAlmMecaniza(true);
 }
@@ -9716,9 +9901,9 @@ async function saveSum(){
   const id=document.getElementById("s_id").value;
   let res;
   if(id){res=await sb.from("suministros_productos").update(payload).eq("id",id);}
-  else{payload.user_crea=CU?.id;res=await sb.from("suministros_productos").insert(payload);}
+  else{payload.user_crea=CU?.id;res=await _insertConFix("suministros_productos",payload);}
   setBtnLoading("btnSaveSum",false);
-  if(res.error){toast("Error: "+res.error.message,"err");return;}
+  if(res.error){toast(errProducto(res.error),"err");return;}
   closeModal("modalSum");
   toast("✓ Producto guardado","ok");
   clearCache("suministros");loadSuministros(true);
@@ -9728,9 +9913,10 @@ async function deleteSum(id){
   const a=_sumCache.find(x=>x.id===id);
   if(!confirmDel(`¿Eliminar el producto "${a?.nombre||id}" del Almacén Suministros?\n\nSe borrará también su historial de movimientos. Esta acción no se puede deshacer.`))return;
   showLoading(true,"Eliminando producto...");
-  const {error}=await sb.from("suministros_productos").delete().eq("id",id);
+  const {data:del,error}=await sb.from("suministros_productos").delete().eq("id",id).select();
   showLoading(false);
   if(error){toast("Error: "+error.message,"err");return;}
+  if(!del||!del.length){toast("No se eliminó (la base lo bloqueó: solo el admin puede borrar productos). El producto sigue existiendo.","err");return;}
   toast("✓ Producto eliminado","ok");
   clearCache("suministros");loadSuministros(true);
 }
@@ -10192,11 +10378,12 @@ async function saveUsuario(){
       if(v==="si") permisos_extra[sel.dataset.key]=true;
       else if(v==="no") permisos_extra[sel.dataset.key]=false;
     });
-    const {error}=await sb.from("perfiles").update({nombre,rol,activo,permisos_extra}).eq("id",id);
+    const {data:upd,error}=await sb.from("perfiles").update({nombre,rol,activo,permisos_extra}).eq("id",id).select();
     setBtnLoading("btnSaveUsuario",false);
     if(error){toast("Error: "+error.message,"err");return;}
+    if(!upd||!upd.length){toast("No se pudo guardar (la base no aplicó el cambio). Verifica que tu sesión sea admin.","err");return;}
     closeModal("modalUsuario");
-    toast("✓ Usuario actualizado","ok");
+    toast(id===CU.id?"✓ Usuario actualizado":"✓ Usuario actualizado · debe cerrar sesión y volver a entrar para ver los cambios","ok");
     // Si edité MIS propios permisos, recargar mi sesión
     if(id===CU.id){
       const {data}=await sb.from("perfiles").select("*").eq("id",CU.id).single();
