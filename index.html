@@ -7031,15 +7031,24 @@ function renderHistTubo(){
 }
 
 // Historial de precios de compra del material (evolución en el tiempo).
+// Extrae la(s) medida(s) en mm de la nota de una entrada (ej. "Entrada Nacional: 120×1, 90×2").
+// Si no hay medidas en la nota, usa la altura nominal del material (altMat).
+function _mmDeEntrada(nota,altMat){
+  const ms=[...String(nota||"").matchAll(/(\d+(?:[.,]\d+)?)\s*×\s*\d+/g)].map(x=>x[1].replace(",","."));
+  const uniq=[...new Set(ms)];
+  if(uniq.length) return uniq.join(", ")+" mm";
+  return altMat!=null?altMat+" mm":"—";
+}
 function verHistorialPreciosTubo(){
   const entradas=(_histTuboState.data||[]).filter(m=>m.tipo==="entrada"&&m.precio_unitario!=null);
   if(!entradas.length){toast("Este material no tiene precios registrados en sus entradas","err");return;}
+  const altMat=(_tubosCache.tubos||[]).find(x=>x.id===_histTuboState.tuboId)?.altura_total;
   const ord=[...entradas].sort((a,b)=>new Date(a.fecha)-new Date(b.fecha));
   const fmtFecha=f=>new Date(f).toLocaleDateString("es-PE");
-  const aoa=[["Fecha","Tubos","Precio unitario","Moneda","Total"]];
+  const aoa=[["Fecha","Tubos","Medida (mm)","Precio unitario","Moneda","Total"]];
   ord.forEach(m=>{
     const total=(m.precio_unitario!=null&&m.cantidad)?Math.round(m.precio_unitario*m.cantidad*100)/100:"";
-    aoa.push([fmtFecha(m.fecha),m.cantidad??"",m.precio_unitario,m.moneda||"",total]);
+    aoa.push([fmtFecha(m.fecha),m.cantidad??"",_mmDeEntrada(m.nota,altMat),m.precio_unitario,m.moneda||"",total]);
   });
   const precios=ord.map(m=>Number(m.precio_unitario));
   const ult=ord[ord.length-1];
