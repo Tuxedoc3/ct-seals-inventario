@@ -347,6 +347,57 @@ tbody tr:hover td{transition:background .12s ease}
 .theme-toggle:hover{background:var(--bg-card-2);color:var(--text);border-color:var(--border-strong)}
 .theme-toggle:active{transform:scale(.97)}
 .theme-toggle i{font-size:15px}
+
+/* ════════════ REFINAMIENTO VISUAL v2 — capa global (todo el sistema) ════════════ */
+::selection{background:rgba(239,68,68,.28);color:#fff}
+/* Scrollbars finos y discretos */
+*{scrollbar-width:thin;scrollbar-color:var(--border-strong) transparent}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:8px;border:2px solid transparent;background-clip:content-box}
+::-webkit-scrollbar-thumb:hover{background:var(--border-strong);background-clip:content-box}
+::-webkit-scrollbar-track{background:transparent}
+
+/* Transición suave al cambiar de página */
+.page.active{animation:pageIn .24s ease}
+@keyframes pageIn{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:none}}
+
+/* Título de página con línea de acento inferior */
+.page-title{padding-bottom:12px;border-bottom:1px solid var(--border-soft)}
+
+/* Tarjetas: superficie con micro-degradado + realce de borde al pasar */
+.card{background:linear-gradient(180deg,rgba(255,255,255,.022),transparent),var(--bg-card)}
+.kpi{background:linear-gradient(180deg,rgba(255,255,255,.028),transparent),var(--bg-card)}
+.card:hover{border-color:var(--border-strong)}
+.card-title i{color:var(--red);opacity:.9}
+.kpi:hover{transform:translateY(-2px);box-shadow:0 10px 26px rgba(0,0,0,.26)}
+
+/* Botones ghost con leve elevación */
+.btn-ghost:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,.2)}
+
+/* Inputs/selects: borde al pasar el mouse */
+.fi:hover,.form-input:hover,.login-input:hover{border-color:var(--border-strong)}
+
+/* Sidebar: deslizamiento sutil + acento degradado en el activo */
+.nav-item{position:relative}
+.nav-item:hover{transform:translateX(2px)}
+.nav-item.active{background:linear-gradient(90deg,rgba(239,68,68,.16),rgba(239,68,68,.04))}
+
+/* Tablas: barra de acento en la fila activa + transición suave */
+tbody tr{transition:background .12s ease}
+tbody tr:hover td:first-child{box-shadow:inset 3px 0 0 var(--red)}
+
+/* Badges más nítidos */
+.rol-badge{letter-spacing:.3px;font-weight:600}
+
+/* Modales: entrada animada + encabezado con separador */
+.modal-overlay{animation:ovIn .18s ease}
+.modal{animation:modalIn .22s cubic-bezier(.2,.8,.2,1)}
+@keyframes ovIn{from{opacity:0}to{opacity:1}}
+@keyframes modalIn{from{opacity:0;transform:translateY(14px) scale(.98)}to{opacity:1;transform:none}}
+.modal-title{padding-bottom:12px;border-bottom:1px solid var(--border-soft)}
+
+/* Zona de carga de Excel más viva */
+.upload-zone:hover{background:var(--bg-card-2)}
 </style>
 <script>/* Aplica el tema guardado de inmediato (evita parpadeo) */(function(){try{var t=localStorage.getItem('ctTheme')||'dark';document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
 </head>
@@ -434,6 +485,7 @@ tbody tr:hover td{transition:background .12s ease}
     <div class="page" id="page-dashboard">
       <div class="page-title"><i class="ti ti-layout-dashboard" style="color:var(--red)"></i><span id="dashTitle">Dashboard</span></div>
       <div class="kpi-grid" id="dashKpis"></div>
+      <div id="dashCharts"></div>
       <div class="card">
         <div class="card-title"><i class="ti ti-bell"></i>Resumen general</div>
         <div id="dashResumen"></div>
@@ -489,6 +541,9 @@ tbody tr:hover td{transition:background .12s ease}
           <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:#94a3b8;cursor:pointer;white-space:nowrap">
             <input type="checkbox" id="tubosVerAgotados" onchange="renderTubosResumen()" style="cursor:pointer">
             Mostrar agotados
+          </label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:#94a3b8;white-space:nowrap">Ver en
+            <select class="cur-sel fi" style="width:auto;padding:4px 8px" onchange="setDisplayCur(this.value)"><option value="orig">Original</option><option value="PEN">S/ Soles</option><option value="USD">$ Dólares</option><option value="EUR">€ Euros</option></select>
           </label>
           <button class="btn btn-ghost" id="tubosBtnLimpiar" style="display:none" onclick="tubosLimpiarFiltros()"><i class="ti ti-x"></i>Limpiar</button>
         </div>
@@ -592,7 +647,10 @@ tbody tr:hover td{transition:background .12s ease}
           <button class="btn btn-ghost" onclick="openRepMov('merc')"><i class="ti ti-report"></i>Reporte mov.</button>
           <button class="btn btn-ghost" id="btnConteoMerc" onclick="openConteoAlm('merc')"><i class="ti ti-clipboard-check"></i>Conteo físico</button>
           <button class="btn btn-ghost" id="btnRotMerc" onclick="openRotProd('merc')"><i class="ti ti-arrows-shuffle"></i>Rotación</button>
-          <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:#94a3b8;cursor:pointer;white-space:nowrap;margin-left:auto">
+          <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:#94a3b8;white-space:nowrap;margin-left:auto">Ver en
+            <select class="cur-sel fi" style="width:auto;padding:4px 8px" onchange="setDisplayCur(this.value)"><option value="orig">Original</option><option value="PEN">S/ Soles</option><option value="USD">$ Dólares</option><option value="EUR">€ Euros</option></select>
+          </label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:#94a3b8;cursor:pointer;white-space:nowrap">
             <input type="checkbox" id="mercVerAgotados" onchange="renderMercaderias()" style="cursor:pointer">
             Mostrar agotados
           </label>
@@ -645,7 +703,10 @@ tbody tr:hover td{transition:background .12s ease}
           <button class="btn btn-ghost" onclick="openRepMov('alm')"><i class="ti ti-report"></i>Reporte mov.</button>
           <button class="btn btn-ghost" id="btnConteoAlm" onclick="openConteoAlm('alm')"><i class="ti ti-clipboard-check"></i>Conteo físico</button>
           <button class="btn btn-ghost" id="btnRotAlm" onclick="openRotProd('alm')"><i class="ti ti-arrows-shuffle"></i>Rotación</button>
-          <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:#94a3b8;cursor:pointer;white-space:nowrap;margin-left:auto">
+          <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:#94a3b8;white-space:nowrap;margin-left:auto">Ver en
+            <select class="cur-sel fi" style="width:auto;padding:4px 8px" onchange="setDisplayCur(this.value)"><option value="orig">Original</option><option value="PEN">S/ Soles</option><option value="USD">$ Dólares</option><option value="EUR">€ Euros</option></select>
+          </label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:#94a3b8;cursor:pointer;white-space:nowrap">
             <input type="checkbox" id="almVerAgotados" onchange="renderAlmMecaniza()" style="cursor:pointer">
             Mostrar agotados
           </label>
@@ -689,7 +750,10 @@ tbody tr:hover td{transition:background .12s ease}
           <button class="btn btn-ghost" onclick="openRepMov('sum')"><i class="ti ti-report"></i>Reporte mov.</button>
           <button class="btn btn-ghost" id="btnConteoSum" onclick="openConteoAlm('sum')"><i class="ti ti-clipboard-check"></i>Conteo físico</button>
           <button class="btn btn-ghost" id="btnRotSum" onclick="openRotProd('sum')"><i class="ti ti-arrows-shuffle"></i>Rotación</button>
-          <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:#94a3b8;cursor:pointer;white-space:nowrap;margin-left:auto">
+          <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:#94a3b8;white-space:nowrap;margin-left:auto">Ver en
+            <select class="cur-sel fi" style="width:auto;padding:4px 8px" onchange="setDisplayCur(this.value)"><option value="orig">Original</option><option value="PEN">S/ Soles</option><option value="USD">$ Dólares</option><option value="EUR">€ Euros</option></select>
+          </label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:#94a3b8;cursor:pointer;white-space:nowrap">
             <input type="checkbox" id="sumVerAgotados" onchange="renderSuministros()" style="cursor:pointer">
             Mostrar agotados
           </label>
@@ -1898,7 +1962,10 @@ tbody tr:hover td{transition:background .12s ease}
           <option value="salida">Salidas</option>
         </select>
       </div>
-      <div style="display:flex;align-items:flex-end"><button class="btn btn-ghost" onclick="histTuboLimpiar()" title="Limpiar filtros"><i class="ti ti-refresh"></i></button></div>
+      <div style="display:flex;align-items:flex-end;gap:6px">
+        <button class="btn btn-ghost" onclick="histTuboLimpiar()" title="Limpiar filtros"><i class="ti ti-refresh"></i></button>
+        <button class="btn btn-ghost" onclick="verHistorialPreciosTubo()" title="Precios de compra en el tiempo"><i class="ti ti-currency-dollar"></i>Precios</button>
+      </div>
     </div>
     <div id="htKpis" class="kpi-grid" style="margin-bottom:10px"></div>
     <div class="card" style="padding:0;max-height:380px;overflow-y:auto">
@@ -3165,7 +3232,13 @@ function goTo(page){
 
 async function loadConfig(){
   const {data}=await sb.from("configuracion").select("*");
-  if(data) data.forEach(r=>{cfg[r.clave]=parseFloat(r.valor)||r.valor;});
+  // Solo convertir a número los valores PURAMENTE numéricos. Antes "3mo" se
+  // volvía 3 (parseFloat) y rompía el rango del dashboard ("Rango: undefined").
+  if(data) data.forEach(r=>{
+    const raw=r.valor;
+    const esNum=typeof raw==="string" && raw.trim()!=="" && /^-?\d+(\.\d+)?$/.test(raw.trim());
+    cfg[r.clave]=esNum?parseFloat(raw):raw;
+  });
   rebuildPermisos();
   // Reconstruir el menú con los permisos YA cargados (roles personalizados +
   // overrides por usuario). buildSidebar() corre antes que esto en el login, así
@@ -4023,12 +4096,16 @@ async function loadDashboard(){
   // Barra: rango + personalizar (todos) + configurar por rol (admin)
   const configHint=`<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 4px;margin-bottom:14px;flex-wrap:wrap">
       <div style="font-size:11px;color:var(--text-soft)">Rango: <strong style="color:var(--text)">${({"1mo":"último mes","3mo":"3 meses","6mo":"6 meses","12mo":"1 año","all":"todo"})[cfg.dashboard_range||"3mo"]}</strong>${cfg.dashboard_incl_historico==="true"||cfg.dashboard_incl_historico===true?" · incluye históricos":""}</div>
-      <div style="display:flex;gap:6px">
+      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+        <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:#94a3b8;white-space:nowrap">Ver en
+          <select class="cur-sel fi" style="width:auto;padding:4px 8px" onchange="setDisplayCur(this.value)"><option value="orig">Original</option><option value="PEN">S/ Soles</option><option value="USD">$ Dólares</option><option value="EUR">€ Euros</option></select>
+        </label>
         <button class="btn btn-ghost" style="font-size:11px;padding:5px 10px" onclick="openPersonalizarDash()"><i class="ti ti-adjustments"></i>Personalizar mi dashboard</button>
         ${CU.rol==="admin"?`<button class="btn btn-ghost" style="font-size:11px;padding:5px 10px" onclick="goTo('config');setTimeout(()=>document.getElementById('cfgDashboardCard').scrollIntoView({behavior:'smooth'}),200)"><i class="ti ti-settings"></i>Configurar por rol</button>`:""}
       </div>
     </div>`;
   cont.innerHTML=configHint;
+  _syncCurSels();
 
   // KPIs clickeables — todos cargan en paralelo
   document.getElementById("dashKpis").innerHTML=`
@@ -4044,12 +4121,15 @@ async function loadDashboard(){
 
   if(!Object.values(widgets).some(v=>v)){
     document.getElementById("dashKpis").innerHTML="";
+    document.getElementById("dashCharts").innerHTML="";
     cont.innerHTML+=`<div class="card" style="text-align:center;padding:30px;color:var(--text-faint)">
       <i class="ti ti-layout-dashboard" style="font-size:32px;display:block;margin-bottom:10px;color:var(--border-strong)"></i>
       No hay widgets activos. ${CU.rol==="admin"?'Ve a <strong style="color:var(--red)">Configuración → Dashboard y Reportes</strong> para activarlos.':"Pide al administrador que active los widgets."}
     </div>`;
     return;
   }
+  // Contenedores de gráficos (valor por almacén + barras)
+  document.getElementById("dashCharts").innerHTML=`<div id="dashValorInv" style="margin-bottom:14px"></div><div id="dashBars"></div>`;
 
   // Calcular y poblar KPIs en paralelo
   const tasks=[];
@@ -4063,6 +4143,7 @@ async function loadDashboard(){
   if(widgets.merma) tasks.push(calcMerma());
   if(widgets.eficiencia) tasks.push(calcEficiencia());
   await Promise.all(tasks);
+  renderDashCharts(); // gráficos de barras (consumo y compras por mes)
 
   // Reporte de consumos: rellenar datalist de materiales (cache liviano) + label de rango
   const rl=document.getElementById("repRangoLbl");
@@ -4303,35 +4384,84 @@ function _tcambio(){return {eur:parseFloat(cfg.tipo_cambio_eur_pen)||3.8, usd:pa
 function _aPen(v,mon){v=Number(v)||0;const {eur,usd}=_tcambio();if(mon==="USD")return v*usd;if(mon==="EUR")return v*eur;return v;}
 function _sIni(){const d=new Date();d.setDate(1);return d.toISOString().slice(0,10);}
 
+// ════════════════════════════════════════════════════════════════════════════
+//  MONEDA DE VISUALIZACIÓN — convierte los precios a la moneda que se elija
+//  (Original / S/ / $ / €) usando los tipos de cambio de Configuración.
+// ════════════════════════════════════════════════════════════════════════════
+let _displayCur=(()=>{try{return localStorage.getItem("ctseals_dispcur")||"orig";}catch(e){return "orig";}})();
+function _curRate(cur){const {eur,usd}=_tcambio();return cur==="USD"?usd:cur==="EUR"?eur:1;}
+// Convierte un precio desde su moneda a la moneda de visualización elegida.
+function precioConv(precio,moneda){
+  if(precio==null||precio==="")return null;
+  const p=Number(precio); if(isNaN(p))return null;
+  const mo=moneda||"PEN";
+  if(_displayCur==="orig")return {val:p,cur:mo,orig:true};
+  const pen=_aPen(p,mo);
+  if(_displayCur==="PEN")return {val:pen,cur:"PEN"};
+  const r=_curRate(_displayCur);
+  return {val:r?pen/r:pen,cur:_displayCur};
+}
+// Celda de precio para tablas: valor convertido + (si difiere) el original debajo.
+function precioCell(precio,moneda){
+  const c=precioConv(precio,moneda);
+  if(!c)return '<span style="color:var(--text-faint)">—</span>';
+  const val=Math.round(c.val*100)/100;
+  const mo=moneda||"PEN";
+  const sub=(_displayCur!=="orig"&&mo!==c.cur)?`<div style="font-size:9px;color:var(--text-faint)">${esc(String(precio))} ${esc(mo)}</div>`:"";
+  return `${val} <span style="font-size:9px;color:var(--text-faint)">${esc(c.cur)}</span>${sub}`;
+}
+// Convierte una cifra YA en soles (PEN) a la moneda de visualización (para totales).
+function penToDisp(pen){
+  if(_displayCur==="orig"||_displayCur==="PEN")return {val:pen,cur:"PEN"};
+  const r=_curRate(_displayCur);return {val:r?pen/r:pen,cur:_displayCur};
+}
+// Etiqueta corta de un monto en PEN ya convertido a la moneda elegida (ej: "S/ 1,234").
+function fmtDispMonto(pen){const d=penToDisp(pen);const sym=({PEN:"S/",USD:"$",EUR:"€"})[d.cur]||d.cur;return `${sym} ${Math.round(d.val).toLocaleString()}`;}
+function _syncCurSels(){document.querySelectorAll(".cur-sel").forEach(s=>{if(s.value!==_displayCur)s.value=_displayCur;});}
+function setDisplayCur(v){
+  _displayCur=v;try{localStorage.setItem("ctseals_dispcur",v);}catch(e){}
+  _syncCurSels();
+  if(document.getElementById("page-mercaderias")?.classList.contains("active"))renderMercaderias();
+  if(document.getElementById("page-alm_mecaniza")?.classList.contains("active"))renderAlmMecaniza();
+  if(document.getElementById("page-suministros")?.classList.contains("active"))renderSuministros();
+  if(document.getElementById("page-tubos")?.classList.contains("active"))renderTubosResumen();
+  if(document.getElementById("page-dashboard")?.classList.contains("active"))loadDashboard();
+}
+
+let _valorInvData=null; // {mpCustom,mpMecaniza,almCustom,almMecaniza,suministros,total} en PEN
 async function calcValorInventario(){
   const [merc,alm,sum,tubos,inst]=await Promise.all([
     sb.from("mercaderias").select("stock_actual,precio_unitario,moneda").eq("activo",true).limit(5000),
     sb.from("alm_mecaniza_productos").select("stock_actual,precio_unitario,moneda").eq("activo",true).limit(5000),
     sb.from("suministros_productos").select("stock_actual,precio_unitario,moneda").eq("activo",true).limit(5000),
-    sb.from("tubos").select("id,precio,moneda").limit(20000),
+    sb.from("tubos").select("id,precio,moneda,sede").limit(20000),
     sb.from("tubo_instancias").select("tubo_id").eq("estado","disponible").limit(99999)
   ]);
-  let vMerc=0,vAlm=0,vSum=0,vMp=0;
+  let vMerc=0,vAlm=0,vSum=0,vMpC=0,vMpM=0;
   (merc.data||[]).forEach(p=>vMerc+=_aPen(p.precio_unitario,p.moneda)*(Number(p.stock_actual)||0));
   (alm.data||[]).forEach(p=>vAlm+=_aPen(p.precio_unitario,p.moneda)*(Number(p.stock_actual)||0));
   (sum.data||[]).forEach(p=>vSum+=_aPen(p.precio_unitario,p.moneda)*(Number(p.stock_actual)||0));
   const disp={};(inst.data||[]).forEach(i=>disp[i.tubo_id]=(disp[i.tubo_id]||0)+1);
-  (tubos.data||[]).forEach(t=>vMp+=_aPen(t.precio,t.moneda)*(disp[t.id]||0));
-  const total=vMerc+vAlm+vSum+vMp;
-  const el=document.querySelector("#kpiValorInv .kpi-val");if(el)el.textContent="S/ "+Math.round(total).toLocaleString();
-  const s=document.querySelector("#kpiValorInv .kpi-sub");if(s)s.textContent=`Almacenes S/${Math.round(vMerc+vAlm+vSum).toLocaleString()} · MP S/${Math.round(vMp).toLocaleString()}`;
+  (tubos.data||[]).forEach(t=>{const v=_aPen(t.precio,t.moneda)*(disp[t.id]||0);if((t.sede||"custom")==="mecaniza")vMpM+=v;else vMpC+=v;});
+  const total=vMerc+vAlm+vSum+vMpC+vMpM;
+  _valorInvData={mpCustom:vMpC,mpMecaniza:vMpM,almCustom:vMerc,almMecaniza:vAlm,suministros:vSum,total};
+  const el=document.querySelector("#kpiValorInv .kpi-val");if(el)el.textContent=fmtDispMonto(total);
+  const s=document.querySelector("#kpiValorInv .kpi-sub");if(s)s.textContent=`MP ${fmtDispMonto(vMpC+vMpM)} · Almacenes ${fmtDispMonto(vMerc+vAlm+vSum)}`;
+  renderValorInvCards();
 }
 async function calcComprasMes(){
   const ini=_sIni();
-  const [m1,m2]=await Promise.all([
-    sb.from("mercaderia_movimientos").select("cantidad,precio_unitario,moneda,proveedor").eq("tipo","entrada").gte("fecha",ini).limit(50000),
-    sb.from("alm_mecaniza_movimientos").select("cantidad,precio_unitario,moneda,proveedor").eq("tipo","entrada").gte("fecha",ini).limit(50000),
+  const [m1,m2,m3]=await Promise.all([
+    sb.from("mercaderia_movimientos").select("cantidad,precio_unitario,moneda,proveedor,motivo").eq("tipo","entrada").gte("fecha",ini).limit(50000),
+    sb.from("alm_mecaniza_movimientos").select("cantidad,precio_unitario,moneda,proveedor,motivo").eq("tipo","entrada").gte("fecha",ini).limit(50000),
+    sb.from("suministros_movimientos").select("cantidad,precio_unitario,moneda,proveedor,motivo").eq("tipo","entrada").gte("fecha",ini).limit(50000),
   ]);
-  const all=[...(m1.data||[]),...(m2.data||[])];
+  // Excluir "Inventario inicial": no es una compra (es la carga inicial de stock).
+  const all=[...(m1.data||[]),...(m2.data||[]),...(m3.data||[])].filter(r=>r.motivo!=="Inventario inicial");
   let total=0;const porProv={};
   all.forEach(r=>{const v=_aPen(r.precio_unitario,r.moneda)*(Number(r.cantidad)||0);total+=v;const p=(r.proveedor||"").trim()||"(sin prov.)";porProv[p]=(porProv[p]||0)+v;});
   const top=Object.entries(porProv).sort((a,b)=>b[1]-a[1])[0];
-  const el=document.querySelector("#kpiComprasMes .kpi-val");if(el)el.textContent="S/ "+Math.round(total).toLocaleString();
+  const el=document.querySelector("#kpiComprasMes .kpi-val");if(el)el.textContent=fmtDispMonto(total);
   const s=document.querySelector("#kpiComprasMes .kpi-sub");if(s)s.textContent=all.length?`${all.length} compra(s)${top?` · top: ${top[0]}`:""}`:"sin compras este mes";
 }
 async function calcTendenciaConsumo(){
@@ -4353,6 +4483,124 @@ async function calcRotCli(){
   const top=Object.entries(porCli).sort((a,b)=>b[1]-a[1])[0];
   const el=document.querySelector("#kpiRotCli .kpi-val");if(el)el.textContent=top?(top[0].length>15?top[0].slice(0,15)+"…":top[0]):"—";
   const s=document.querySelector("#kpiRotCli .kpi-sub");if(s)s.textContent=top?`${Object.keys(porCli).length} clientes · click para rotación`:"sin datos de clientes";
+}
+
+// ── Gráficos del dashboard (SVG/CSS, sin librerías) ──
+// Dona con conic-gradient + leyenda. items: [{label,val,color,disp}]
+function _donutHtml(items,total,centerLabel){
+  let acc=0;
+  const segs=items.filter(i=>i.val>0).map(i=>{const a=total>0?acc/total*360:0;acc+=i.val;const b=total>0?acc/total*360:0;return `${i.color} ${a}deg ${b}deg`;});
+  const grad=segs.length?`conic-gradient(${segs.join(",")})`:"conic-gradient(var(--border) 0 360deg)";
+  return `<div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap">
+    <div style="position:relative;width:150px;height:150px;flex-shrink:0">
+      <div style="width:150px;height:150px;border-radius:50%;background:${grad};box-shadow:0 6px 18px rgba(0,0,0,.25)"></div>
+      <div style="position:absolute;inset:24px;border-radius:50%;background:var(--bg-card);display:flex;flex-direction:column;align-items:center;justify-content:center;border:1px solid var(--border)">
+        <div style="font-size:9px;color:var(--text-faint);text-transform:uppercase;letter-spacing:.5px">Total</div>
+        <div style="font-size:15px;font-weight:700;color:var(--text-strong);text-align:center;padding:0 6px">${centerLabel}</div>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:7px;flex:1;min-width:180px">
+      ${items.map(i=>`<div style="display:flex;align-items:center;gap:9px;font-size:12px">
+        <span style="width:11px;height:11px;border-radius:3px;background:${i.color};flex-shrink:0"></span>
+        <span style="flex:1;color:var(--text)">${esc(i.label)}</span>
+        <span style="color:var(--text-strong);font-weight:600;white-space:nowrap">${i.disp}</span>
+      </div>`).join("")}
+    </div>
+  </div>`;
+}
+// Barras verticales. items: [{label,val}]; fmt(val)->texto; color base.
+function _barsHtml(items,fmt,color){
+  const max=Math.max(1,...items.map(i=>i.val));
+  return `<div style="display:flex;align-items:flex-end;gap:10px;height:150px;padding:6px 4px 0">
+    ${items.map(i=>{const h=Math.round((i.val/max)*110);return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;min-width:0">
+      <div style="font-size:9px;color:var(--text-soft);white-space:nowrap">${i.val>0?fmt(i.val):""}</div>
+      <div style="width:70%;max-width:40px;height:${h}px;background:linear-gradient(180deg,${color},${color}80);border-radius:6px 6px 0 0;transition:height .35s" title="${esc(fmt(i.val))}"></div>
+      <div style="font-size:9px;color:var(--text-faint);white-space:nowrap">${esc(i.label)}</div>
+    </div>`;}).join("")}
+  </div>`;
+}
+// Gráfico de línea (tendencia) en SVG. items: [{label,val}]; fmt(val)->texto.
+function _lineHtml(items,fmt,color){
+  const vals=items.map(i=>i.val); const max=Math.max(1,...vals);
+  const W=340,H=120,pad=8;const n=items.length;
+  const x=i=>pad+(n<=1?(W-2*pad)/2:i*(W-2*pad)/(n-1));
+  const y=v=>H-pad-(v/max)*(H-2*pad);
+  const pts=items.map((it,i)=>`${x(i).toFixed(1)},${y(it.val).toFixed(1)}`).join(" ");
+  const area=`${x(0).toFixed(1)},${H-pad} ${pts} ${x(n-1).toFixed(1)},${H-pad}`;
+  const ult=items[n-1]?items[n-1].val:0;
+  return `<svg viewBox="0 0 ${W} ${H+22}" style="width:100%;height:auto">
+    <defs><linearGradient id="lgTend" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${color}" stop-opacity=".35"/><stop offset="1" stop-color="${color}" stop-opacity="0"/></linearGradient></defs>
+    <polygon points="${area}" fill="url(#lgTend)"/>
+    <polyline points="${pts}" fill="none" stroke="${color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+    ${items.map((it,i)=>`<circle cx="${x(i).toFixed(1)}" cy="${y(it.val).toFixed(1)}" r="2.4" fill="${color}"/>`).join("")}
+    ${items.map((it,i)=>(i%2===0||n<=6)?`<text x="${x(i).toFixed(1)}" y="${H+14}" font-size="7" fill="#94a3b8" text-anchor="middle">${esc(it.label)}</text>`:"").join("")}
+    <text x="${(x(n-1)-2).toFixed(1)}" y="${(y(ult)-5).toFixed(1)}" font-size="8" fill="${color}" text-anchor="end" font-weight="700">${esc(fmt(ult))}</text>
+  </svg>`;
+}
+// Tarjetas + dona del valor de inventario por almacén (5 almacenes).
+function renderValorInvCards(){
+  const box=document.getElementById("dashValorInv");
+  if(!box||!_valorInvData) return;
+  const d=_valorInvData;
+  const items=[
+    {label:"MP — Custom",val:d.mpCustom,color:"#e85a5a"},
+    {label:"MP — Mecaniza",val:d.mpMecaniza,color:"#f5a623"},
+    {label:"Almacén Custom",val:d.almCustom,color:"#5b9bd5"},
+    {label:"Almacén Mecaniza",val:d.almMecaniza,color:"#a78bfa"},
+    {label:"Suministros",val:d.suministros,color:"#4caf8c"},
+  ].map(i=>({...i,disp:fmtDispMonto(i.val)}));
+  const cards=items.map(i=>`<div class="tubo-stat"><div class="tubo-stat-ic" style="background:${i.color}22;color:${i.color}"><i class="ti ti-cash"></i></div><div><div class="tubo-stat-val" style="color:${i.color};font-size:18px">${i.disp}</div><div class="tubo-stat-lbl">${esc(i.label)}</div></div></div>`).join("");
+  box.innerHTML=`<div class="card">
+    <div class="card-title"><i class="ti ti-cash"></i>Valor de inventario por almacén</div>
+    <div class="tubo-stats" style="margin-bottom:16px">${cards}</div>
+    ${_donutHtml(items,d.total,fmtDispMonto(d.total))}
+  </div>`;
+}
+// Gráficos de barras: consumo por mes (mm) y compras por mes (S/ en moneda elegida).
+async function renderDashCharts(){
+  const box=document.getElementById("dashBars");
+  if(!box) return;
+  box.style.cssText="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px;margin-bottom:14px";
+  box.innerHTML=`
+    <div class="card"><div class="card-title"><i class="ti ti-chart-bar"></i>Consumo por mes (mm)</div><div id="chConsumo" style="min-height:150px"><div class="loading"><div class="spinner"></div></div></div></div>
+    <div class="card"><div class="card-title"><i class="ti ti-shopping-cart"></i>Compras por mes</div><div id="chCompras" style="min-height:150px"><div class="loading"><div class="spinner"></div></div></div></div>
+    <div class="card"><div class="card-title"><i class="ti ti-chart-line"></i>Tendencia de consumo (12 meses)</div><div id="chTend" style="min-height:150px"><div class="loading"><div class="spinner"></div></div></div></div>
+    <div class="card"><div class="card-title"><i class="ti ti-truck"></i>Compras por proveedor (mes)</div><div id="chProv" style="min-height:150px"><div class="loading"><div class="spinner"></div></div></div></div>`;
+  const d12=new Date();d12.setDate(1);d12.setMonth(d12.getMonth()-11);
+  const ini12=d12.toISOString().slice(0,10);
+  const iniMes=_sIni();
+  const inclHist=cfg.dashboard_incl_historico==="true"||cfg.dashboard_incl_historico===true;
+  try{
+    let q=sb.from("consumos_ops").select("fecha,consumido").gte("fecha",ini12).limit(50000);
+    if(!inclHist) q=q.eq("es_historico",false);
+    const [{data:cons},c1,c2,c3]=await Promise.all([
+      q,
+      sb.from("mercaderia_movimientos").select("fecha,cantidad,precio_unitario,moneda,proveedor,motivo").eq("tipo","entrada").gte("fecha",ini12).limit(50000),
+      sb.from("alm_mecaniza_movimientos").select("fecha,cantidad,precio_unitario,moneda,proveedor,motivo").eq("tipo","entrada").gte("fecha",ini12).limit(50000),
+      sb.from("suministros_movimientos").select("fecha,cantidad,precio_unitario,moneda,proveedor,motivo").eq("tipo","entrada").gte("fecha",ini12).limit(50000),
+    ]);
+    // Excluir "Inventario inicial" de las compras (no es una compra real).
+    const entradas=[...(c1.data||[]),...(c2.data||[]),...(c3.data||[])].filter(r=>r.motivo!=="Inventario inicial");
+    const byM={};(cons||[]).forEach(c=>{const m=String(c.fecha||"").slice(0,7);if(m)byM[m]=(byM[m]||0)+(Number(c.consumido)||0);});
+    const compM={};entradas.forEach(r=>{const m=String(r.fecha||"").slice(0,7);if(m)compM[m]=(compM[m]||0)+_aPen((r.precio_unitario||0)*(r.cantidad||0),r.moneda||"PEN");});
+    const MES=["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
+    const fmtMes=m=>{const [y,mm]=m.split("-");return MES[+mm-1]+" "+y.slice(2);};
+    const meses12=[];const dt=new Date(d12);for(let i=0;i<12;i++){meses12.push(dt.toISOString().slice(0,7));dt.setMonth(dt.getMonth()+1);}
+    const meses6=meses12.slice(-6);
+    const cc=document.getElementById("chConsumo");if(cc)cc.innerHTML=_barsHtml(meses6.map(m=>({label:fmtMes(m),val:byM[m]||0})),v=>Math.round(v).toLocaleString()+"mm","#5b9bd5");
+    const ck=document.getElementById("chCompras");if(ck)ck.innerHTML=_barsHtml(meses6.map(m=>({label:fmtMes(m),val:compM[m]||0})),v=>fmtDispMonto(v),"#4caf8c");
+    const ct=document.getElementById("chTend");if(ct)ct.innerHTML=_lineHtml(meses12.map(m=>({label:MES[+m.split("-")[1]-1],val:byM[m]||0})),v=>Math.round(v).toLocaleString()+"mm","#a78bfa");
+    // Compras por proveedor (mes actual)
+    const prov={};entradas.filter(r=>String(r.fecha||"")>=iniMes).forEach(r=>{const p=(r.proveedor||"").trim()||"(sin proveedor)";prov[p]=(prov[p]||0)+_aPen((r.precio_unitario||0)*(r.cantidad||0),r.moneda||"PEN");});
+    const provArr=Object.entries(prov).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1]);
+    const palette=["#5b9bd5","#a78bfa","#4caf8c","#f5a623","#e85a5a","#64748b"];
+    let provItems=provArr.slice(0,5).map(([label,val],i)=>({label,val,color:palette[i]}));
+    if(provArr.length>5){const otros=provArr.slice(5).reduce((a,[,v])=>a+v,0);if(otros>0)provItems.push({label:"Otros",val:otros,color:palette[5]});}
+    provItems=provItems.map(i=>({...i,disp:fmtDispMonto(i.val)}));
+    const totalProv=provItems.reduce((a,i)=>a+i.val,0);
+    const cp=document.getElementById("chProv");
+    if(cp)cp.innerHTML=provItems.length?_donutHtml(provItems,totalProv,fmtDispMonto(totalProv)):`<div class="no-data" style="padding:20px;font-size:11px">Sin compras este mes</div>`;
+  }catch(err){const cc=document.getElementById("chConsumo");if(cc)cc.innerHTML=`<div class="no-data" style="padding:14px;font-size:11px">Error: ${esc(err.message)}</div>`;}
 }
 
 // Detalles (modales) de los widgets nuevos
@@ -4915,7 +5163,7 @@ function renderHistorial(){
       <td style="font-size:11px;color:var(--text)">${new Date(m.fecha).toLocaleString("es-PE",{dateStyle:"short",timeStyle:"short"})}</td>
       <td><span style="background:${tipoColor}22;color:${tipoColor};font-size:10px;padding:2px 8px;border-radius:10px;font-weight:500">${tipoLabel}</span></td>
       <td style="text-align:right;color:${tipoColor};font-weight:500">${m.tipo==="salida"||m.tipo==="transferencia_out"?"-":"+"}${m.cantidad}</td>
-      <td style="text-align:right;color:var(--text)">${m.precio_unitario!=null?`${m.precio_unitario} ${esc(m.moneda)}`:"—"}</td>
+      <td style="text-align:right;color:var(--text)">${precioCell(m.precio_unitario,m.moneda)}</td>
       <td style="font-size:11px;color:var(--text)">${esc(m.proveedor||m.cliente_nombre)||"—"}</td>
       <td style="font-family:monospace;font-size:10px;color:var(--text-soft)">${esc(m.op_numero)||"—"}</td>
       <td style="font-size:11px;color:var(--text)">${esc(m.motivo)}</td>
@@ -5176,11 +5424,11 @@ async function generarRepMov(){
     filtered.forEach(m=>{
       const p=prodMap[m[fk]]||{};
       const esEnt=m.tipo==="entrada"||m.tipo==="transferencia_in";
-      if(esEnt){tEnt+=Number(m.cantidad)||0; if(m.precio_unitario!=null) gastadoPen+=_aPen(m.precio_unitario*(Number(m.cantidad)||0),m.moneda||"PEN");} else tSal+=Number(m.cantidad)||0;
+      if(esEnt){tEnt+=Number(m.cantidad)||0; if(m.precio_unitario!=null&&m.motivo!=="Inventario inicial") gastadoPen+=_aPen(m.precio_unitario*(Number(m.cantidad)||0),m.moneda||"PEN");} else tSal+=Number(m.cantidad)||0;
       aoa.push([new Date(m.fecha).toLocaleString("es-PE"),p.codigo||"",p.nombre||"",_d.catLabel(p.categoria)||"",m.tipo,(esEnt?"+":"-")+m.cantidad,m.precio_unitario??"",m.moneda||"",m.proveedor||m.cliente_nombre||"",m.op_numero||"",m.motivo||"",umap[m.usuario_id]||""]);
     });
     const nombreAlm=_d.nombre;
-    const resumen=`<div style="display:flex;gap:14px;margin-bottom:14px;font-size:13px;flex-wrap:wrap"><span style="color:#1e8449">Entradas: <b>+${tEnt}</b></span><span style="color:#b9770e">Salidas: <b>-${tSal}</b></span><span>Movimientos: <b>${filtered.length}</b></span><span style="color:#1e8449">Total comprado: <b>S/ ${Math.round(gastadoPen).toLocaleString()}</b></span></div>`;
+    const resumen=`<div style="display:flex;gap:14px;margin-bottom:14px;font-size:13px;flex-wrap:wrap"><span style="color:#1e8449">Entradas: <b>+${tEnt}</b></span><span style="color:#b9770e">Salidas: <b>-${tSal}</b></span><span>Movimientos: <b>${filtered.length}</b></span><span style="color:#1e8449">Total comprado: <b>${fmtDispMonto(gastadoPen)}</b></span></div>`;
     const sub=`${nombreAlm}${cat?` · ${_d.catLabel(cat)}`:""}${(desde||hasta)?` · ${desde||"inicio"} → ${hasta||"hoy"}`:""}`;
     setBtnLoading("btnGenRepMov",false);
     closeModal("modalRepMov");
@@ -5425,6 +5673,7 @@ function hydrateTubosUI(allTubos){
 function renderTubosResumen(){
   const {tubos,instByTubo,usingView}=_tubosCache;
   const verP=!!getEffectivePerms().verPrecios;
+  _syncCurSels();
   const q=(_tubosState.query||"").trim().toLowerCase();
   const fMat=_tubosState.fMat||"";
 
@@ -5521,7 +5770,7 @@ function renderTubosResumen(){
       <td style="text-align:center"><span style="color:${colorDisp};font-weight:600;font-size:13px">${disp}</span><span style="color:var(--text-faint)"> / ${insts.length}</span></td>
       <td style="text-align:right;color:#5b9bd5;font-weight:500;white-space:nowrap">${mmRest.toFixed(0)}<span style="color:var(--text-faint);font-size:10px"> mm</span></td>
       <td style="text-align:center;color:var(--text-soft)">${pct}%</td>
-      ${verP?`<td style="text-align:right;white-space:nowrap;color:#4caf8c;font-weight:500">${t.precio!=null&&t.precio!==""?`${t.precio} <span style="font-size:9px;color:var(--text-faint)">${esc(t.moneda||"PEN")}</span>`:'<span style="color:var(--text-faint)">—</span>'}</td>`:""}
+      ${verP?`<td style="text-align:right;white-space:nowrap;color:#4caf8c;font-weight:500">${precioCell(t.precio,t.moneda)}</td>`:""}
       <td style="text-align:right;white-space:nowrap">
         <button class="btn btn-blue" style="padding:5px 10px;font-size:11px;white-space:nowrap" onclick="verDetalleTubo(${t.id})"><i class="ti ti-eye"></i>Consultar stock</button>
       </td>
@@ -6688,14 +6937,14 @@ async function generarRepMovTubos(){
       const t=tuboMap[m.tubo_id]||{};
       const cant=m.cantidad??"";
       const total=(m.precio_unitario!=null&&m.cantidad)?(m.precio_unitario*m.cantidad):null;
-      if(m.tipo==="entrada"){tEnt+=Number(m.cantidad)||0; if(total!=null) gastadoPen+=_aPen(total,m.moneda||"PEN");}
+      if(m.tipo==="entrada"){tEnt+=Number(m.cantidad)||0; if(total!=null&&!/Inventario inicial/i.test(m.nota||"")) gastadoPen+=_aPen(total,m.moneda||"PEN");}
       aoa.push([new Date(m.fecha).toLocaleString("es-PE"),t.cod||"",t.desc||"",tipoLabel[m.tipo]||m.tipo,cant,m.altura_usada??"",m.precio_unitario??"",total!=null?Math.round(total*100)/100:"",m.moneda||"",umap[m.usuario_id]||""]);
     });
     const nombreSede=`Materia Prima ${sede==="custom"?"Custom":"Mecaniza"}`;
     const resumen=`<div style="display:flex;gap:14px;margin-bottom:14px;font-size:13px;flex-wrap:wrap">
       <span style="color:#1e8449">Tubos ingresados: <b>${tEnt}</b></span>
       <span>Movimientos: <b>${filtered.length}</b></span>
-      <span style="color:#1e8449">Total comprado: <b>S/ ${Math.round(gastadoPen).toLocaleString()}</b></span>
+      <span style="color:#1e8449">Total comprado: <b>${fmtDispMonto(gastadoPen)}</b></span>
     </div>`;
     const sub=`${nombreSede}${matSel?` · ${matSel}`:""}${tipo?` · ${tipoLabel[tipo]||tipo}`:""}${(desde||hasta)?` · ${desde||"inicio"} → ${hasta||"hoy"}`:""}`;
     setBtnLoading("btnGenRepMovTubos",false);
@@ -6779,6 +7028,35 @@ function renderHistTubo(){
       </td>
     </tr>`;
   }).join(""):`<tr><td colspan="8" class="no-data">Sin movimientos con esos filtros</td></tr>`;
+}
+
+// Historial de precios de compra del material (evolución en el tiempo).
+function verHistorialPreciosTubo(){
+  const entradas=(_histTuboState.data||[]).filter(m=>m.tipo==="entrada"&&m.precio_unitario!=null);
+  if(!entradas.length){toast("Este material no tiene precios registrados en sus entradas","err");return;}
+  const ord=[...entradas].sort((a,b)=>new Date(a.fecha)-new Date(b.fecha));
+  const fmtFecha=f=>new Date(f).toLocaleDateString("es-PE");
+  const aoa=[["Fecha","Tubos","Precio unitario","Moneda","Total"]];
+  ord.forEach(m=>{
+    const total=(m.precio_unitario!=null&&m.cantidad)?Math.round(m.precio_unitario*m.cantidad*100)/100:"";
+    aoa.push([fmtFecha(m.fecha),m.cantidad??"",m.precio_unitario,m.moneda||"",total]);
+  });
+  const precios=ord.map(m=>Number(m.precio_unitario));
+  const ult=ord[ord.length-1];
+  const prom=(precios.reduce((a,b)=>a+b,0)/precios.length);
+  const min=Math.min(...precios), max=Math.max(...precios);
+  const gastoPen=ord.reduce((a,m)=>a+_aPen((m.precio_unitario||0)*(m.cantidad||0),m.moneda||"PEN"),0);
+  const resumen=`
+    <div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:14px;font-size:13px">
+      <span>Último precio: <b>${ult.precio_unitario} ${esc(ult.moneda||"")}</b> <span style="color:#888">(${fmtFecha(ult.fecha)})</span></span>
+      <span>Promedio: <b>${prom.toFixed(2)}</b></span>
+      <span style="color:#1e8449">Mínimo: <b>${min}</b></span>
+      <span style="color:#c0392b">Máximo: <b>${max}</b></span>
+      <span>Compras: <b>${ord.length}</b></span>
+      <span>Total gastado: <b>S/ ${Math.round(gastoPen).toLocaleString()}</b></span>
+    </div>
+    <h2 style="font-size:15px;margin:6px 0">Evolución en el tiempo</h2>`;
+  abrirReporteHTML(`Historial de precios — ${_histTuboState.nombre||""}`,`${_histTuboState.codigo||""} · ${ord.length} compras`,aoa,resumen);
 }
 
 // Lee/oculta el marcador de IDs guardado en la nota de un movimiento de entrada.
@@ -9163,6 +9441,7 @@ function resetFiltrosMerc(){
 
 function renderMercaderias(){
   const perm=getEffectivePerms();
+  _syncCurSels();
   _mercState.query=document.getElementById("mercQ")?.value.toLowerCase()||"";
   _mercState.cat=document.getElementById("mercCat")?.value||"";
   _mercState.stock=document.getElementById("mercStock")?.value||"";
@@ -9214,7 +9493,7 @@ function renderMercaderias(){
       <td>${catBadge(m.categoria)}</td>
       <td style="color:var(--text);font-size:10px">${med}</td>
       <td style="text-align:right"><span style="color:${colorStock};font-weight:600">${m.stock_actual}</span><span style="color:var(--text-faint);font-size:10px"> ${esc(m.unidad)}</span>${(m.stock_minimo||0)>0?`<div style="font-size:9px;color:var(--text-faint)">mín ${m.stock_minimo}</div>`:""}</td>
-      <td style="text-align:right;color:var(--text)">${m.precio_unitario!=null?`${m.precio_unitario} <span style="font-size:9px;color:var(--text-faint)">${esc(m.moneda)}</span>`:"—"}</td>
+      <td style="text-align:right;color:var(--text)">${precioCell(m.precio_unitario,m.moneda)}</td>
       <td style="white-space:nowrap;padding-left:14px"><div style="display:flex;gap:6px">
         ${perm.editarMerc?`<button class="btn btn-green" style="padding:5px 10px;font-size:11px" onclick="openMercMov(${m.id},'entrada')" title="Registrar entrada de stock"><i class="ti ti-arrow-down"></i>Entrada</button>
         <button class="btn btn-amber" style="padding:5px 10px;font-size:11px" onclick="openMercMov(${m.id},'salida')" title="Registrar salida de stock"><i class="ti ti-arrow-up"></i>Salida</button>
@@ -9519,6 +9798,7 @@ function resetFiltrosAlm(){
 
 function renderAlmMecaniza(){
   const perm=getEffectivePerms();
+  _syncCurSels();
   _almState.query=document.getElementById("almQ")?.value.toLowerCase()||"";
   _almState.stock=document.getElementById("almStock")?.value||"";
   _almState.cat=document.getElementById("almCat")?.value||"";
@@ -9564,7 +9844,7 @@ function renderAlmMecaniza(){
       <td>${catBadge(a.categoria)}</td>
       <td style="color:var(--text);font-size:10px">${med}</td>
       <td style="text-align:right"><span style="color:${colorStock};font-weight:600">${a.stock_actual}</span><span style="color:var(--text-faint);font-size:10px"> ${esc(a.unidad)}</span>${(a.stock_minimo||0)>0?`<div style="font-size:9px;color:var(--text-faint)">mín ${a.stock_minimo}</div>`:""}</td>
-      <td style="text-align:right;color:var(--text)">${a.precio_unitario!=null?`${a.precio_unitario} <span style="font-size:9px;color:var(--text-faint)">${esc(a.moneda)}</span>`:"—"}</td>
+      <td style="text-align:right;color:var(--text)">${precioCell(a.precio_unitario,a.moneda)}</td>
       <td style="white-space:nowrap;padding-left:14px"><div style="display:flex;gap:6px">
         ${perm.editarAlmMec?`<button class="btn btn-green" style="padding:5px 10px;font-size:11px" onclick="openAlmMov(${a.id},'entrada')" title="Registrar entrada de stock"><i class="ti ti-arrow-down"></i>Entrada</button>
         <button class="btn btn-amber" style="padding:5px 10px;font-size:11px" onclick="openAlmMov(${a.id},'salida')" title="Registrar salida de stock"><i class="ti ti-arrow-up"></i>Salida</button>
@@ -9789,6 +10069,7 @@ function resetFiltrosSum(){
 
 function renderSuministros(){
   const perm=getEffectivePerms();
+  _syncCurSels();
   _sumState.query=document.getElementById("sumQ")?.value.toLowerCase()||"";
   _sumState.stock=document.getElementById("sumStock")?.value||"";
   _sumState.cat=document.getElementById("sumCat")?.value||"";
@@ -9831,7 +10112,7 @@ function renderSuministros(){
       <td><div style="color:var(--text-strong);font-weight:500">${esc(a.nombre)}</div>${a.descripcion?`<div style="font-size:10px;color:var(--text-faint)">${esc(a.descripcion)}</div>`:""}</td>
       <td>${catBadge(a.categoria)}</td>
       <td style="text-align:right"><span style="color:${colorStock};font-weight:600">${a.stock_actual}</span><span style="color:var(--text-faint);font-size:10px"> ${esc(a.unidad)}</span>${(a.stock_minimo||0)>0?`<div style="font-size:9px;color:var(--text-faint)">mín ${a.stock_minimo}</div>`:""}</td>
-      <td style="text-align:right;color:var(--text)">${a.precio_unitario!=null?`${a.precio_unitario} <span style="font-size:9px;color:var(--text-faint)">${esc(a.moneda)}</span>`:"—"}</td>
+      <td style="text-align:right;color:var(--text)">${precioCell(a.precio_unitario,a.moneda)}</td>
       <td style="white-space:nowrap;padding-left:14px"><div style="display:flex;gap:6px">
         ${perm.editarSum?`<button class="btn btn-green" style="padding:5px 10px;font-size:11px" onclick="openSumMov(${a.id},'entrada')" title="Registrar entrada de stock"><i class="ti ti-arrow-down"></i>Entrada</button>
         <button class="btn btn-amber" style="padding:5px 10px;font-size:11px" onclick="openSumMov(${a.id},'salida')" title="Registrar salida de stock"><i class="ti ti-arrow-up"></i>Salida</button>
