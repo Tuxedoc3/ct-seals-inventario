@@ -647,6 +647,7 @@ tbody tr:hover td:first-child{box-shadow:inset 3px 0 0 var(--red)}
           <button class="btn btn-ghost" onclick="openRepMov('merc')"><i class="ti ti-report"></i>Reporte mov.</button>
           <button class="btn btn-ghost" id="btnConteoMerc" onclick="openConteoAlm('merc')"><i class="ti ti-clipboard-check"></i>Conteo físico</button>
           <button class="btn btn-ghost" id="btnRotMerc" onclick="openRotProd('merc')"><i class="ti ti-arrows-shuffle"></i>Rotación</button>
+          <button class="btn btn-ghost" onclick="ayudaAlmacen()" title="¿Cómo funciona esta pantalla?"><i class="ti ti-help-circle"></i>¿Cómo funciona?</button>
           <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:#94a3b8;white-space:nowrap;margin-left:auto">Ver en
             <select class="cur-sel fi" style="width:auto;padding:4px 8px" onchange="setDisplayCur(this.value)"><option value="orig">Original</option><option value="PEN">S/ Soles</option><option value="USD">$ Dólares</option><option value="EUR">€ Euros</option></select>
           </label>
@@ -703,6 +704,7 @@ tbody tr:hover td:first-child{box-shadow:inset 3px 0 0 var(--red)}
           <button class="btn btn-ghost" onclick="openRepMov('alm')"><i class="ti ti-report"></i>Reporte mov.</button>
           <button class="btn btn-ghost" id="btnConteoAlm" onclick="openConteoAlm('alm')"><i class="ti ti-clipboard-check"></i>Conteo físico</button>
           <button class="btn btn-ghost" id="btnRotAlm" onclick="openRotProd('alm')"><i class="ti ti-arrows-shuffle"></i>Rotación</button>
+          <button class="btn btn-ghost" onclick="ayudaAlmacen()" title="¿Cómo funciona esta pantalla?"><i class="ti ti-help-circle"></i>¿Cómo funciona?</button>
           <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:#94a3b8;white-space:nowrap;margin-left:auto">Ver en
             <select class="cur-sel fi" style="width:auto;padding:4px 8px" onchange="setDisplayCur(this.value)"><option value="orig">Original</option><option value="PEN">S/ Soles</option><option value="USD">$ Dólares</option><option value="EUR">€ Euros</option></select>
           </label>
@@ -750,6 +752,7 @@ tbody tr:hover td:first-child{box-shadow:inset 3px 0 0 var(--red)}
           <button class="btn btn-ghost" onclick="openRepMov('sum')"><i class="ti ti-report"></i>Reporte mov.</button>
           <button class="btn btn-ghost" id="btnConteoSum" onclick="openConteoAlm('sum')"><i class="ti ti-clipboard-check"></i>Conteo físico</button>
           <button class="btn btn-ghost" id="btnRotSum" onclick="openRotProd('sum')"><i class="ti ti-arrows-shuffle"></i>Rotación</button>
+          <button class="btn btn-ghost" onclick="ayudaAlmacen()" title="¿Cómo funciona esta pantalla?"><i class="ti ti-help-circle"></i>¿Cómo funciona?</button>
           <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:#94a3b8;white-space:nowrap;margin-left:auto">Ver en
             <select class="cur-sel fi" style="width:auto;padding:4px 8px" onchange="setDisplayCur(this.value)"><option value="orig">Original</option><option value="PEN">S/ Soles</option><option value="USD">$ Dólares</option><option value="EUR">€ Euros</option></select>
           </label>
@@ -820,8 +823,9 @@ tbody tr:hover td:first-child{box-shadow:inset 3px 0 0 var(--red)}
         <div class="btn-row">
           <button class="btn btn-ghost" onclick="resetFiltrosCons()"><i class="ti ti-refresh"></i>Limpiar</button>
           <button class="btn btn-ghost" onclick="openRankingMateriales()"><i class="ti ti-trophy"></i>Ranking de materiales</button>
-          <button class="btn btn-red" id="btnNuevoCons" onclick="openModalConsumo()"><i class="ti ti-plus"></i>Nuevo registro</button>
+          <button class="btn btn-red" id="btnGridCons" onclick="openGridConsumo()"><i class="ti ti-plus"></i>Nuevo registro</button>
           <button class="btn btn-blue" id="btnImportCons" onclick="document.getElementById('consImportInput').click()"><i class="ti ti-upload"></i>Importar histórico Excel</button>
+          <button class="btn btn-ghost" onclick="ayudaConsumos()" title="¿Cómo funciona esta pantalla?"><i class="ti ti-help-circle"></i>¿Cómo funciona?</button>
           <input type="file" id="consImportInput" style="display:none" accept=".xlsx,.xls" onchange="importConsumosExcel(event)">
         </div>
         <div id="consImportProgress" style="display:none"></div>
@@ -837,14 +841,14 @@ tbody tr:hover td:first-child{box-shadow:inset 3px 0 0 var(--red)}
           <table>
             <thead><tr>
               <th id="consChkHead" style="width:34px;text-align:center"><input type="checkbox" id="consChkAll" onclick="toggleConsSelAll(this)" title="Seleccionar todo"></th>
-              <th>FECHA</th><th>OP</th><th>MATERIAL</th>
+              <th>FECHA</th><th>OP</th><th>CLIENTE</th><th>MATERIAL</th>
               <th style="text-align:right">DI</th><th style="text-align:right">DE</th><th style="text-align:right">LARGO</th>
               <th style="text-align:right">ENVIADO</th><th style="text-align:right">DEVUELTO</th>
               <th style="text-align:right">CONSUMIDO</th>
               <th>OBSERVACIONES</th>
               <th>Acciones</th>
             </tr></thead>
-            <tbody id="cons-tbody"><tr><td colspan="12" class="no-data"><div class="loading"><div class="spinner"></div>Cargando...</div></td></tr></tbody>
+            <tbody id="cons-tbody"><tr><td colspan="13" class="no-data"><div class="loading"><div class="spinner"></div>Cargando...</div></td></tr></tbody>
           </table>
         </div>
         <div class="tbl-footer" id="consFooter"></div>
@@ -1302,6 +1306,73 @@ tbody tr:hover td:first-child{box-shadow:inset 3px 0 0 var(--red)}
 </div>
 
 <!-- MODAL: Nuevo consumo (multi-línea con selectores jerárquicos) -->
+<!-- MODAL: Nuevo registro (grid tipo Excel) -->
+<div class="modal-overlay" id="modalGrid" style="display:none" onclick="if(event.target===this)closeModalSafe('modalGrid')">
+  <div class="modal" style="max-width:920px">
+    <div class="modal-title"><i class="ti ti-clipboard-plus" style="color:#f5a623"></i>Nuevo registro — Consumos <span style="margin-left:auto;font-size:11px;color:var(--text-faint);font-weight:normal"><i class="ti ti-bolt"></i> Tab avanza · Enter agrega fila</span></div>
+    <!-- Cabecera de la OP -->
+    <div class="form-row-3" style="margin-bottom:6px">
+      <div class="form-group"><label class="form-label">Fecha <span class="req">*</span></label><input class="form-input" id="g_fecha" type="date"></div>
+      <div class="form-group"><label class="form-label">N° OP <span class="req">*</span></label><input class="form-input" id="g_op" placeholder="Ej: 9263"></div>
+      <div class="form-group"><label class="form-label">Tipo</label><select class="form-input" id="g_tipo" onchange="gridTipoChange()"><option value="externa">Orden de producción</option><option value="interno">Uso interno</option></select></div>
+    </div>
+    <div class="form-group" id="g_cliente_box" style="margin-bottom:10px">
+      <label class="form-label" id="g_cliente_label">Cliente</label>
+      <input class="form-input" id="g_cliente" list="consClientesList" autocomplete="off" placeholder="Cliente de la OP (uno por OP)">
+    </div>
+    <div class="tbl-wrap" style="max-height:none;border:.5px solid var(--border);border-radius:8px;margin-bottom:8px">
+      <table style="font-size:12px;table-layout:fixed">
+        <colgroup><col style="width:auto"><col style="width:60px"><col style="width:60px"><col style="width:64px"><col style="width:74px"><col style="width:auto"><col style="width:32px"></colgroup>
+        <thead><tr>
+          <th>Material</th><th style="text-align:right">DI</th><th style="text-align:right">DE</th><th style="text-align:right">Largo</th><th style="text-align:right">Enviado</th><th>Observaciones</th><th></th>
+        </tr></thead>
+        <tbody id="grid-body"></tbody>
+      </table>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+      <button class="btn btn-ghost" style="font-size:11px;padding:5px 10px" onclick="gridAddRow()"><i class="ti ti-plus"></i>Agregar fila</button>
+      <button class="btn btn-ghost" style="font-size:11px;padding:5px 10px" onclick="document.getElementById('g_paste_box').style.display=document.getElementById('g_paste_box').style.display==='none'?'block':'none'"><i class="ti ti-clipboard"></i>Pegar de Excel</button>
+      <span id="g_resumen" style="margin-left:auto;font-size:11px;color:var(--text-soft)"></span>
+    </div>
+    <div id="g_paste_box" style="display:none;margin-bottom:10px">
+      <label class="form-label">Pega aquí filas de Excel (Material, DI, DE, Largo, Enviado — separadas por TAB)</label>
+      <textarea class="form-input" id="g_paste" rows="4" placeholder="PU RED	37	62	150	88&#10;NBR	38	60	120	32" style="font-family:monospace;font-size:11px"></textarea>
+      <div style="margin-top:6px"><button class="btn btn-blue" style="font-size:11px;padding:5px 10px" onclick="gridPasteApply()"><i class="ti ti-arrow-down"></i>Cargar filas pegadas</button></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modalGrid')">Cancelar</button>
+      <button class="btn btn-red" id="btnGridSave" onclick="gridSave()"><i class="ti ti-check"></i>Guardar OP</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Editar OP completa (todas sus líneas) -->
+<div class="modal-overlay" id="modalEditOp" style="display:none" onclick="if(event.target===this)closeModalSafe('modalEditOp')">
+  <div class="modal" style="max-width:920px">
+    <div class="modal-title"><i class="ti ti-edit" style="color:#5b9bd5"></i><span id="eopTitle">Editar OP</span></div>
+    <div style="font-size:11px;color:var(--text-soft);margin-bottom:10px">Edita todas las líneas de la OP a la vez. En las líneas <strong>cerradas</strong> no se puede cambiar el ENVIADO (reábrelas primero desde "Cerrar OP" si necesitas corregir el descuento).</div>
+    <div class="form-row-3" style="margin-bottom:10px">
+      <div class="form-group"><label class="form-label">Fecha</label><input class="form-input" id="eop_fecha" type="date"></div>
+      <div class="form-group"><label class="form-label">N° OP</label><input class="form-input" id="eop_op"></div>
+      <div class="form-group"><label class="form-label">Cliente</label><input class="form-input" id="eop_cliente" list="consClientesList" autocomplete="off"></div>
+    </div>
+    <div class="tbl-wrap" style="max-height:none;border:.5px solid var(--border);border-radius:8px;margin-bottom:10px">
+      <table style="font-size:12px;table-layout:fixed">
+        <colgroup><col style="width:auto"><col style="width:60px"><col style="width:60px"><col style="width:64px"><col style="width:74px"><col style="width:auto"><col style="width:80px"></colgroup>
+        <thead><tr>
+          <th>Material</th><th style="text-align:right">DI</th><th style="text-align:right">DE</th><th style="text-align:right">Largo</th><th style="text-align:right">Enviado</th><th>Observaciones</th><th style="text-align:center">Estado</th>
+        </tr></thead>
+        <tbody id="eop-body"></tbody>
+      </table>
+    </div>
+    <input type="hidden" id="eop_op_orig">
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modalEditOp')">Cancelar</button>
+      <button class="btn btn-red" id="btnEopSave" onclick="eopSave()"><i class="ti ti-check"></i>Guardar cambios</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="modalConsumo" style="display:none" onclick="if(event.target===this)closeModalSafe('modalConsumo')">
   <div class="modal" style="max-width:880px">
     <div class="modal-title"><i class="ti ti-clipboard-plus" style="color:var(--red)"></i><span id="modalConsumoTitle">Nuevo registro de consumo</span></div>
@@ -1548,7 +1619,7 @@ tbody tr:hover td:first-child{box-shadow:inset 3px 0 0 var(--red)}
       <div class="form-group"><label class="form-label">Stock mínimo</label><input class="form-input" id="m_stock_minimo" type="number" min="0" value="0"></div>
     </div>
     <div class="form-row-3">
-      <div class="form-group"><label class="form-label">Precio</label><input class="form-input" id="m_precio" type="number" step="0.01"></div>
+      <div class="form-group"><label class="form-label">Precio</label><input class="form-input" id="m_precio" type="number" min="0" step="0.01"></div>
       <div class="form-group"><label class="form-label">Moneda</label><select class="form-input" id="m_moneda"><option value="PEN">PEN S/</option><option value="USD">USD $</option><option value="EUR">EUR €</option></select></div>
       <div class="form-group"><label class="form-label">Marca</label><input class="form-input" id="m_marca"></div>
     </div>
@@ -1637,7 +1708,7 @@ tbody tr:hover td:first-child{box-shadow:inset 3px 0 0 var(--red)}
       <div class="form-group"><label class="form-label">Stock mínimo</label><input class="form-input" id="a_stock_minimo" type="number" min="0" value="0"></div>
     </div>
     <div class="form-row-3">
-      <div class="form-group"><label class="form-label">Precio</label><input class="form-input" id="a_precio" type="number" step="0.01"></div>
+      <div class="form-group"><label class="form-label">Precio</label><input class="form-input" id="a_precio" type="number" min="0" step="0.01"></div>
       <div class="form-group"><label class="form-label">Moneda</label><select class="form-input" id="a_moneda"><option value="PEN">PEN S/</option><option value="USD">USD $</option><option value="EUR">EUR €</option></select></div>
       <div class="form-group"><label class="form-label">Ubicación</label><input class="form-input" id="a_ubicacion"></div>
     </div>
@@ -1713,7 +1784,7 @@ tbody tr:hover td:first-child{box-shadow:inset 3px 0 0 var(--red)}
       <div class="form-group"><label class="form-label">Stock mínimo</label><input class="form-input" id="s_stock_minimo" type="number" min="0" value="0"></div>
     </div>
     <div class="form-row">
-      <div class="form-group"><label class="form-label">Precio</label><input class="form-input" id="s_precio" type="number" step="0.01"></div>
+      <div class="form-group"><label class="form-label">Precio</label><input class="form-input" id="s_precio" type="number" min="0" step="0.01"></div>
       <div class="form-group"><label class="form-label">Moneda</label><select class="form-input" id="s_moneda"><option value="PEN">PEN S/</option><option value="USD">USD $</option><option value="EUR">EUR €</option></select></div>
     </div>
     <div class="form-group"><label class="form-label">Proveedor</label><input class="form-input" id="s_proveedor"></div>
@@ -2072,7 +2143,7 @@ tbody tr:hover td:first-child{box-shadow:inset 3px 0 0 var(--red)}
 
     <div class="cli-section"><i class="ti ti-currency-dollar"></i>Precio y proveedor</div>
     <div class="form-row-3">
-      <div class="form-group"><label class="form-label">Precio unitario</label><input class="form-input" id="mat_precio" type="number" step="0.01" placeholder="20.00"></div>
+      <div class="form-group"><label class="form-label">Precio unitario</label><input class="form-input" id="mat_precio" type="number" min="0" step="0.01" placeholder="20.00"></div>
       <div class="form-group"><label class="form-label">Moneda</label>
         <select class="form-input" id="mat_moneda">
           <option value="USD">USD $</option>
@@ -2346,6 +2417,15 @@ tbody tr:hover td:first-child{box-shadow:inset 3px 0 0 var(--red)}
   </div>
 </div>
 
+<!-- MODAL: Ayuda en pantalla (¿cómo funciona?) -->
+<div class="modal-overlay" id="modalAyuda" style="display:none" onclick="if(event.target===this)closeModal('modalAyuda')">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-title"><i class="ti ti-help-circle" style="color:#5b9bd5"></i><span id="ayudaTitle">¿Cómo funciona?</span></div>
+    <div id="ayudaBody" style="font-size:13px;color:var(--text);line-height:1.7"></div>
+    <div class="modal-footer"><button class="btn btn-red" onclick="closeModal('modalAyuda')"><i class="ti ti-check"></i>Entendido</button></div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -2453,6 +2533,49 @@ async function _insertConFix(tabla,payload){
     res=await sb.from(tabla).insert(payload).select();
   }
   return res;
+}
+// ── Ayuda en pantalla (¿cómo funciona?) ──
+function mostrarAyuda(titulo,html){
+  document.getElementById("ayudaTitle").textContent=titulo;
+  document.getElementById("ayudaBody").innerHTML=html;
+  document.getElementById("modalAyuda").style.display="flex";
+}
+function ayudaMP(){mostrarAyuda("Materia Prima — ¿cómo funciona?",`
+  <ul style="padding-left:18px;display:flex;flex-direction:column;gap:8px;margin:0">
+    <li>Cada <b>material</b> agrupa sus <b>tubos físicos</b> (T1, T2…) con los mm que le quedan a cada uno.</li>
+    <li><b>Nuevo material</b> crea el tipo; <b>Agregar tubos</b> suma tubos físicos (puedes poner el <b>precio</b> si fue una compra).</li>
+    <li>Pulsa <b>Consultar stock</b> para entrar al material y gestionar sus tubos: editar mm, separar, agotar o trasladar a Mecaniza (uno o varios a la vez).</li>
+    <li><b>Historial</b>: todos los movimientos; la <b>OP es un enlace</b> y verás a qué <b>tubo (T#)</b> afectó cada uno. Si borras un movimiento, el stock vuelve atrás.</li>
+    <li><b>Conteo físico</b> imprime una hoja para contar a mano · <b>Rotación</b> ordena por lo más/menos usado.</li>
+  </ul>`);}
+function ayudaConsumos(){mostrarAyuda("Consumos — ¿cómo funciona?",`
+  <ul style="padding-left:18px;display:flex;flex-direction:column;gap:8px;margin:0">
+    <li><b>Nuevo registro</b>: anota la OP como en Excel (Material, medidas, Enviado). Solo <b>anota</b>, todavía no descuenta stock.</li>
+    <li>Cuando vuelve el material, usa <b>Cerrar OP</b> (👁 / ✔): pones lo <b>devuelto</b> y eliges de qué tubo se descuenta. Ahí recién baja el stock.</li>
+    <li><b>Consumido = Enviado − Devuelto.</b></li>
+    <li>El lápiz ✏️ abre <b>toda la OP</b> con sus líneas para corregirlas juntas.</li>
+    <li>Si un sobrante ya no sirve, márcalo como <b>merma</b> al cerrar (o agota el tubo desde Materia Prima).</li>
+  </ul>`);}
+function ayudaAlmacen(){mostrarAyuda("Almacenes — ¿cómo funciona?",`
+  <ul style="padding-left:18px;display:flex;flex-direction:column;gap:8px;margin:0">
+    <li>Cada producto tiene un <b>stock</b>. Muévelo con <b>Entrada</b> (compras/ingresos) y <b>Salida</b> (ventas/uso).</li>
+    <li><b>Categoría</b> agrupa productos; créalas con <b>+ Categoría</b>.</li>
+    <li><b>Historial</b>: movimientos del producto, con el botón <b>Precios</b> (precios de compra por proveedor).</li>
+    <li><b>Ver en</b>: cambia la moneda en que se muestran los precios (Soles, Dólares, Euros).</li>
+    <li><b>Conteo físico</b> imprime una hoja para contar · <b>Reporte mov.</b> resume entradas/salidas.</li>
+  </ul>`);}
+// Traduce CUALQUIER error técnico (Supabase/Postgres/red) a un mensaje claro y simple.
+function errMsg(error){
+  if(!error) return "Ocurrió un error inesperado.";
+  const m=(error.message||error.msg||String(error)||"").toLowerCase();
+  const code=error.code||"";
+  if(m.includes("failed to fetch")||m.includes("networkerror")||m.includes("load failed")||m.includes("fetch")) return "Sin conexión a internet. Revisa tu red y vuelve a intentar.";
+  if(code==="23505"||m.includes("duplicate")||m.includes("unique")) return "Ya existe un registro con ese dato (está duplicado).";
+  if(code==="23503"||m.includes("foreign key")) return "No se puede: este registro está en uso por otros datos.";
+  if(code==="42501"||m.includes("row-level security")||m.includes("permission")||m.includes("not authorized")||m.includes("policy")) return "No tienes permiso para esta acción. Consulta al administrador.";
+  if(m.includes("jwt")||m.includes("token")||code==="pgrst301"||m.includes("expired")||m.includes("invalid session")) return "Tu sesión expiró. Cierra sesión y vuelve a entrar.";
+  if(m.includes("check constraint")) return "Un valor no es válido para este campo.";
+  return "Error: "+(error.message||"desconocido");
 }
 // Traduce errores típicos de guardado a un mensaje claro (código duplicado, etc.)
 function errProducto(error){
@@ -2748,7 +2871,7 @@ async function saveRolPermisos(){
   setBtnLoading("btnSaveRolPerm",true,"Guardando...");
   const {error}=await sb.from("configuracion").upsert({clave:"roles_permisos",valor:cfg.roles_permisos},{onConflict:"clave"});
   setBtnLoading("btnSaveRolPerm",false);
-  if(error){toast("Error: "+error.message,"err");return;}
+  if(error){toast(errMsg(error),"err");return;}
   rebuildPermisos();
   toast("✓ Permisos del rol guardados","ok");
   // Si afecta a MI rol, refrescar navegación
@@ -3052,7 +3175,7 @@ async function confirmChangePassword(){
   const {error}=await sb.auth.updateUser({password:n});
   if(error){
     setBtnLoading("pwSaveBtn",false);
-    toast("Error: "+error.message,"err");
+    toast(errMsg(error),"err");
     return;
   }
   await sb.from("perfiles").update({must_change_password:false}).eq("id",CU.id);
@@ -3312,14 +3435,14 @@ async function saveConfig(clave,valor){
   showLoading(true);
   const {error}=await sb.from("configuracion").upsert({clave,valor:String(valor)},{onConflict:"clave"});
   showLoading(false);
-  if(error){toast("Error: "+error.message,"err");return;}
+  if(error){toast(errMsg(error),"err");return;}
   cfg[clave]=parseFloat(valor)||valor;
   toast("✓ Guardado","ok");
 }
 // Guarda un valor (JSON u otro) sin validación de "vacío" ni toast automático.
 async function saveConfigRaw(clave,valor){
   const {error}=await sb.from("configuracion").upsert({clave,valor:String(valor)},{onConflict:"clave"});
-  if(error){toast("Error: "+error.message,"err");return false;}
+  if(error){toast(errMsg(error),"err");return false;}
   cfg[clave]=valor;
   return true;
 }
@@ -3746,7 +3869,7 @@ async function reasignarTipo(ti){
     clearCache("tubos_custom");clearCache("tubos_mecaniza");_consMatTuboCache=null;
     cargarMaterialesMgr();
     if(document.getElementById("page-tubos")?.classList.contains("active")) loadTubos(true);
-  }catch(err){showLoading(false);toast("Error: "+err.message,"err");}
+  }catch(err){showLoading(false);toast(errMsg(err),"err");}
 }
 function resetEditCatMP(){
   const lbl=document.getElementById("catFamLabel");if(lbl)lbl.value="";
@@ -4372,7 +4495,7 @@ async function saveMyDash(){
   setBtnLoading("btnSavePdash",true,"Guardando...");
   const {error}=await sb.from("perfiles").update({dashboard_config:obj}).eq("id",CU.id);
   setBtnLoading("btnSavePdash",false);
-  if(error){toast("Error: "+error.message,"err");return;}
+  if(error){toast(errMsg(error),"err");return;}
   CU.dashboard_config=obj;
   closeModal("modalPersDash");
   toast("✓ Tu dashboard fue personalizado","ok");
@@ -5107,7 +5230,7 @@ async function openHistorial(tipo,itemId){
   let all=[];
   for(let from=0;;from+=1000){
     const {data,error}=await sb.from(table).select("*").eq(fk,itemId).order("fecha",{ascending:false}).range(from,from+999);
-    if(error){toast("Error: "+error.message,"err");break;}
+    if(error){toast(errMsg(error),"err");break;}
     if(!data?.length) break;
     all=all.concat(data);
     if(data.length<1000) break;
@@ -5206,12 +5329,12 @@ async function deleteMovAlmacen(almT,movId){
     await sb.from(prodTable).update({stock_actual:nuevo,fec_act:new Date().toISOString(),user_act:CU?.id}).eq("id",m[fk]);
     const {error}=await sb.from(table).delete().eq("id",movId);
     showLoading(false);
-    if(error){toast("Error: "+error.message,"err");return;}
+    if(error){toast(errMsg(error),"err");return;}
     toast("✓ Movimiento eliminado · stock ajustado","ok");
     clearCache(_d.cache);
     _d.reload();
     openHistorial(almT,m[fk]);
-  }catch(err){showLoading(false);toast("Error: "+err.message,"err");}
+  }catch(err){showLoading(false);toast(errMsg(err),"err");}
 }
 function openEditMov(almT,movId){
   const _d=_almT(almT);
@@ -5277,7 +5400,7 @@ async function saveEditMov(){
     };
     // 1) Actualizar el MOVIMIENTO primero y CONFIRMAR que se aplicó (RLS puede bloquear sin error)
     const {data:upd,error}=await sb.from(table).update(payload).eq("id",movId).select();
-    if(error){setBtnLoading("btnSaveEditMov",false);toast("Error: "+error.message,"err");return;}
+    if(error){setBtnLoading("btnSaveEditMov",false);toast(errMsg(error),"err");return;}
     if(!upd||!upd.length){
       setBtnLoading("btnSaveEditMov",false);
       toast("La base NO permitió editar el movimiento (falta la política UPDATE en Supabase). Corre el SQL pendiente — el stock NO se tocó.","err");
@@ -5291,7 +5414,7 @@ async function saveEditMov(){
     clearCache(_d.cache);clearCache("proveedores_list");
     _d.reload();
     openHistorial(almT,prodid);
-  }catch(err){setBtnLoading("btnSaveEditMov",false);toast("Error: "+err.message,"err");}
+  }catch(err){setBtnLoading("btnSaveEditMov",false);toast(errMsg(err),"err");}
 }
 
 // Abre un reporte en pestaña nueva (imprimir / guardar PDF / copiar a Word).
@@ -5433,7 +5556,7 @@ async function generarRepMov(){
     setBtnLoading("btnGenRepMov",false);
     closeModal("modalRepMov");
     abrirReporteHTML(`Movimientos — ${nombreAlm}`, sub, aoa, resumen);
-  }catch(err){setBtnLoading("btnGenRepMov",false);toast("Error: "+err.message,"err");}
+  }catch(err){setBtnLoading("btnGenRepMov",false);toast(errMsg(err),"err");}
 }
 
 function exportHistorial(){
@@ -5573,7 +5696,7 @@ async function loadTubos(forceReload=false){
   const btnsCrear=userCanCRUD("crear","Tubos")
     ?`<button class="btn btn-red" onclick="openModalMaterial()"><i class="ti ti-plus"></i>Nuevo material</button>
       <button class="btn btn-ghost" onclick="openCategoriaModal('mp')"><i class="ti ti-settings-cog"></i>Gestionar materiales</button>`:"";
-  actRow.innerHTML=`${btnsCrear}${btnExport}${btnRepMov}${btnMuerto}${btnMovs}<button class="btn btn-ghost" onclick="loadTubos(true)"><i class="ti ti-refresh"></i>Actualizar</button>${cacheBadge}`;
+  actRow.innerHTML=`${btnsCrear}${btnExport}${btnRepMov}${btnMuerto}${btnMovs}<button class="btn btn-ghost" onclick="loadTubos(true)"><i class="ti ti-refresh"></i>Actualizar</button><button class="btn btn-ghost" onclick="ayudaMP()" title="¿Cómo funciona esta pantalla?"><i class="ti ti-help-circle"></i>¿Cómo funciona?</button>${cacheBadge}`;
 
   wireTubosSearch();
 
@@ -5978,7 +6101,7 @@ async function trasladarTuboInstancia(instId,tuboCustomId){
     toast("✓ Tubo trasladado a Mecaniza","ok");
     clearCache("tubos_custom");clearCache("tubos_mecaniza");_consMatTuboCache=null;
     loadTubos(true);
-  }catch(err){showLoading(false);toast("Error: "+err.message,"err");}
+  }catch(err){showLoading(false);toast(errMsg(err),"err");}
 }
 
 // Traslada VARIOS tubos físicos seleccionados de Custom a Mecaniza de una vez.
@@ -6031,7 +6154,7 @@ async function trasladarInstanciasSeleccionadas(tuboCustomId){
     toast(`✓ ${insts.length} tubo(s) trasladado(s) a Mecaniza`,"ok");
     clearCache("tubos_custom");clearCache("tubos_mecaniza");_consMatTuboCache=null;
     loadTubos(true);
-  }catch(err){showLoading(false);toast("Error: "+err.message,"err");}
+  }catch(err){showLoading(false);toast(errMsg(err),"err");}
 }
 
 // ── GESTIÓN DE INSTANCIAS (tubos físicos) ──
@@ -6073,7 +6196,7 @@ async function saveInstancia(){
   setBtnLoading("btnSaveInst",true,"Guardando...");
   const {data,error}=await sb.from("tubo_instancias").update({altura_usada:usado,estado,altura_total:alturaProp}).eq("id",instId).select();
   setBtnLoading("btnSaveInst",false);
-  if(error){toast("Error: "+error.message,"err");return;}
+  if(error){toast(errMsg(error),"err");return;}
   if(!data||!data.length){toast("Tu rol no tiene permiso para editar tubos","err");return;}
   await sb.from("movimientos").insert({tubo_id:t.id,tubo_instancia_id:instId,tipo:"ajuste",cantidad:0,altura_usada:usado,usuario_id:CU?.id,nota:`Ajuste manual: ${mmR}mm de ${altTotal}mm · ${estado}`});
   toast("✓ Tubo actualizado","ok");
@@ -6088,7 +6211,7 @@ async function resetInstancia(instId){
   showLoading(true,"Reseteando...");
   const {data,error}=await sb.from("tubo_instancias").update({altura_usada:0,estado:"disponible"}).eq("id",instId).select();
   showLoading(false);
-  if(error){toast("Error: "+error.message,"err");return;}
+  if(error){toast(errMsg(error),"err");return;}
   if(!data||!data.length){toast("Tu rol no tiene permiso para editar tubos","err");return;}
   await sb.from("movimientos").insert({tubo_id:t.id,tubo_instancia_id:instId,tipo:"ajuste",cantidad:0,altura_usada:0,usuario_id:CU?.id,nota:"Reset a tubo nuevo"});
   toast("✓ Tubo reseteado a nuevo","ok");
@@ -6102,7 +6225,7 @@ async function agotarInstancia(instId){
   showLoading(true,"Marcando agotado...");
   const {data,error}=await sb.from("tubo_instancias").update({estado:"agotado",separado_hasta:null,separado_motivo:null}).eq("id",instId).select();
   showLoading(false);
-  if(error){toast("Error: "+error.message,"err");return;}
+  if(error){toast(errMsg(error),"err");return;}
   if(!data||!data.length){toast("Tu rol no tiene permiso para editar tubos","err");return;}
   const mmR=Math.max(0,(t.altura_total||0)-(inst.altura_usada||0));
   await sb.from("movimientos").insert({tubo_id:t.id,tubo_instancia_id:instId,tipo:"ajuste",cantidad:1,altura_usada:mmR,usuario_id:CU?.id,nota:`Agotado manual (${mmR}mm restantes)`});
@@ -6144,7 +6267,7 @@ async function deleteInstanciasSeleccionadas(tuboId){
     toast(`✓ ${ids.length} tubo(s) eliminado(s)`,"ok");
     clearCache("tubos_custom");clearCache("tubos_mecaniza");_consMatTuboCache=null;
     if(tuboId) verDetalleTubo(tuboId); else loadTubos(true);
-  }catch(err){showLoading(false);toast("Error: "+err.message,"err");}
+  }catch(err){showLoading(false);toast(errMsg(err),"err");}
 }
 async function deleteInstancia(instId){
   if(!userCanCRUD("eliminar","Tubos")){toast("Sin permiso para eliminar","err");return;}
@@ -6160,7 +6283,7 @@ async function deleteInstancia(instId){
   if(count>0) await sb.from("consumos_ops").update({tubo_instancia_id:null}).eq("tubo_instancia_id",instId);
   const {error}=await sb.from("tubo_instancias").delete().eq("id",instId);
   showLoading(false);
-  if(error){toast("Error: "+error.message,"err");return;}
+  if(error){toast(errMsg(error),"err");return;}
   toast("✓ Tubo físico eliminado","ok");
   clearCache("tubos_custom");clearCache("tubos_mecaniza");_consMatTuboCache=null;
   loadTubos(true);
@@ -6181,7 +6304,7 @@ async function deleteTuboModelo(tuboId){
   if(instIds.length) await sb.from("tubo_instancias").delete().in("id",instIds);
   const {error}=await sb.from("tubos").delete().eq("id",tuboId);
   showLoading(false);
-  if(error){toast("Error: "+error.message,"err");return;}
+  if(error){toast(errMsg(error),"err");return;}
   toast("✓ Material eliminado","ok");
   _tubosState.detalleId=null;
   clearCache("tubos_custom");clearCache("tubos_mecaniza");_consMatTuboCache=null;
@@ -6207,7 +6330,7 @@ async function copiarMaterialAOtraSede(tuboId){
   };
   const {error}=await sb.from("tubos").insert(payload);
   showLoading(false);
-  if(error){toast("Error: "+error.message,"err");return;}
+  if(error){toast(errMsg(error),"err");return;}
   toast(`✓ Material copiado a ${otra==="mecaniza"?"Mecaniza":"Custom"} (sin stock)`,"ok");
   clearCache("tubos_custom");clearCache("tubos_mecaniza");_consMatTuboCache=null;
 }
@@ -6251,7 +6374,7 @@ async function recalcularTuboDesdeConsumos(tuboId){
     toast(cambios?`✓ Stock recalculado · ${cambios} tubo(s) corregido(s)`:"✓ Stock ya estaba correcto","ok");
     clearCache("tubos_custom");clearCache("tubos_mecaniza");_consMatTuboCache=null;
     loadTubos(true);
-  }catch(err){showLoading(false);toast("Error: "+err.message,"err");}
+  }catch(err){showLoading(false);toast(errMsg(err),"err");}
 }
 
 // Separar/reservar una instancia (estado "separado") o liberarla (vuelve a disponible/en_uso).
@@ -6276,7 +6399,7 @@ async function toggleSepararInstancia(instId){
   showLoading(true,"Liberando...");
   const {data,error}=await sb.from("tubo_instancias").update({estado:nuevoEstado,separado_hasta:null,separado_motivo:null}).eq("id",instId).select();
   showLoading(false);
-  if(error){toast("Error: "+error.message,"err");return;}
+  if(error){toast(errMsg(error),"err");return;}
   if(!data||!data.length){toast("Tu rol no tiene permiso para editar tubos","err");return;}
   await sb.from("movimientos").insert({tubo_id:t.id,tubo_instancia_id:instId,tipo:"ajuste",cantidad:0,usuario_id:CU?.id,nota:"Reserva liberada"});
   toast("✓ Reserva liberada","ok");
@@ -6294,7 +6417,7 @@ async function confirmSeparar(){
   setBtnLoading("btnConfirmSeparar",true,"Separando...");
   const {data,error}=await sb.from("tubo_instancias").update({estado:"separado",separado_hasta:hasta,separado_motivo:motivo}).eq("id",instId).select();
   setBtnLoading("btnConfirmSeparar",false);
-  if(error){toast("Error: "+error.message,"err");return;}
+  if(error){toast(errMsg(error),"err");return;}
   if(!data||!data.length){toast("Tu rol no tiene permiso para editar tubos","err");return;}
   const fTxt=new Date(hasta).toLocaleDateString("es-PE");
   await sb.from("movimientos").insert({tubo_id:t.id,tubo_instancia_id:instId,tipo:"ajuste",cantidad:0,usuario_id:CU?.id,nota:`Separado hasta ${fTxt}${motivo?` · ${motivo}`:""}`});
@@ -6333,7 +6456,7 @@ async function generarConteoFisico(){
         if(data.length<1000) break; from+=1000;
       }
     }
-  }catch(err){setBtnLoading("btnGenConteo",false);toast("Error: "+err.message,"err");return;}
+  }catch(err){setBtnLoading("btnGenConteo",false);toast(errMsg(err),"err");return;}
   // Por material: enteros y retazos (con sus mm). Solo los que tienen stock.
   const filas=[];
   tubos.sort((a,b)=>(_tipoMaterial(a)).localeCompare(_tipoMaterial(b))||(a.descripcion||"").localeCompare(b.descripcion||""));
@@ -6630,7 +6753,7 @@ async function exportTubosExcel(){
         from+=1000;
       }
     }
-  }catch(err){showLoading(false);toast("Error: "+err.message,"err");return;}
+  }catch(err){showLoading(false);toast(errMsg(err),"err");return;}
   const rows=[["Código","Descripción","Familia","Subfamilia","DI","DE","Altura total (mm)","Tubo #","mm restantes","mm usados","Estado","Separado hasta","Sede"]];
   let n=0;
   tubos.forEach(t=>{
@@ -6950,7 +7073,7 @@ async function generarRepMovTubos(){
     setBtnLoading("btnGenRepMovTubos",false);
     closeModal("modalRepMovTubos");
     abrirReporteHTML(`Movimientos — ${nombreSede}`, sub, aoa, resumen);
-  }catch(err){setBtnLoading("btnGenRepMovTubos",false);toast("Error: "+err.message,"err");}
+  }catch(err){setBtnLoading("btnGenRepMovTubos",false);toast(errMsg(err),"err");}
 }
 
 // ── Historial de movimientos de un material (modal estilo almacenes) ──
@@ -6958,7 +7081,7 @@ let _histTuboState={tuboId:null,nombre:"",codigo:"",data:[]};
 async function openHistTubo(tuboId){
   if(!getEffectivePerms().verMovimientos){toast("Sin permiso para ver movimientos","err");return;}
   const t=_tubosCache.tubos.find(x=>x.id===tuboId)||_detalleTubo;
-  _histTuboState={tuboId,nombre:t?.descripcion||"",codigo:t?.codigo_mat||"",data:[]};
+  _histTuboState={tuboId,nombre:t?.descripcion||"",codigo:t?.codigo_mat||"",sede:(t?.sede||"custom"),data:[],instOrder:{}};
   document.getElementById("htTitle").textContent=`Historial — Materia Prima ${(t?.sede||"custom")==="custom"?"Custom":"Mecaniza"}`;
   document.getElementById("htInfo").innerHTML=`<strong style="color:var(--text-strong)">${esc(_histTuboState.nombre)}</strong> <span style="color:var(--text-soft)">(${esc(_histTuboState.codigo)})</span>`;
   ["htDesde","htHasta"].forEach(id=>document.getElementById(id).value="");
@@ -6969,7 +7092,7 @@ async function openHistTubo(tuboId){
   let all=[];
   for(let from=0;;from+=1000){
     const {data,error}=await sb.from("movimientos").select("*").eq("tubo_id",tuboId).order("fecha",{ascending:false}).range(from,from+999);
-    if(error){toast("Error: "+error.message,"err");break;}
+    if(error){toast(errMsg(error),"err");break;}
     if(!data?.length) break;
     all=all.concat(data);
     if(data.length<1000) break;
@@ -6977,11 +7100,22 @@ async function openHistTubo(tuboId){
   const uids=[...new Set(all.map(m=>m.usuario_id).filter(Boolean))];
   const umap={};
   if(uids.length){const {data:us}=await sb.from("perfiles").select("id,nombre,username").in("id",uids);(us||[]).forEach(u=>umap[u.id]=u.nombre||u.username);}
+  // Mapa id_instancia → T# (mismo orden que el detalle del material) para mostrar a qué tubo afectó
+  const {data:insts}=await sb.from("tubo_instancias").select("id").eq("tubo_id",tuboId).order("id");
+  (insts||[]).forEach((ins,i)=>_histTuboState.instOrder[ins.id]=i+1);
   showLoading(false);
   _histTuboState.data=all.map(m=>({...m,_usuario:umap[m.usuario_id]||null}));
   renderHistTubo();
 }
 function histTuboLimpiar(){["htDesde","htHasta"].forEach(id=>document.getElementById(id).value="");document.getElementById("htTipo").value="";renderHistTubo();}
+// Desde el historial, ir a Consumos (de la sede correcta) y filtrar por esa OP.
+function verOpDesdeHist(op,sede){
+  if(!userHasNav("consumos")&&!userHasNav("consumos_mec")){toast("No tienes acceso a Consumos","err");return;}
+  closeModal("modalHistTubo");
+  const page=sede==="mecaniza"?"consumos_mec":"consumos";
+  goTo(page);
+  setTimeout(()=>{const el=document.getElementById("consOp");if(el){el.value=op;_consState.page=1;renderConsumos();}},400);
+}
 function renderHistTubo(){
   const desde=document.getElementById("htDesde")?.value||"";
   const hasta=document.getElementById("htHasta")?.value||"";
@@ -7010,17 +7144,21 @@ function renderHistTubo(){
   const tipoLabel={entrada:"ENTRADA",salida:"SALIDA",consumo:"CONSUMO",consumo_extra:"CONSUMO+",ajuste:"AJUSTE",transferencia_in:"TRANS+",transferencia_out:"TRANS-",merma:"MERMA"};
   const verAutor=(CU?.rol==="admin")||cfgBool("mp_ver_autor",false);
   const pElim=userCanCRUD("eliminar","Tubos");
+  const sede=_histTuboState.sede||"custom";
   document.getElementById("htTbody").innerHTML=lista.length?lista.map(m=>{
     const col=tipoColor[m.tipo]||"var(--text-soft)";
     const puedeDeshacer=m.tipo==="entrada"&&_idsDesdeNota(m.nota).length>0&&pElim;
     const signo=esIn(m)?"+":((esOut(m)||m.tipo==="consumo"||m.tipo==="consumo_extra")?"-":"");
+    const tn=m.tubo_instancia_id?_histTuboState.instOrder[m.tubo_instancia_id]:null;
+    const opCell=m.op_numero?`<a href="#" onclick="event.preventDefault();verOpDesdeHist('${String(m.op_numero).replace(/'/g,"\\'")}','${sede}')" style="color:#5b9bd5;font-family:monospace;font-size:10px;text-decoration:underline">${esc(m.op_numero)}</a>`:'<span style="color:var(--text-faint)">—</span>';
+    const det=[tn?`<span style="color:#a78bfa;font-weight:600">T${tn}</span>`:"",esc(notaLimpia(m.nota))].filter(Boolean).join(" · ")||"—";
     return `<tr>
       <td style="font-size:11px;color:var(--text)">${new Date(m.fecha).toLocaleString("es-PE",{dateStyle:"short",timeStyle:"short"})}</td>
       <td><span style="background:${col}22;color:${col};font-size:10px;padding:2px 8px;border-radius:10px;font-weight:500">${tipoLabel[m.tipo]||esc(m.tipo)}</span></td>
       <td style="text-align:right;color:${col};font-weight:500">${m.cantidad?signo+m.cantidad:"—"}</td>
       <td style="text-align:right;color:var(--text)">${m.altura_usada!=null?m.altura_usada+"mm":"—"}</td>
-      <td style="font-family:monospace;font-size:10px;color:var(--text-soft)">${esc(m.op_numero)||"—"}</td>
-      <td style="font-size:11px;color:var(--text)">${esc(notaLimpia(m.nota))||"—"}</td>
+      <td>${opCell}</td>
+      <td style="font-size:11px;color:var(--text)">${det}</td>
       <td style="font-size:10px;color:var(--text-soft)">${verAutor?(esc(m._usuario)||"—"):"—"}</td>
       <td style="white-space:nowrap">
         ${puedeDeshacer?`<button class="btn btn-ghost" style="padding:3px 7px;font-size:10px;color:#f5a623" onclick="closeModal('modalHistTubo');deshacerIngreso(${m.id})" title="Deshacer este ingreso"><i class="ti ti-arrow-back-up"></i></button>`:""}
@@ -7104,32 +7242,55 @@ async function deshacerIngreso(movId){
     toast(`✓ Ingreso deshecho · ${borrables.length} tubo(s) eliminado(s)${usados>0?` · ${usados} conservado(s)`:""}`,"ok");
     clearCache("tubos_custom");clearCache("tubos_mecaniza");_consMatTuboCache=null;
     if(_detalleTubo) verDetalleTubo(_detalleTubo.id); else loadTubos(true);
-  }catch(err){showLoading(false);toast("Error: "+err.message,"err");}
+  }catch(err){showLoading(false);toast(errMsg(err),"err");}
 }
 
 async function deleteMovimiento(id, instId){
-  if(!confirm("¿Estás seguro de eliminar este movimiento? Si afectó al stock, se intentará revertir el cambio.")){return;}
-  setBtnLoading("btnSaveTubo",true,"Eliminando...");
-
+  if(!userCanCRUD("eliminar","Tubos")){toast("Sin permiso para eliminar","err");return;}
   const {data:m}=await sb.from("movimientos").select("*").eq("id",id).single();
-  if(!m){toast("Movimiento no encontrado","err");setBtnLoading("btnSaveTubo",false);return;}
+  if(!m){toast("Movimiento no encontrado","err");return;}
 
-  if(instId){
-    const {data:inst}=await sb.from("tubo_instancias").select("altura_usada").eq("id",instId).single();
-    if(inst){
-      // Tanto consumo como merma "usaron" mm del tubo (altura_usada del movimiento).
-      // Al borrar el movimiento se devuelven esos mm y el tubo vuelve a disponible.
-      if(m.tipo==="consumo"||m.tipo==="merma"){
+  // ENTRADAS: se deshacen con "Deshacer ingreso" (elimina los tubos que creó). Si se
+  // borrara solo el movimiento, los tubos quedarían huérfanos inflando el stock.
+  if(m.tipo==="entrada"){
+    if(_idsDesdeNota(m.nota).length){ deshacerIngreso(id); return; }
+    if(!confirm("Esta ENTRADA no tiene tubos vinculados (es antigua). Al borrar el movimiento, los tubos que haya creado NO se eliminan: tendrás que revisarlos a mano. ¿Continuar?")) return;
+  }
+  // TRASLADOS: borrar uno rompe el par Custom↔Mecaniza y no revierte el movimiento físico.
+  else if(m.tipo==="transferencia_in"||m.tipo==="transferencia_out"){
+    toast("Los traslados no se borran desde aquí (rompería el par Custom↔Mecaniza). Si te equivocaste, haz el traslado inverso.","err");
+    return;
+  }
+  // AJUSTES: son cambios manuales; borrarlos no revierte el stock automáticamente.
+  else if(m.tipo==="ajuste"){
+    if(!confirm("Este es un AJUSTE manual. Al borrarlo NO se revierte el stock automáticamente (corrígelo a mano si hace falta). ¿Continuar?")) return;
+  }
+  // CONSUMO / MERMA: devuelven los mm al tubo y reabren la línea de la OP.
+  else{
+    if(!confirm("¿Eliminar este movimiento?\n\nSe devolverán los mm al tubo y, si venía de una OP, esa línea se reabrirá (quedará pendiente).")) return;
+  }
+
+  showLoading(true,"Eliminando movimiento...");
+  try{
+    if(instId && (m.tipo==="consumo"||m.tipo==="merma")){
+      const {data:inst}=await sb.from("tubo_instancias").select("altura_usada").eq("id",instId).maybeSingle();
+      if(inst){
         const nuevoUsado=Math.max(0,(inst.altura_usada||0)-(m.altura_usada||0));
         await sb.from("tubo_instancias").update({altura_usada:nuevoUsado,estado:"disponible"}).eq("id",instId);
       }
+      // Reabrir la(s) línea(s) de la OP asociada a este tubo (vuelven a pendiente).
+      if(m.op_numero){
+        await sb.from("consumos_ops").update({devuelto:null,consumido:null,es_merma:false})
+          .eq("op",m.op_numero).eq("tubo_instancia_id",instId).eq("es_historico",false);
+      }
     }
-  }
-
-  const {error}=await sb.from("movimientos").delete().eq("id",id);
-  setBtnLoading("btnSaveTubo",false);
-  if(error){toast("Error al eliminar: "+error.message,"err");}
-  else{toast("✓ Movimiento eliminado","ok");loadTubos(true);}
+    const {error}=await sb.from("movimientos").delete().eq("id",id);
+    showLoading(false);
+    if(error){toast("Error al eliminar: "+error.message,"err");return;}
+    toast("✓ Movimiento eliminado"+((m.tipo==="consumo"||m.tipo==="merma")&&m.op_numero?" · línea de OP reabierta":""),"ok");
+    clearCache("tubos_custom");clearCache("tubos_mecaniza");clearCache("consumos");_consMatTuboCache=null;
+    if(_detalleTubo) verDetalleTubo(_detalleTubo.id); else loadTubos(true);
+  }catch(err){showLoading(false);toast(errMsg(err),"err");}
 }
 
 async function clearCatalog(){
@@ -7245,10 +7406,10 @@ async function deleteCatalogo(id){
     }
     const {error}=await sb.from("catalogo").delete().eq("id",id);
     showLoading(false);
-    if(error){toast("Error: "+error.message,"err");return;}
+    if(error){toast(errMsg(error),"err");return;}
     toast(purgar?"✓ Material y sus tubos eliminados":"✓ Material eliminado del catálogo","ok");
     loadCatalogoList();
-  }catch(err){showLoading(false);toast("Error: "+err.message,"err");}
+  }catch(err){showLoading(false);toast(errMsg(err),"err");}
 }
 
 async function clearStock(){
@@ -7408,7 +7569,7 @@ async function saveTubo(){
     if(ex){tuboId=ex.id;}
     else{
       const {data:nv,error}=await sb.from("tubos").insert({codigo_mat:cod,descripcion:desc,altura_total:altNominal,sede}).select().single();
-      if(error){setBtnLoading("btnSaveTubo",false);toast("Error: "+error.message,"err");return;}
+      if(error){setBtnLoading("btnSaveTubo",false);toast(errMsg(error),"err");return;}
       tuboId=nv.id;
     }
   }
@@ -7681,7 +7842,7 @@ async function deleteCliente(id){
   showLoading(true,"Eliminando cliente...");
   const {error}=await sb.from("clientes").delete().eq("id",id);
   showLoading(false);
-  if(error){toast("Error: "+error.message,"err");return;}
+  if(error){toast(errMsg(error),"err");return;}
   toast("✓ Cliente eliminado","ok");
   clearCache("clientes");clearCache("clientes_kpis");clearCache("clientes_list");
   await loadClientes(true);
@@ -7778,7 +7939,7 @@ async function saveMaterial(){
   let tuboId;
   if(id){
     const {error}=await sb.from("tubos").update(payload).eq("id",id);
-    if(error){setBtnLoading("btnSaveMaterial",false);toast("Error: "+error.message,"err");return;}
+    if(error){setBtnLoading("btnSaveMaterial",false);toast(errMsg(error),"err");return;}
     tuboId=parseInt(id);
   }else{
     // Verificar duplicado
@@ -7789,7 +7950,7 @@ async function saveMaterial(){
       return;
     }
     const {data:nv,error}=await sb.from("tubos").insert(payload).select().single();
-    if(error){setBtnLoading("btnSaveMaterial",false);toast("Error: "+error.message,"err");return;}
+    if(error){setBtnLoading("btnSaveMaterial",false);toast(errMsg(error),"err");return;}
     tuboId=nv.id;
   }
   // Stock inicial opcional
@@ -7827,7 +7988,7 @@ async function loadConsumos(forceReload=false){
   // Título según el almacén/sede activo
   const tEl=document.querySelector("#page-consumos .page-title");
   if(tEl){const sc=_consSede==="mecaniza"?"#f5a623":"var(--red)";tEl.innerHTML=`<i class="ti ti-clipboard-list" style="color:${sc}"></i>Consumos de Material — <span style="color:${sc}">${_consSede==="mecaniza"?"Mecaniza":"Custom"}</span>`;}
-  document.getElementById("btnNuevoCons").style.display=userCanCRUD("crear","Consumos")?"inline-flex":"none";
+  {const bg=document.getElementById("btnGridCons");if(bg)bg.style.display=userCanCRUD("crear","Consumos")?"inline-flex":"none";}
   document.getElementById("btnImportCons").style.display=perm.importar?"inline-flex":"none";
   // Default: mes actual
   if(!document.getElementById("consMes").value){
@@ -7909,7 +8070,7 @@ async function renderConsumos(){
   }
   const rf=rangoFechas();
 
-  document.getElementById("cons-tbody").innerHTML=`<tr><td colspan="12" class="no-data"><div class="loading"><div class="spinner"></div>Cargando...</div></td></tr>`;
+  document.getElementById("cons-tbody").innerHTML=`<tr><td colspan="13" class="no-data"><div class="loading"><div class="spinner"></div>Cargando...</div></td></tr>`;
 
   // Construir query con filtros server-side
   let query=sb.from("consumos_ops").select("*",{count:"exact"}).eq("sede",_consSede);
@@ -8010,6 +8171,7 @@ async function renderConsumos(){
       <td style="text-align:center">${selectable?`<input type="checkbox" class="cons-chk" value="${c.id}" ${_consSel.has(c.id)?"checked":""} onclick="toggleConsSel(${c.id},this.checked)">`:""}</td>
       <td style="font-size:11px;color:var(--text)">${esc(c.fecha)}</td>
       <td style="font-family:monospace;color:var(--text-strong)">${esc(c.op)}</td>
+      <td style="color:var(--text);font-size:11px">${esc(c.cliente_nombre)||'<span style="color:var(--text-faint)">—</span>'}</td>
       <td style="color:var(--text)">${esc(c.material)}${histo?' <span style="font-size:9px;color:var(--text-soft)">(hist)</span>':''}</td>
       <td style="text-align:right;color:var(--text-soft);font-size:11px">${c.di??""}</td>
       <td style="text-align:right;color:var(--text-soft);font-size:11px">${c.de??""}</td>
@@ -8022,12 +8184,12 @@ async function renderConsumos(){
         ${!histo?`<button class="btn btn-ghost" style="padding:3px 7px;font-size:10px;color:#5b9bd5" onclick="openCierreOp('${String(c.op).replace(/'/g,"\\'")}')" title="Ver OP (líneas, cierre y reabrir)"><i class="ti ti-eye"></i></button>`:""}
         ${puedeEditarCons&&!histo?`
           ${!merma&&isOpen?`<button class="btn btn-green" style="padding:3px 7px;font-size:10px" onclick="openCierreOp('${String(c.op).replace(/'/g,"\\'")}')" title="Cerrar OP / descontar"><i class="ti ti-circle-check"></i> Cerrar</button>`:""}
-          ${!merma?`<button class="btn btn-ghost" style="padding:3px 7px;font-size:10px" onclick="openModalConsumo(${c.id})" title="Editar"><i class="ti ti-edit"></i></button>`:""}
+          ${!merma?`<button class="btn btn-ghost" style="padding:3px 7px;font-size:10px" onclick="editarOpCompleta('${String(c.op).replace(/'/g,"\\'")}')" title="Editar OP completa (todas las líneas)"><i class="ti ti-edit"></i></button>`:""}
         `:""}
         ${puedeEliminarCons&&!histo?`<button class="btn btn-ghost" style="padding:3px 7px;font-size:10px;color:#e85a5a" onclick="deleteConsumo(${c.id})" title="Eliminar registro"><i class="ti ti-trash"></i></button>`:""}
       </td>
     </tr>`;
-  }).join(""):`<tr><td colspan="12" class="no-data">Sin registros con esos filtros</td></tr>`;
+  }).join(""):`<tr><td colspan="13" class="no-data">Sin registros con esos filtros</td></tr>`;
 
   // Limpiar de la selección los ids que ya no están visibles, y refrescar barra
   const visibleIds=new Set(visible.map(c=>c.id));
@@ -8098,6 +8260,218 @@ function onTipoOpChange(){
   document.getElementById("co_op_label").innerHTML=isInt?'Identificador <span class="req">*</span>':'N° OP <span class="req">*</span>';
   document.getElementById("co_op").placeholder=isInt?"Ej: INT-2026-001":"8837";
   document.getElementById("co_cliente_box").style.display=isInt?"none":"";
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+//  APUNTADO RÁPIDO (grid tipo Excel) — solo ANOTA la OP (descuento en Cerrar OP)
+// ════════════════════════════════════════════════════════════════════════════
+function gridTipoChange(){
+  const interno=document.getElementById("g_tipo").value==="interno";
+  const lbl=document.getElementById("g_cliente_label");
+  const inp=document.getElementById("g_cliente");
+  if(interno){
+    lbl.textContent="Comentario general";
+    inp.placeholder="Motivo del uso interno (ej. muestras, pruebas)";
+    inp.removeAttribute("list");
+  }else{
+    lbl.textContent="Cliente";
+    inp.placeholder="Cliente de la OP (uno por OP)";
+    inp.setAttribute("list","consClientesList");
+  }
+}
+function gridUpdateResumen(){
+  const rows=[...document.querySelectorAll("#grid-body tr")];
+  let n=0,env=0;
+  rows.forEach(tr=>{const m=tr.querySelector(".g-mat").value.trim();const e=parseFloat(tr.querySelector(".g-env").value);if(m||!isNaN(e)){n++;if(!isNaN(e))env+=e;}});
+  const el=document.getElementById("g_resumen");if(el)el.textContent=`${n} línea(s) · ${Math.round(env)} mm enviados`;
+}
+function gridAddRow(prefill){
+  const body=document.getElementById("grid-body");
+  const tr=document.createElement("tr");
+  const numInp=cls=>`<input class="form-input ${cls}" type="number" min="0" step="any" autocomplete="off" oninput="if(parseFloat(this.value)<0)this.value=''" style="height:30px;font-size:12px;padding:4px 6px;text-align:right">`;
+  tr.innerHTML=`
+    <td style="padding:3px 5px"><input class="form-input g-mat" list="consMaterialesList" autocomplete="off" onchange="this.value=this.value.toUpperCase()" style="height:30px;font-size:12px;padding:4px 7px;text-transform:uppercase"></td>
+    <td style="padding:3px 4px">${numInp("g-di")}</td>
+    <td style="padding:3px 4px">${numInp("g-de")}</td>
+    <td style="padding:3px 4px">${numInp("g-largo")}</td>
+    <td style="padding:3px 4px">${numInp("g-env")}</td>
+    <td style="padding:3px 5px"><input class="form-input g-obs" autocomplete="off" style="height:30px;font-size:12px;padding:4px 7px"></td>
+    <td style="text-align:center"><button class="btn btn-ghost" style="padding:3px 6px;font-size:10px;color:#e85a5a" onclick="this.closest('tr').remove();gridUpdateResumen()" title="Quitar fila"><i class="ti ti-x"></i></button></td>`;
+  body.appendChild(tr);
+  if(prefill){
+    tr.querySelector(".g-mat").value=prefill.material||"";
+    if(prefill.di!=null&&!isNaN(prefill.di)) tr.querySelector(".g-di").value=prefill.di;
+    if(prefill.de!=null&&!isNaN(prefill.de)) tr.querySelector(".g-de").value=prefill.de;
+    if(prefill.largo!=null&&!isNaN(prefill.largo)) tr.querySelector(".g-largo").value=prefill.largo;
+    if(prefill.enviado!=null&&!isNaN(prefill.enviado)) tr.querySelector(".g-env").value=prefill.enviado;
+    tr.querySelector(".g-obs").value=prefill.obs||"";
+  }
+  tr.querySelector(".g-env").addEventListener("input",gridUpdateResumen);
+  tr.querySelector(".g-mat").addEventListener("input",gridUpdateResumen);
+  // Enter = pasar a la misma columna de la fila siguiente (creándola si hace falta)
+  tr.querySelectorAll("input").forEach(input=>{
+    input.addEventListener("keydown",e=>{
+      if(e.key!=="Enter")return;
+      e.preventDefault();
+      const cls=[...e.target.classList].find(c=>c.startsWith("g-"));
+      if(tr===body.lastElementChild) gridAddRow();
+      const next=tr.nextElementSibling;
+      const tgt=next&&cls?next.querySelector("."+cls):null;
+      if(tgt) tgt.focus();
+    });
+  });
+}
+async function openGridConsumo(){
+  if(!userCanCRUD("crear","Consumos")){toast("Sin permiso para crear","err");return;}
+  document.getElementById("g_fecha").value=new Date().toISOString().slice(0,10);
+  document.getElementById("g_op").value="";
+  document.getElementById("g_tipo").value="externa";
+  document.getElementById("g_cliente").value="";
+  document.getElementById("g_paste").value="";
+  document.getElementById("g_paste_box").style.display="none";
+  gridTipoChange();
+  getClientesList().then(cs=>{const dl=document.getElementById("consClientesList");if(dl)dl.innerHTML=cs.map(c=>`<option value="${escAttr(c.nombre)}"></option>`).join("");});
+  getMaterialesList().then(ms=>{const dl=document.getElementById("consMaterialesList");if(dl)dl.innerHTML=ms.map(m=>`<option value="${escAttr(m)}"></option>`).join("");});
+  const body=document.getElementById("grid-body");body.innerHTML="";
+  for(let i=0;i<6;i++) gridAddRow();
+  gridUpdateResumen();
+  document.getElementById("modalGrid").style.display="flex";
+  setTimeout(()=>{const f=document.querySelector("#grid-body .g-mat");if(f)f.focus();},80);
+}
+function gridPasteApply(){
+  const txt=document.getElementById("g_paste").value;
+  if(!txt.trim()){toast("Pega filas primero","err");return;}
+  const lines=txt.split(/\r?\n/).filter(l=>l.trim());
+  let added=0;
+  lines.forEach(line=>{
+    const t=line.split("\t").map(x=>x.trim());
+    if(!t.length) return;
+    // Material = primer texto que no sea número ni fecha; luego los 4 números (DI, DE, Largo, Enviado)
+    let mi=t.findIndex(x=>x!=="" && isNaN(x.replace(",",".")) && !/^\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}$/.test(x));
+    if(mi<0) mi=0;
+    const material=t[mi]||"";
+    const nums=t.slice(mi+1).map(x=>parseFloat(x.replace(",","."))).filter(x=>!isNaN(x));
+    if(!material && !nums.length) return;
+    gridAddRow({material,di:nums[0],de:nums[1],largo:nums[2],enviado:nums[3]});
+    added++;
+  });
+  document.getElementById("g_paste").value="";
+  document.getElementById("g_paste_box").style.display="none";
+  gridUpdateResumen();
+  toast(`✓ ${added} fila(s) cargada(s)`,"ok");
+}
+async function gridSave(){
+  const fecha=document.getElementById("g_fecha").value.trim();
+  const tipoOp=document.getElementById("g_tipo").value;
+  let op=document.getElementById("g_op").value.trim();
+  // En "Orden de producción" este campo es el Cliente; en "Uso interno" es un comentario general.
+  const headerVal=document.getElementById("g_cliente").value.trim();
+  const esInterno=tipoOp==="interno";
+  if(!fecha){toast("Fecha es obligatoria","err");return;}
+  if(!op){
+    if(esInterno&&!ruleBool("consumo_exigir_op",true)) op="INT-"+Date.now().toString(36).toUpperCase();
+    else {toast("El N° de OP es obligatorio","err");return;}
+  }
+  if(!esInterno&&ruleBool("consumo_exigir_cliente",false)&&!headerVal){toast("El cliente es obligatorio (configurable)","err");return;}
+  const trs=[...document.querySelectorAll("#grid-body tr")];
+  const _matMap=await _resolverMateriales();
+  const rows=[]; let n=0; const corr=[];
+  for(const tr of trs){
+    let material=normMaterial(tr.querySelector(".g-mat").value);
+    const di=parseFloat(tr.querySelector(".g-di").value);
+    const de=parseFloat(tr.querySelector(".g-de").value);
+    const largo=parseFloat(tr.querySelector(".g-largo").value);
+    const enviado=parseFloat(tr.querySelector(".g-env").value);
+    const obs=tr.querySelector(".g-obs").value.trim();
+    if(!material && isNaN(di) && isNaN(de) && isNaN(largo) && isNaN(enviado)) continue; // fila vacía
+    n++;
+    if(isNaN(di)||isNaN(de)||isNaN(largo)){toast(`Fila ${n}: completa DI, DE y LARGO`,"err");return;}
+    if(!material){toast(`Fila ${n}: indica el material`,"err");return;}
+    if(isNaN(enviado)||enviado<=0){toast(`Fila ${n}: ENVIADO inválido`,"err");return;}
+    const of=_matMap.get(_matKey(material)); if(of&&of!==material){corr.push(`"${material}"→"${of}"`);material=of;}
+    // Uso interno: el comentario general se agrega a las observaciones de cada línea.
+    const obsFinal=esInterno?[headerVal,obs].filter(Boolean).join(" · "):obs;
+    rows.push({fecha,op,material,di,de,largo,enviado,devuelto:null,observaciones:obsFinal||null,es_merma:false,es_historico:false,sede:_consSede,usuario_id:CU?.id,cliente_nombre:esInterno?null:(headerVal||null)});
+  }
+  if(!rows.length){toast("Agrega al menos una línea con datos","err");return;}
+  setBtnLoading("btnGridSave",true,"Guardando...");
+  const {error}=await sb.from("consumos_ops").insert(rows);
+  setBtnLoading("btnGridSave",false);
+  if(error){toast(errMsg(error),"err");return;}
+  closeModal("modalGrid");
+  toast(`✓ OP ${op} anotada · ${rows.length} línea(s) pendiente(s) de cerrar`,"ok");
+  if(corr.length) toast(`Reconocido del catálogo: ${corr.join(", ")}`,"ok");
+  clearCache("consumos");clearCache("materiales_list");_consMatTuboCache=null;loadConsumos(true);
+}
+
+// ── Editar OP completa (todas las líneas a la vez) ──
+async function editarOpCompleta(op){
+  if(!userCanCRUD("editar","Consumos")){toast("Sin permiso para editar","err");return;}
+  document.getElementById("eopTitle").textContent=`Editar OP ${op}`;
+  document.getElementById("eop_op_orig").value=op;
+  document.getElementById("eop-body").innerHTML=`<tr><td colspan="7" class="no-data"><div class="loading"><div class="spinner"></div>Cargando líneas...</div></td></tr>`;
+  document.getElementById("modalEditOp").style.display="flex";
+  showLoading(true);
+  const {data,error}=await sb.from("consumos_ops").select("*").eq("op",op).eq("es_historico",false).eq("sede",_consSede).order("id");
+  showLoading(false);
+  if(error){toast(errMsg(error),"err");return;}
+  const lineas=data||[];
+  if(!lineas.length){toast("Esta OP no tiene líneas editables (o es histórica)","err");closeModal("modalEditOp");return;}
+  document.getElementById("eop_fecha").value=lineas[0].fecha||"";
+  document.getElementById("eop_op").value=op;
+  document.getElementById("eop_cliente").value=lineas[0].cliente_nombre||"";
+  getClientesList().then(cs=>{const dl=document.getElementById("consClientesList");if(dl)dl.innerHTML=cs.map(c=>`<option value="${escAttr(c.nombre)}"></option>`).join("");});
+  getMaterialesList().then(ms=>{const dl=document.getElementById("consMaterialesList");if(dl)dl.innerHTML=ms.map(m=>`<option value="${escAttr(m)}"></option>`).join("");});
+  document.getElementById("eop-body").innerHTML=lineas.map((l,i)=>{
+    const cerrada=l.devuelto!=null||l.es_merma;
+    const dis=cerrada?"disabled":"";
+    const badge=cerrada?(l.es_merma?'<span style="color:#e85a5a;font-weight:600">MERMA</span>':'<span style="color:#4caf8c;font-weight:600">Cerrada</span>'):'<span style="color:#f5a623;font-weight:600">Pendiente</span>';
+    return `<tr data-id="${l.id}" data-cerrada="${cerrada?"1":""}">
+      <td style="padding:3px 5px"><input class="form-input eo-mat" list="consMaterialesList" autocomplete="off" onchange="this.value=this.value.toUpperCase()" value="${escAttr(l.material||"")}" style="height:30px;font-size:12px;padding:4px 7px;text-transform:uppercase"></td>
+      <td style="padding:3px 4px"><input class="form-input eo-di" type="number" min="0" value="${l.di??""}" style="height:30px;font-size:12px;padding:4px 6px;text-align:right"></td>
+      <td style="padding:3px 4px"><input class="form-input eo-de" type="number" min="0" value="${l.de??""}" style="height:30px;font-size:12px;padding:4px 6px;text-align:right"></td>
+      <td style="padding:3px 4px"><input class="form-input eo-largo" type="number" min="0" value="${l.largo??""}" style="height:30px;font-size:12px;padding:4px 6px;text-align:right"></td>
+      <td style="padding:3px 4px"><input class="form-input eo-env" type="number" min="0" value="${l.enviado??""}" ${dis} title="${cerrada?"Línea cerrada: reábrela para cambiar el enviado":""}" style="height:30px;font-size:12px;padding:4px 6px;text-align:right${cerrada?";opacity:.55":""}"></td>
+      <td style="padding:3px 5px"><input class="form-input eo-obs" value="${escAttr(l.observaciones||"")}" style="height:30px;font-size:12px;padding:4px 7px"></td>
+      <td style="text-align:center;font-size:10px">${badge}</td>
+    </tr>`;
+  }).join("");
+}
+async function eopSave(){
+  if(!userCanCRUD("editar","Consumos")){toast("Sin permiso","err");return;}
+  const fecha=document.getElementById("eop_fecha").value.trim();
+  const op=document.getElementById("eop_op").value.trim();
+  const cliente=document.getElementById("eop_cliente").value.trim();
+  if(!fecha||!op){toast("Fecha y N° OP son obligatorios","err");return;}
+  const trs=[...document.querySelectorAll("#eop-body tr")].filter(tr=>tr.dataset.id);
+  if(!trs.length){toast("No hay líneas para guardar","err");return;}
+  const _matMap=await _resolverMateriales();
+  setBtnLoading("btnEopSave",true,"Guardando...");
+  let okN=0;
+  for(let i=0;i<trs.length;i++){
+    const tr=trs[i];const lid=tr.dataset.id;const cerrada=!!tr.dataset.cerrada;
+    let material=normMaterial(tr.querySelector(".eo-mat").value);
+    const of=_matMap.get(_matKey(material)); if(of) material=of;
+    const di=parseFloat(tr.querySelector(".eo-di").value);
+    const de=parseFloat(tr.querySelector(".eo-de").value);
+    const largo=parseFloat(tr.querySelector(".eo-largo").value);
+    const env=parseFloat(tr.querySelector(".eo-env").value);
+    const obs=tr.querySelector(".eo-obs").value.trim();
+    if(isNaN(di)||isNaN(de)||isNaN(largo)){setBtnLoading("btnEopSave",false);toast(`Línea ${i+1}: completa DI, DE y LARGO`,"err");return;}
+    if(!material){setBtnLoading("btnEopSave",false);toast(`Línea ${i+1}: indica el material`,"err");return;}
+    const payload={fecha,op,cliente_nombre:cliente||null,material,di,de,largo,observaciones:obs||null};
+    if(!cerrada){
+      if(isNaN(env)||env<=0){setBtnLoading("btnEopSave",false);toast(`Línea ${i+1}: ENVIADO inválido`,"err");return;}
+      payload.enviado=env;
+    }
+    const {error}=await sb.from("consumos_ops").update(payload).eq("id",lid);
+    if(error){setBtnLoading("btnEopSave",false);toast(`Error en línea ${i+1}: ${error.message}`,"err");return;}
+    okN++;
+  }
+  setBtnLoading("btnEopSave",false);
+  closeModal("modalEditOp");
+  toast(`✓ OP ${op} actualizada · ${okN} línea(s)`,"ok");
+  clearCache("consumos");_consMatTuboCache=null;loadConsumos(true);
 }
 
 async function openModalConsumo(id=null){
@@ -8498,7 +8872,7 @@ async function saveConsumo(){
     setBtnLoading("btnSaveConsumo",true,"Guardando...");
     const {error}=await sb.from("consumos_ops").insert(rows);
     setBtnLoading("btnSaveConsumo",false);
-    if(error){toast("Error: "+error.message,"err");return;}
+    if(error){toast(errMsg(error),"err");return;}
     closeModal("modalConsumo");
     toast(`✓ OP ${op} anotada · ${rows.length} línea${rows.length>1?"s":""} pendiente${rows.length>1?"s":""} de cerrar`,"ok");
     if(_corr.length) toast(`Reconocido del catálogo: ${_corr.join(", ")}`,"ok");
@@ -8735,7 +9109,7 @@ async function deleteConsumo(consumoId){
     }
   }
   const {error}=await sb.from("consumos_ops").delete().eq("id",consumoId);
-  if(error){toast("Error: "+error.message,"err");return;}
+  if(error){toast(errMsg(error),"err");return;}
   toast("✓ Registro eliminado · stock restaurado","ok");
   clearCache("consumos");clearCache("tubos_custom");clearCache("tubos_mecaniza");_consMatTuboCache=null;loadConsumos(true);
 }
@@ -8791,11 +9165,11 @@ async function bulkDeleteConsumos(){
     }
     const {error}=await sb.from("consumos_ops").delete().in("id",ids);
     showLoading(false);
-    if(error){toast("Error: "+error.message,"err");return;}
+    if(error){toast(errMsg(error),"err");return;}
     toast(`✓ ${ids.length} registro(s) eliminado(s) · stock restaurado`,"ok");
     clearConsSel();
     clearCache("consumos");clearCache("tubos_custom");clearCache("tubos_mecaniza");_consMatTuboCache=null;loadConsumos(true);
-  }catch(err){showLoading(false);toast("Error: "+err.message,"err");}
+  }catch(err){showLoading(false);toast(errMsg(err),"err");}
 }
 async function bulkReabrirConsumos(){
   if(!userCanCRUD("editar","Consumos")){toast("Sin permiso","err");return;}
@@ -8816,7 +9190,7 @@ async function bulkReabrirConsumos(){
     toast(`✓ ${n} registro(s) reabierto(s) · stock restaurado`,"ok");
     clearConsSel();
     clearCache("consumos");clearCache("tubos_custom");clearCache("tubos_mecaniza");_consMatTuboCache=null;loadConsumos(true);
-  }catch(err){showLoading(false);toast("Error: "+err.message,"err");}
+  }catch(err){showLoading(false);toast(errMsg(err),"err");}
 }
 
 function openMermaModal(consumoId){
@@ -8899,7 +9273,7 @@ async function openCierreOp(op){
   const {data,error}=await sb.from("consumos_ops").select("*").eq("op",op).eq("es_historico",false).eq("sede",_consSede).order("id");
   await loadConsMatTuboCache(true);
   showLoading(false);
-  if(error){toast("Error: "+error.message,"err");return;}
+  if(error){toast(errMsg(error),"err");return;}
   _cierreState={op,lineas:data||[]};
   renderCierre();
 }
@@ -9032,7 +9406,7 @@ async function mermarCierreLinea(lineId,btn){
     await loadConsMatTuboCache(true);
     renderCierre();
     clearCache("consumos");clearCache("tubos_custom");clearCache("tubos_mecaniza");
-  }catch(err){setBtnLoading2(btn,false);toast("Error: "+err.message,"err");}
+  }catch(err){setBtnLoading2(btn,false);toast(errMsg(err),"err");}
 }
 
 // Deshace una merma de una línea: devuelve los mm al tubo, lo reactiva y reabre la línea.
@@ -9061,7 +9435,7 @@ async function deshacerMermaLinea(lineId){
     toast("✓ Merma deshecha · tubo restaurado · línea reabierta","ok");
     renderCierre();
     clearCache("consumos");clearCache("tubos_custom");clearCache("tubos_mecaniza");
-  }catch(err){showLoading(false);toast("Error: "+err.message,"err");}
+  }catch(err){showLoading(false);toast(errMsg(err),"err");}
 }
 
 // Localiza el tubo + instancia física desde el value "tuboId:instId" del select de cierre
@@ -9156,7 +9530,14 @@ async function guardarCierreLinea(lineId,btn,skipRender=false){
   const {error:eC}=await sb.from("consumos_ops").update({tubo_id:tuboId,tubo_instancia_id:instId,devuelto}).eq("id",lineId);
   setBtnLoading2(btn,false);
   if(eC){if(!skipRender)toast("Error registro: "+eC.message,"err");return false;}
-  if(!skipRender) toast(`✓ Línea cerrada · -${consumido}mm`,"ok");
+  // Mensaje claro sobre el estado del tubo tras el cierre
+  let estadoMsg="";
+  if(nuevoEstado==="agotado") estadoMsg=" · tubo AGOTADO (sin material)";
+  else if(mmRest>0&&mmRest<altMin) estadoMsg=` · quedan ${mmRest}mm (bajo el mínimo de ${altMin}mm): puedes descartarlo como merma`;
+  if(!skipRender){
+    toast(`✓ Línea cerrada · -${consumido}mm${estadoMsg}`,"ok");
+    if(mmRest>0&&mmRest<altMin&&nuevoEstado!=="agotado") toast(`Sugerencia: el sobrante (${mmRest}mm) está bajo el mínimo. Si ya no sirve, usa "Descartar tubo".`,"info");
+  }
   // Actualizar estado local y re-render
   const L=_cierreState.lineas.find(x=>x.id===lineId);
   if(L){L.tubo_id=tuboId;L.tubo_instancia_id=instId;L.devuelto=devuelto;}
@@ -9225,7 +9606,7 @@ async function reabrirOpCompleta(){
     toast(`✓ OP ${_cierreState.op} reabierta · stock restaurado`,"ok");
     renderCierre();
     clearCache("consumos");clearCache("tubos_custom");clearCache("tubos_mecaniza");
-  }catch(err){showLoading(false);toast("Error: "+err.message,"err");}
+  }catch(err){showLoading(false);toast(errMsg(err),"err");}
 }
 
 // ── Ranking de materiales más consumidos (con buscador) ──
@@ -9399,7 +9780,7 @@ async function importConsumosExcel(e){
       toast(`✓ ${ok} consumos históricos cargados`,ok>0?"ok":"err");
       e.target.value="";
       clearCache("consumos");clearCache("tubos_custom");clearCache("tubos_mecaniza");_consMatTuboCache=null;loadConsumos(true);
-    }catch(err){console.error(err);toast("Error: "+err.message,"err");prog.style.display="none";}
+    }catch(err){console.error(err);toast(errMsg(err),"err");prog.style.display="none";}
     showLoading(false);
     _suspendRealtimeRender=false;
   };
@@ -9428,7 +9809,7 @@ async function loadMercaderias(forceReload=false){
   let all=[];
   for(let from=0;;from+=1000){
     const {data,error}=await sb.from("mercaderias").select("*").order("nombre").range(from,from+999);
-    if(error){toast("Error: "+error.message,"err");break;}
+    if(error){toast(errMsg(error),"err");break;}
     if(!data?.length) break;
     all=all.concat(data);
     if(data.length<1000) break;
@@ -9469,14 +9850,13 @@ function renderMercaderias(){
     return true;
   });
 
-  const totOR=_mercCache.filter(m=>m.categoria==="oring").length;
-  const totWP=_mercCache.filter(m=>m.categoria==="wiper_fab").length;
-  const totOT=_mercCache.filter(m=>m.categoria==="otro").length;
-  const totBajo=_mercCache.filter(m=>m.stock_actual<(m.stock_minimo||0)).length;
+  const totCat=new Set(_mercCache.map(m=>m.categoria||"otro")).size;
+  const totConStock=_mercCache.filter(m=>(m.stock_actual||0)>0).length;
+  const totBajo=_mercCache.filter(m=>(m.stock_minimo||0)>0&&m.stock_actual<m.stock_minimo).length;
   document.getElementById("mercKpis").innerHTML=`
     <div class="kpi"><div class="kpi-label">Total productos</div><div class="kpi-val white">${_mercCache.length}</div></div>
-    <div class="kpi"><div class="kpi-label">O-rings</div><div class="kpi-val blue">${totOR}</div></div>
-    <div class="kpi"><div class="kpi-label">Wipers</div><div class="kpi-val green">${totWP}</div></div>
+    <div class="kpi"><div class="kpi-label">Categorías</div><div class="kpi-val blue">${totCat}</div></div>
+    <div class="kpi"><div class="kpi-label">Con stock</div><div class="kpi-val green">${totConStock}</div></div>
     <div class="kpi"><div class="kpi-label">Stock bajo</div><div class="kpi-val ${totBajo>0?'red':'green'}">${totBajo}</div></div>`;
 
   const per=_mercState.perPage;
@@ -9598,7 +9978,7 @@ async function deleteMerc(id){
   showLoading(true,"Eliminando producto...");
   const {data:del,error}=await sb.from("mercaderias").delete().eq("id",id).select();
   showLoading(false);
-  if(error){toast("Error: "+error.message,"err");return;}
+  if(error){toast(errMsg(error),"err");return;}
   if(!del||!del.length){toast("No se eliminó (la base lo bloqueó: solo el admin puede borrar productos). El producto sigue existiendo.","err");return;}
   toast("✓ Producto eliminado","ok");
   clearCache("mercaderias");loadMercaderias(true);
@@ -9678,7 +10058,7 @@ async function importProductosExcel(e,tabla){
       clearCache(_d.cache);
       _d.reload();
       renderCargasResumen(tabla);
-    }catch(err){console.error(err);toast("Error: "+err.message,"err");if(prog)prog.style.display="none";}
+    }catch(err){console.error(err);toast(errMsg(err),"err");if(prog)prog.style.display="none";}
     _suspendRealtimeRender=false;
   };
   r.readAsArrayBuffer(f);
@@ -9785,7 +10165,7 @@ async function loadAlmMecaniza(forceReload=false){
   let all=[];
   for(let from=0;;from+=1000){
     const {data,error}=await sb.from("alm_mecaniza_productos").select("*").order("nombre").range(from,from+999);
-    if(error){toast("Error: "+error.message,"err");break;}
+    if(error){toast(errMsg(error),"err");break;}
     if(!data?.length) break;
     all=all.concat(data);
     if(data.length<1000) break;
@@ -9826,13 +10206,13 @@ function renderAlmMecaniza(){
     return true;
   });
 
-  const totOR=_almCache.filter(a=>a.categoria==="oring").length;
-  const totWP=_almCache.filter(a=>a.categoria==="wiper_fab").length;
-  const totBajo=_almCache.filter(a=>a.stock_actual<(a.stock_minimo||0)).length;
+  const totCat=new Set(_almCache.map(a=>a.categoria||"otro")).size;
+  const totConStock=_almCache.filter(a=>(a.stock_actual||0)>0).length;
+  const totBajo=_almCache.filter(a=>(a.stock_minimo||0)>0&&a.stock_actual<a.stock_minimo).length;
   document.getElementById("almKpis").innerHTML=`
     <div class="kpi"><div class="kpi-label">Total productos</div><div class="kpi-val white">${_almCache.length}</div></div>
-    <div class="kpi"><div class="kpi-label">O-rings</div><div class="kpi-val blue">${totOR}</div></div>
-    <div class="kpi"><div class="kpi-label">Wipers</div><div class="kpi-val green">${totWP}</div></div>
+    <div class="kpi"><div class="kpi-label">Categorías</div><div class="kpi-val blue">${totCat}</div></div>
+    <div class="kpi"><div class="kpi-label">Con stock</div><div class="kpi-val green">${totConStock}</div></div>
     <div class="kpi"><div class="kpi-label">Stock bajo</div><div class="kpi-val ${totBajo>0?'red':'green'}">${totBajo}</div></div>`;
 
   const per=_almState.perPage;
@@ -9945,7 +10325,7 @@ async function deleteAlm(id){
   showLoading(true,"Eliminando producto...");
   const {data:del,error}=await sb.from("alm_mecaniza_productos").delete().eq("id",id).select();
   showLoading(false);
-  if(error){toast("Error: "+error.message,"err");return;}
+  if(error){toast(errMsg(error),"err");return;}
   if(!del||!del.length){toast("No se eliminó (la base lo bloqueó: solo el admin puede borrar productos). El producto sigue existiendo.","err");return;}
   toast("✓ Producto eliminado","ok");
   clearCache("alm_mecaniza");loadAlmMecaniza(true);
@@ -10056,7 +10436,7 @@ async function loadSuministros(forceReload=false){
   let all=[];
   for(let from=0;;from+=1000){
     const {data,error}=await sb.from("suministros_productos").select("*").order("nombre").range(from,from+999);
-    if(error){toast("Error: "+error.message,"err");break;}
+    if(error){toast(errMsg(error),"err");break;}
     if(!data?.length) break;
     all=all.concat(data);
     if(data.length<1000) break;
@@ -10096,14 +10476,14 @@ function renderSuministros(){
     return true;
   });
 
-  const totHerr=_sumCache.filter(a=>a.categoria==="herramientas").length;
-  const totEcon=_sumCache.filter(a=>a.categoria==="economatos").length;
-  const totOtros=_sumCache.length-totHerr-totEcon;
+  const totCat=new Set(_sumCache.map(a=>a.categoria||"otro")).size;
+  const totConStock=_sumCache.filter(a=>(a.stock_actual||0)>0).length;
+  const totBajo=_sumCache.filter(a=>(a.stock_minimo||0)>0&&a.stock_actual<a.stock_minimo).length;
   document.getElementById("sumKpis").innerHTML=`
     <div class="kpi"><div class="kpi-label">Total productos</div><div class="kpi-val white">${_sumCache.length}</div></div>
-    <div class="kpi"><div class="kpi-label">Herramientas</div><div class="kpi-val amber">${totHerr}</div></div>
-    <div class="kpi"><div class="kpi-label">Economatos</div><div class="kpi-val blue">${totEcon}</div></div>
-    <div class="kpi"><div class="kpi-label">Otras categorías</div><div class="kpi-val green">${totOtros}</div></div>`;
+    <div class="kpi"><div class="kpi-label">Categorías</div><div class="kpi-val blue">${totCat}</div></div>
+    <div class="kpi"><div class="kpi-label">Con stock</div><div class="kpi-val green">${totConStock}</div></div>
+    <div class="kpi"><div class="kpi-label">Stock bajo</div><div class="kpi-val ${totBajo>0?'red':'green'}">${totBajo}</div></div>`;
 
   const per=_sumState.perPage;
   const total=lista.length;
@@ -10205,7 +10585,7 @@ async function deleteSum(id){
   showLoading(true,"Eliminando producto...");
   const {data:del,error}=await sb.from("suministros_productos").delete().eq("id",id).select();
   showLoading(false);
-  if(error){toast("Error: "+error.message,"err");return;}
+  if(error){toast(errMsg(error),"err");return;}
   if(!del||!del.length){toast("No se eliminó (la base lo bloqueó: solo el admin puede borrar productos). El producto sigue existiendo.","err");return;}
   toast("✓ Producto eliminado","ok");
   clearCache("suministros");loadSuministros(true);
@@ -10466,7 +10846,7 @@ async function borrarCategoriaProductos(tabla,cat){
     clearCache(_d.cache);
     _d.reload();
     renderCargasResumen(tabla);
-  }catch(err){showLoading(false);toast("Error: "+err.message,"err");}
+  }catch(err){showLoading(false);toast(errMsg(err),"err");}
 }
 
 async function borrarTodoAlmacen(tabla){
@@ -10488,7 +10868,7 @@ async function borrarTodoAlmacen(tabla){
     clearCache(_d.cache);
     _d.reload();
     renderCargasResumen(tabla);
-  }catch(err){showLoading(false);toast("Error: "+err.message,"err");}
+  }catch(err){showLoading(false);toast(errMsg(err),"err");}
 }
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -10670,7 +11050,7 @@ async function saveUsuario(){
     });
     const {data:upd,error}=await sb.from("perfiles").update({nombre,rol,activo,permisos_extra}).eq("id",id).select();
     setBtnLoading("btnSaveUsuario",false);
-    if(error){toast("Error: "+error.message,"err");return;}
+    if(error){toast(errMsg(error),"err");return;}
     if(!upd||!upd.length){toast("No se pudo guardar (la base no aplicó el cambio). Verifica que tu sesión sea admin.","err");return;}
     closeModal("modalUsuario");
     toast(id===CU.id?"✓ Usuario actualizado":"✓ Usuario actualizado · debe cerrar sesión y volver a entrar para ver los cambios","ok");
@@ -10687,7 +11067,7 @@ async function toggleUsuarioActivo(id,nuevo){
   showLoading(true);
   const {error}=await sb.from("perfiles").update({activo:nuevo}).eq("id",id);
   showLoading(false);
-  if(error){toast("Error: "+error.message,"err");return;}
+  if(error){toast(errMsg(error),"err");return;}
   toast(`✓ Usuario ${nuevo?"activado":"desactivado"}`,"ok");
   loadUsuarios();
 }
@@ -10724,7 +11104,7 @@ async function deleteUsuario(id){
   showLoading(true);
   const {error}=await sb.from("perfiles").delete().eq("id",id);
   showLoading(false);
-  if(error){toast("Error: "+error.message,"err");return;}
+  if(error){toast(errMsg(error),"err");return;}
   toast("✓ Perfil eliminado (cuenta auth permanece — bórrala desde Supabase Dashboard si quieres)","ok");
   loadUsuarios();
 }
@@ -10864,7 +11244,7 @@ async function loadCatalogFile(e){
       toast(`✓ Catálogo: ${ok} materiales cargados y distribuidos en sedes`,ok>0?"ok":"err");
       console.log("[Cat] Resumen:",{ok,err2,total:clean.length});
       e.target.value="";
-    }catch(err){console.error(err);toast("Error: "+err.message,"err");prog.style.display="none";}
+    }catch(err){console.error(err);toast(errMsg(err),"err");prog.style.display="none";}
     showLoading(false);
     _suspendRealtimeRender=false;
   };
@@ -10956,7 +11336,7 @@ async function loadStockFile(e){
         const {data,error}=await sb.from("tubos").upsert(slice,{onConflict:"descripcion,altura_total,sede"}).select("id,descripcion,altura_total,sede");
         if(error){
           prog.innerHTML=`<div class="progress-info done" style="color:#e85a5a">Error en paso 2: ${esc(error.message)}</div>`;
-          toast("Error: "+error.message,"err");showLoading(false);return;
+          toast(errMsg(error),"err");showLoading(false);return;
         }
         tubosCreados=tubosCreados.concat(data||[]);
       }
@@ -11001,7 +11381,7 @@ async function loadStockFile(e){
       clearCache("tubos_custom");clearCache("tubos_mecaniza");
       e.target.value="";
       showLoading(false);_suspendRealtimeRender=false;
-    }catch(err){console.error(err);toast("Error: "+err.message,"err");prog.style.display="none";showLoading(false);_suspendRealtimeRender=false;}
+    }catch(err){console.error(err);toast(errMsg(err),"err");prog.style.display="none";showLoading(false);_suspendRealtimeRender=false;}
   };
   r.readAsArrayBuffer(f);
 }
@@ -11081,7 +11461,7 @@ async function loadClientesFile(e){
       prog.innerHTML=`<div class="progress-info done"><span>✓ ${ok} clientes${err2?` · ${err2} con errores`:""}</span><span>100%</span></div><div class="progress-bar"><div class="progress-bar-fill" style="width:100%;background:#4caf8c"></div></div>${firstErr?`<div style="color:#e85a5a;font-size:11px;margin-top:4px">${firstErr}</div>`:""}`;
       toast(`✓ Clientes: ${ok} cargados`,ok>0?"ok":"err");
       e.target.value="";
-    }catch(err){toast("Error: "+err.message,"err");prog.style.display="none";}
+    }catch(err){toast(errMsg(err),"err");prog.style.display="none";}
     showLoading(false);
     _suspendRealtimeRender=false;
   };
