@@ -647,6 +647,7 @@ tbody tr:hover td:first-child{box-shadow:inset 3px 0 0 var(--red)}
           <button class="btn btn-ghost" onclick="openRepMov('merc')"><i class="ti ti-report"></i>Reporte mov.</button>
           <button class="btn btn-ghost" id="btnConteoMerc" onclick="openConteoAlm('merc')"><i class="ti ti-clipboard-check"></i>Conteo físico</button>
           <button class="btn btn-ghost" id="btnRotMerc" onclick="openRotProd('merc')"><i class="ti ti-arrows-shuffle"></i>Rotación</button>
+          <button class="btn btn-ghost" id="btnSyncFichas" style="display:none" onclick="sincronizarFichasCustomAMec()" title="Copiar fichas y precios a los mismos productos en Mecaniza"><i class="ti ti-arrows-transfer-right"></i>Sincronizar → Mecaniza</button>
           <button class="btn btn-ghost" onclick="ayudaAlmacen()" title="¿Cómo funciona esta pantalla?"><i class="ti ti-help-circle"></i>¿Cómo funciona?</button>
           <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:#94a3b8;white-space:nowrap;margin-left:auto">Ver en
             <select class="cur-sel fi" style="width:auto;padding:4px 8px" onchange="setDisplayCur(this.value)"><option value="orig">Original</option><option value="PEN">S/ Soles</option><option value="USD">$ Dólares</option><option value="EUR">€ Euros</option></select>
@@ -9864,6 +9865,7 @@ async function loadMercaderias(forceReload=false){
   const bC=document.getElementById("btnNuevaCatMerc");if(bC)bC.style.display=userCanCRUD("crear","Merc")?"inline-flex":"none";
   const bCnt=document.getElementById("btnConteoMerc");if(bCnt)bCnt.style.display=perm.exportar?"inline-flex":"none";
   const bRot=document.getElementById("btnRotMerc");if(bRot)bRot.style.display=perm.verMovimientos?"inline-flex":"none";
+  {const bSy=document.getElementById("btnSyncFichas");if(bSy)bSy.style.display=CU?.rol==="admin"?"inline-flex":"none";}
   poblarCategoriasMerc();
   if(!forceReload){
     const cached=getCached("mercaderias");
@@ -9999,6 +10001,45 @@ function openModalMerc(id=null){
   document.getElementById("modalMerc").style.display="flex";
 }
 
+// Sincroniza la FICHA del producto (no el stock ni ubicación) con el producto del
+// mismo código en el OTRO almacén (Custom ↔ Mecaniza). Solo actualiza si ya existe.
+async function _syncFichaAlmacen(targetTable, matchCodigo, src){
+  if(!matchCodigo) return;
+  const keys=["codigo","nombre","categoria","descripcion","material","dureza","color","di","de","grosor","marca","unidad","precio_unitario","moneda","proveedor","notas"];
+  const upd={};
+  keys.forEach(k=>{ if(src[k]!==undefined) upd[k]=src[k]; });
+  upd.fec_act=new Date().toISOString(); upd.user_act=CU?.id;
+  try{ await sb.from(targetTable).update(upd).eq("codigo",matchCodigo); }catch(e){}
+}
+// Copia masiva (una vez) de las fichas/precios de Custom a los productos del mismo código en Mecaniza.
+async function sincronizarFichasCustomAMec(){
+  if(CU?.rol!=="admin"){toast("Solo el admin puede sincronizar","err");return;}
+  if(!confirm("¿Copiar las fichas y PRECIOS de Almacén Custom hacia los productos del mismo código en Mecaniza?\n\nSobrescribe nombre, categoría, medidas, material, precio, etc. en Mecaniza.\nNO toca el stock ni la ubicación.\nEsta acción no se puede deshacer.")) return;
+  setBtnLoading("btnSyncFichas",true,"Sincronizando...");
+  try{
+    const cols="codigo,nombre,categoria,descripcion,material,dureza,color,di,de,grosor,marca,unidad,precio_unitario,moneda,proveedor,notas";
+    let merc=[];
+    for(let from=0;;from+=1000){
+      const {data,error}=await sb.from("mercaderias").select(cols).range(from,from+999);
+      if(error)throw error; if(!data?.length) break; merc=merc.concat(data); if(data.length<1000) break;
+    }
+    const mecCods=new Set();
+    for(let from=0;;from+=1000){
+      const {data,error}=await sb.from("alm_mecaniza_productos").select("codigo").range(from,from+999);
+      if(error)throw error; if(!data?.length) break; data.forEach(r=>mecCods.add(r.codigo)); if(data.length<1000) break;
+    }
+    let n=0;
+    for(const p of merc){
+      if(!p.codigo||!mecCods.has(p.codigo)) continue;
+      const {error}=await sb.from("alm_mecaniza_productos").update({...p,fec_act:new Date().toISOString(),user_act:CU?.id}).eq("codigo",p.codigo);
+      if(!error) n++;
+    }
+    setBtnLoading("btnSyncFichas",false);
+    toast(`✓ ${n} producto(s) sincronizado(s) Custom → Mecaniza`,"ok");
+    clearCache("alm_mecaniza");
+    if(document.getElementById("page-alm_mecaniza")?.classList.contains("active"))loadAlmMecaniza(true);
+  }catch(err){setBtnLoading("btnSyncFichas",false);toast(errMsg(err),"err");}
+}
 async function saveMerc(){
   if(!getEffectivePerms().editarMerc){toast("Sin permiso","err");return;}
   const v=k=>document.getElementById(k).value.trim();
@@ -10027,14 +10068,18 @@ async function saveMerc(){
     user_act:CU?.id,
   };
   const id=document.getElementById("m_id").value;
+  // Código del producto ANTES de editar (para encontrar su par en el otro almacén aunque cambie el código)
+  const oldCod=id?(_mercCache.find(x=>String(x.id)===String(id))?.codigo||codigo):codigo;
   let res;
   if(id){res=await sb.from("mercaderias").update(payload).eq("id",id);}
   else{payload.user_crea=CU?.id;res=await _insertConFix("mercaderias",payload);}
   setBtnLoading("btnSaveMerc",false);
   if(res.error){toast(errProducto(res.error),"err");return;}
+  // Sincronizar la ficha con el mismo producto en Almacén Mecaniza (si existe)
+  await _syncFichaAlmacen("alm_mecaniza_productos",oldCod,payload);
   closeModal("modalMerc");
   toast("✓ Producto guardado","ok");
-  clearCache("mercaderias");loadMercaderias(true);
+  clearCache("mercaderias");clearCache("alm_mecaniza");loadMercaderias(true);
 }
 async function deleteMerc(id){
   if(!userCanCRUD("eliminar","Merc")){toast("Sin permiso para eliminar","err");return;}
@@ -10374,14 +10419,17 @@ async function saveAlm(){
     user_act:CU?.id,
   };
   const id=document.getElementById("a_id").value;
+  const oldCod=id?(_almCache.find(x=>String(x.id)===String(id))?.codigo||codigo):codigo;
   let res;
   if(id){res=await sb.from("alm_mecaniza_productos").update(payload).eq("id",id);}
   else{payload.user_crea=CU?.id;res=await _insertConFix("alm_mecaniza_productos",payload);}
   setBtnLoading("btnSaveAlm",false);
   if(res.error){toast(errProducto(res.error),"err");return;}
+  // Sincronizar la ficha con el mismo producto en Almacén Custom (si existe)
+  await _syncFichaAlmacen("mercaderias",oldCod,payload);
   closeModal("modalAlm");
   toast("✓ Producto guardado","ok");
-  clearCache("alm_mecaniza");loadAlmMecaniza(true);
+  clearCache("alm_mecaniza");clearCache("mercaderias");loadAlmMecaniza(true);
 }
 async function deleteAlm(id){
   if(!userCanCRUD("eliminar","AlmMec")){toast("Sin permiso para eliminar","err");return;}
