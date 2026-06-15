@@ -2271,6 +2271,10 @@ tbody tr:hover td:first-child{box-shadow:inset 3px 0 0 var(--red)}
       </div>
       <div style="font-size:10px;color:var(--text-soft);text-transform:uppercase;letter-spacing:.5px;margin:14px 0 6px;padding-bottom:4px;border-bottom:.5px solid var(--border)">Categorías existentes</div>
       <div id="catMercList" style="max-height:240px;overflow:auto;display:grid;gap:4px"></div>
+      <div id="catHuerfanasBox" style="display:none;margin-top:10px;padding:9px 11px;background:#2e2616;border:.5px solid #7a5a2a;border-radius:8px;font-size:11px;color:var(--text)">
+        <i class="ti ti-alert-triangle" style="color:#f5a623"></i> Hay <strong id="catHuerfanasN">0</strong> producto(s) con una categoría que ya no existe (borrada).
+        <button class="btn btn-ghost" style="font-size:11px;padding:4px 10px;margin-top:6px;color:#f5a623" onclick="reasignarHuerfanasCat()"><i class="ti ti-wand"></i>Reasignar a "Otro"</button>
+      </div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modalCategoria')"><span id="catModalCloseTxt">Cancelar</span></button>
@@ -3705,6 +3709,67 @@ function renderCatMercList(){
       </div>
     </div>`;
   }).join("");
+  detectarHuerfanasCat();
+}
+// Detecta productos cuya categoría ya no existe en la lista (categorías "fantasma" tras borrar una).
+async function detectarHuerfanasCat(){
+  const box=document.getElementById("catHuerfanasBox"); if(!box)return;
+  box.style.display="none";
+  const scope=_catMercScope;
+  const validos=new Set((scope==="sum"?getCategoriasSum():getCategoriasMerc()).map(c=>c.code));
+  validos.add("otro");
+  const tablas=scope==="sum"?["suministros_productos"]:["mercaderias","alm_mecaniza_productos"];
+  let huerfanos=0;
+  try{
+    for(const t of tablas){
+      let cats=[];
+      for(let from=0;;from+=1000){
+        const {data,error}=await sb.from(t).select("categoria").range(from,from+999);
+        if(error||!data?.length) break;
+        cats=cats.concat(data);
+        if(data.length<1000) break;
+      }
+      cats.forEach(r=>{if(r.categoria&&!validos.has(r.categoria)) huerfanos++;});
+    }
+  }catch(e){return;}
+  if(huerfanos>0){document.getElementById("catHuerfanasN").textContent=huerfanos;box.style.display="block";}
+}
+// Reasigna a "Otro" todos los productos con una categoría que ya no existe.
+async function reasignarHuerfanasCat(){
+  const scope=_catMercScope;
+  if(!confirm('¿Reasignar a "Otro" todos los productos cuya categoría fue borrada?\n\nVolverán a ser filtrables. Esta acción no se puede deshacer.')) return;
+  // Asegurar que "Otro" exista en la lista (si no, los reasignados seguirían "fuera de lista")
+  const lista=scope==="sum"?getCategoriasSum():getCategoriasMerc();
+  if(!lista.some(c=>c.code==="otro")){lista.push({code:"otro",label:"Otro"});await saveConfigRaw(_catKey(),JSON.stringify(lista));_catPoblar();}
+  const validos=(scope==="sum"?getCategoriasSum():getCategoriasMerc()).map(c=>c.code);
+  const tablas=scope==="sum"?["suministros_productos"]:["mercaderias","alm_mecaniza_productos"];
+  showLoading(true,"Reasignando productos...");
+  try{
+    let total=0;
+    for(const t of tablas){
+      let rows=[];
+      for(let from=0;;from+=1000){
+        const {data,error}=await sb.from(t).select("id,categoria").range(from,from+999);
+        if(error) throw error; if(!data?.length) break;
+        rows=rows.concat(data); if(data.length<1000) break;
+      }
+      const ids=rows.filter(r=>r.categoria&&r.categoria!=="otro"&&!validos.includes(r.categoria)).map(r=>r.id);
+      const CH=400;
+      for(let i=0;i<ids.length;i+=CH){
+        const slice=ids.slice(i,i+CH);
+        const {error}=await sb.from(t).update({categoria:"otro"}).in("id",slice);
+        if(error) throw error;
+      }
+      total+=ids.length;
+    }
+    showLoading(false);
+    toast(`✓ ${total} producto(s) reasignado(s) a "Otro"`,"ok");
+    clearCache("mercaderias");clearCache("alm_mecaniza");clearCache("suministros");
+    renderCatMercList();
+    if(document.getElementById("page-mercaderias")?.classList.contains("active"))loadMercaderias(true);
+    if(document.getElementById("page-alm_mecaniza")?.classList.contains("active"))loadAlmMecaniza(true);
+    if(document.getElementById("page-suministros")?.classList.contains("active"))loadSuministros(true);
+  }catch(err){showLoading(false);toast(errMsg(err),"err");}
 }
 function editCatMerc(code){
   const c=_catList().find(x=>x.code===code);if(!c)return;
@@ -9850,7 +9915,7 @@ function renderMercaderias(){
     return true;
   });
 
-  const totCat=new Set(_mercCache.map(m=>m.categoria||"otro")).size;
+  const totCat=getCategoriasMerc().length;
   const totConStock=_mercCache.filter(m=>(m.stock_actual||0)>0).length;
   const totBajo=_mercCache.filter(m=>(m.stock_minimo||0)>0&&m.stock_actual<m.stock_minimo).length;
   document.getElementById("mercKpis").innerHTML=`
@@ -10206,7 +10271,7 @@ function renderAlmMecaniza(){
     return true;
   });
 
-  const totCat=new Set(_almCache.map(a=>a.categoria||"otro")).size;
+  const totCat=getCategoriasMerc().length;
   const totConStock=_almCache.filter(a=>(a.stock_actual||0)>0).length;
   const totBajo=_almCache.filter(a=>(a.stock_minimo||0)>0&&a.stock_actual<a.stock_minimo).length;
   document.getElementById("almKpis").innerHTML=`
@@ -10476,7 +10541,7 @@ function renderSuministros(){
     return true;
   });
 
-  const totCat=new Set(_sumCache.map(a=>a.categoria||"otro")).size;
+  const totCat=getCategoriasSum().length;
   const totConStock=_sumCache.filter(a=>(a.stock_actual||0)>0).length;
   const totBajo=_sumCache.filter(a=>(a.stock_minimo||0)>0&&a.stock_actual<a.stock_minimo).length;
   document.getElementById("sumKpis").innerHTML=`
