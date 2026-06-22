@@ -398,6 +398,98 @@ tbody tr:hover td:first-child{box-shadow:inset 3px 0 0 var(--red)}
 
 /* Zona de carga de Excel más viva */
 .upload-zone:hover{background:var(--bg-card-2)}
+
+/* ════════════════════════════════════════════════════════════════════
+   IDENTIDAD PREMIUM v3 — ambiente, acentos con significado y jerarquía
+   (capa puramente CSS; funciona en tema oscuro y claro)
+   ════════════════════════════════════════════════════════════════════ */
+
+/* ── Ambiente de fondo: mesh de glows sutiles fijo al viewport ───────── */
+body{
+  background-image:
+    radial-gradient(1100px 720px at 8% -10%, rgba(239,68,68,.11), transparent 58%),
+    radial-gradient(950px 680px at 108% -4%, rgba(59,130,246,.08), transparent 56%),
+    radial-gradient(900px 820px at 50% 124%, rgba(139,92,246,.06), transparent 60%);
+  background-attachment:fixed;
+}
+html[data-theme="light"] body{
+  background-image:
+    radial-gradient(1100px 720px at 8% -10%, rgba(220,38,38,.06), transparent 58%),
+    radial-gradient(950px 680px at 108% -4%, rgba(37,99,235,.05), transparent 56%),
+    radial-gradient(900px 820px at 50% 124%, rgba(124,58,237,.04), transparent 60%);
+  background-attachment:fixed;
+}
+
+/* ── Cifras tabulares en todo dato numérico (alineación perfecta) ───── */
+.kpi-val,.tubo-stat-val,.inst-mm,.row-info,.pag-btn,.page-title,
+tbody td,thead th,.kpi-sub,.user-info-name{
+  font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1,"cv01" 1;
+}
+
+/* ── Sidebar: superficie con profundidad + logo con halo vivo ───────── */
+.sidebar{background-image:linear-gradient(180deg,rgba(239,68,68,.05),transparent 18%)}
+.sidebar-logo{position:relative}
+.sidebar-logo::after{content:"";position:absolute;left:16px;right:16px;bottom:-1px;height:1px;
+  background:linear-gradient(90deg,transparent,var(--red),transparent);opacity:.35}
+.sidebar-logo .icon{box-shadow:0 4px 14px rgba(239,68,68,.4),inset 0 0 0 1px rgba(255,255,255,.12)}
+.sidebar-logo h1{letter-spacing:-.3px;font-weight:700}
+.nav-item.active i{filter:drop-shadow(0 0 6px rgba(239,68,68,.5))}
+
+/* ── Título de página: chip-icono con acento ───────────────────────── */
+.page-title i{font-size:20px}
+
+/* ── KPIs con identidad: barra superior y halo del color del dato ───── */
+.kpi{position:relative;overflow:hidden;--kpi-accent:var(--red)}
+.kpi:has(.kpi-val.green){--kpi-accent:var(--green)}
+.kpi:has(.kpi-val.blue){--kpi-accent:var(--blue)}
+.kpi:has(.kpi-val.amber){--kpi-accent:var(--amber)}
+.kpi:has(.kpi-val.violet){--kpi-accent:var(--violet)}
+.kpi:has(.kpi-val.red){--kpi-accent:var(--red)}
+.kpi:has(.kpi-val.white){--kpi-accent:var(--text-soft)}
+.kpi::before{content:"";position:absolute;top:0;left:0;right:0;height:3px;
+  background:linear-gradient(90deg,var(--kpi-accent),transparent 85%);opacity:.95}
+.kpi::after{content:"";position:absolute;top:-30px;right:-30px;width:120px;height:120px;
+  border-radius:50%;background:radial-gradient(circle,var(--kpi-accent),transparent 68%);
+  opacity:.07;transition:opacity .2s,transform .2s;pointer-events:none}
+.kpi.clickable:hover::after{opacity:.16;transform:scale(1.15)}
+.kpi.clickable:hover{box-shadow:0 14px 32px rgba(0,0,0,.32),0 0 0 1px var(--kpi-accent)}
+.kpi-label i{color:var(--kpi-accent);opacity:1}
+.kpi-val{font-size:24px}
+
+/* ── Encabezado de tarjeta: barra de acento vertical antes del título ─ */
+.card-title{position:relative;padding-left:11px;font-size:11px;color:var(--text)}
+.card-title::before{content:"";position:absolute;left:0;top:0;bottom:1px;width:3px;
+  border-radius:3px;background:linear-gradient(180deg,var(--red),var(--red-dark));opacity:.85}
+
+/* ── Tablas: zebra discreta + cabecera con más presencia ────────────── */
+thead th{font-weight:700;color:var(--text)}
+tbody tr:nth-child(even):not(:hover) td{background:rgba(148,163,184,.05)}
+html[data-theme="light"] tbody tr:nth-child(even):not(:hover) td{background:rgba(15,23,42,.025)}
+tbody tr:hover td{background:var(--bg-card-2)!important}
+
+/* ── Botones primarios: brillo diagonal en hover ────────────────────── */
+.btn-red,.login-btn{position:relative;overflow:hidden}
+.btn-red::after,.login-btn::after{content:"";position:absolute;inset:0;
+  background:linear-gradient(120deg,transparent 40%,rgba(255,255,255,.22) 50%,transparent 60%);
+  transform:translateX(-130%);transition:transform .55s ease}
+.btn-red:hover:not(:disabled)::after,.login-btn:hover:not(:disabled)::after{transform:translateX(130%)}
+
+/* ── Login: ambiente y logo con respiración suave ───────────────────── */
+#loginScreen{background-image:
+  radial-gradient(800px 500px at 20% 10%, rgba(239,68,68,.16), transparent 60%),
+  radial-gradient(700px 500px at 85% 90%, rgba(59,130,246,.12), transparent 60%)}
+.login-logo-icon{animation:breathe 4s ease-in-out infinite}
+@keyframes breathe{0%,100%{box-shadow:0 8px 24px rgba(239,68,68,.35)}50%{box-shadow:0 10px 34px rgba(239,68,68,.6)}}
+
+/* ── Badge de sincronización: punto con pulso vivo ──────────────────── */
+.sync-dot{animation:syncPulse 2.4s ease-in-out infinite}
+@keyframes syncPulse{0%,100%{box-shadow:0 0 0 0 rgba(34,197,94,.45)}50%{box-shadow:0 0 0 5px rgba(34,197,94,0)}}
+.sync-dot.off{animation:none}
+
+@media(prefers-reduced-motion:reduce){
+  .login-logo-icon,.sync-dot,.kpi.clickable:hover::after{animation:none}
+  *{scroll-behavior:auto}
+}
 </style>
 <script>/* Aplica el tema guardado de inmediato (evita parpadeo) */(function(){try{var t=localStorage.getItem('ctTheme')||'dark';document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
 </head>
