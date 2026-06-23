@@ -704,7 +704,7 @@ tbody tr:hover td{background:var(--bg-card-2)!important}
 
     <!-- MERCADERÍAS -->
     <div class="page" id="page-mercaderias">
-      <div class="page-title"><i class="ti ti-box" style="color:#5b9bd5"></i>Almacén — Custom</div>
+      <div class="page-title"><i class="ti ti-box" style="color:#5b9bd5"></i>Almacén Mercaderías — Custom</div>
       <div class="kpi-grid" id="mercKpis"></div>
       <div class="card">
         <div class="card-title"><i class="ti ti-filter"></i>Búsqueda y filtros</div>
@@ -737,6 +737,7 @@ tbody tr:hover td{background:var(--bg-card-2)!important}
           <button class="btn btn-red" id="btnNuevoMerc" onclick="openModalMerc()"><i class="ti ti-plus"></i>Nuevo producto</button>
           <button class="btn btn-ghost" id="btnNuevaCatMerc" onclick="openCategoriaModal('merc')"><i class="ti ti-category-plus"></i>+ Categoría</button>
           <button class="btn btn-ghost" onclick="openRepMov('merc')"><i class="ti ti-report"></i>Reporte mov.</button>
+          <button class="btn btn-ghost" onclick="openAnalisisPrecios('merc')" title="Compara precios de venta vs el precio registrado (ganancia/pérdida)"><i class="ti ti-chart-dots"></i>Análisis de precios</button>
           <button class="btn btn-ghost" id="btnConteoMerc" onclick="openConteoAlm('merc')"><i class="ti ti-clipboard-check"></i>Conteo físico</button>
           <button class="btn btn-ghost" id="btnRotMerc" onclick="openRotProd('merc')"><i class="ti ti-arrows-shuffle"></i>Rotación</button>
           <button class="btn btn-ghost" id="btnSyncFichas" style="display:none" onclick="sincronizarFichasCustomAMec()" title="Copiar fichas y precios a los mismos productos en Mecaniza"><i class="ti ti-arrows-transfer-right"></i>Sincronizar → Mecaniza</button>
@@ -767,7 +768,7 @@ tbody tr:hover td{background:var(--bg-card-2)!important}
 
     <!-- ALMACÉN MECANIZA -->
     <div class="page" id="page-alm_mecaniza">
-      <div class="page-title"><i class="ti ti-box" style="color:#a78bfa"></i>Almacén — Mecaniza</div>
+      <div class="page-title"><i class="ti ti-box" style="color:#a78bfa"></i>Almacén Mercaderías — Mecaniza</div>
       <div class="kpi-grid" id="almKpis"></div>
       <div class="card">
         <div class="card-title"><i class="ti ti-filter"></i>Búsqueda y filtros</div>
@@ -795,6 +796,7 @@ tbody tr:hover td{background:var(--bg-card-2)!important}
           <button class="btn btn-red" id="btnNuevoAlm" onclick="openModalAlm()"><i class="ti ti-plus"></i>Nuevo producto</button>
           <button class="btn btn-ghost" id="btnNuevaCatAlm" onclick="openCategoriaModal('merc')"><i class="ti ti-category-plus"></i>+ Categoría</button>
           <button class="btn btn-ghost" onclick="openRepMov('alm')"><i class="ti ti-report"></i>Reporte mov.</button>
+          <button class="btn btn-ghost" onclick="openAnalisisPrecios('alm')" title="Compara precios de venta vs el precio registrado (ganancia/pérdida)"><i class="ti ti-chart-dots"></i>Análisis de precios</button>
           <button class="btn btn-ghost" id="btnConteoAlm" onclick="openConteoAlm('alm')"><i class="ti ti-clipboard-check"></i>Conteo físico</button>
           <button class="btn btn-ghost" id="btnRotAlm" onclick="openRotProd('alm')"><i class="ti ti-arrows-shuffle"></i>Rotación</button>
           <button class="btn btn-ghost" onclick="ayudaAlmacen()" title="¿Cómo funciona esta pantalla?"><i class="ti ti-help-circle"></i>¿Cómo funciona?</button>
@@ -907,7 +909,7 @@ tbody tr:hover td{background:var(--bg-card-2)!important}
             <select class="fi" id="consSolo" onchange="renderConsumos()">
               <option value="">Todos</option>
               <option value="abiertos">OPs abiertas (sin DEVUELTO)</option>
-              <option value="merma">Mermas</option>
+              <option value="merma">Agotados</option>
               <option value="historico">Históricos</option>
               <option value="actual">Solo del sistema</option>
             </select>
@@ -1146,8 +1148,8 @@ tbody tr:hover td{background:var(--bg-card-2)!important}
         </div>
         <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-top:.5px solid var(--border)">
           <div>
-            <div style="font-size:13px;color:var(--text);font-weight:500">Umbral alerta de merma</div>
-            <div style="font-size:11px;color:var(--text-faint)">% de merma sobre total que dispara alerta crítica</div>
+            <div style="font-size:13px;color:var(--text);font-weight:500">Umbral alerta de descarte</div>
+            <div style="font-size:11px;color:var(--text-faint)">% de material descartado sobre el consumido que dispara alerta crítica</div>
           </div>
           <div style="display:flex;gap:8px;align-items:center">
             <input class="form-input" id="cfgMermaPct" type="number" min="0" max="100" style="width:80px;text-align:right">
@@ -1520,13 +1522,13 @@ tbody tr:hover td{background:var(--bg-card-2)!important}
 <!-- MODAL: MERMA (descartar tubo entero) -->
 <div class="modal-overlay" id="modalMerma" style="display:none" onclick="if(event.target===this)closeModalSafe('modalMerma')">
   <div class="modal" style="max-width:440px">
-    <div class="modal-title"><i class="ti ti-trash-x" style="color:#e85a5a"></i>Marcar como MERMA</div>
+    <div class="modal-title"><i class="ti ti-trash-x" style="color:#e85a5a"></i>Marcar como AGOTADO (descarte)</div>
     <div style="background:#2e1a1a;border:.5px solid #e85a5a44;color:#e85a5a;font-size:12px;padding:10px 12px;border-radius:8px;margin-bottom:12px">
       <i class="ti ti-alert-triangle"></i> Esta acción <strong>elimina el tubo físico entero</strong> del stock. Todos los mm restantes se perderán y el tubo no podrá usarse más.
     </div>
     <div id="mermaInfo" style="background:var(--bg-card);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--text);margin-bottom:12px"></div>
     <div class="form-group">
-      <label class="form-label">Motivo de la merma <span class="req">*</span></label>
+      <label class="form-label">Motivo del descarte <span class="req">*</span></label>
       <input class="form-input" id="mer_motivo" placeholder="Rotura, porosidad, error de medida, etc.">
     </div>
     <input type="hidden" id="mer_consumo_id">
@@ -1534,7 +1536,7 @@ tbody tr:hover td{background:var(--bg-card-2)!important}
     <input type="hidden" id="mer_tubo_id">
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modalMerma')">Cancelar</button>
-      <button class="btn btn-red" id="btnConfirmMerma" onclick="confirmMerma()"><i class="ti ti-trash"></i>Confirmar MERMA</button>
+      <button class="btn btn-red" id="btnConfirmMerma" onclick="confirmMerma()"><i class="ti ti-trash"></i>Confirmar descarte</button>
     </div>
   </div>
 </div>
@@ -2161,7 +2163,7 @@ tbody tr:hover td{background:var(--bg-card-2)!important}
           <option value="entrada">Entradas (compras)</option>
           <option value="consumo">Consumos</option>
           <option value="salida">Salidas</option>
-          <option value="merma">Mermas</option>
+          <option value="merma">Agotados</option>
           <option value="ajuste">Ajustes</option>
         </select>
       </div>
@@ -2195,6 +2197,27 @@ tbody tr:hover td{background:var(--bg-card-2)!important}
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modalRepMov')">Cancelar</button>
       <button class="btn btn-red" id="btnGenRepMov" onclick="generarRepMov()"><i class="ti ti-printer"></i>Generar reporte</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Análisis de precios de venta (ganancia/pérdida vs precio registrado) -->
+<div class="modal-overlay" id="modalAnalPrecios" style="display:none" onclick="if(event.target===this)closeModalSafe('modalAnalPrecios')">
+  <div class="modal" style="max-width:600px">
+    <div class="modal-title"><i class="ti ti-chart-dots" style="color:#22c55e"></i><span id="apTitle">Análisis de precios</span></div>
+    <div style="font-size:11px;color:var(--text-soft);margin-bottom:12px">Compara el precio de cada <strong>venta (salida)</strong> contra el precio registrado del producto. Detecta ventas por debajo (pérdida) o por encima (ganancia). Solo considera salidas con precio.</div>
+    <input type="hidden" id="ap_alm">
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Desde</label><input class="form-input" id="ap_desde" type="date"></div>
+      <div class="form-group"><label class="form-label">Hasta</label><input class="form-input" id="ap_hasta" type="date"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Categoría</label><select class="form-input" id="ap_cat"><option value="">Todas</option></select></div>
+      <div class="form-group"><label class="form-label">Cliente</label><input class="form-input" id="ap_cli" list="consClientesList" autocomplete="off" placeholder="Todos"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modalAnalPrecios')">Cancelar</button>
+      <button class="btn btn-red" id="btnGenAnalPrecios" onclick="generarAnalisisPrecios()"><i class="ti ti-printer"></i>Generar informe</button>
     </div>
   </div>
 </div>
@@ -2651,7 +2674,7 @@ function ayudaConsumos(){mostrarAyuda("Consumos — ¿cómo funciona?",`
     <li>Cuando vuelve el material, usa <b>Cerrar OP</b> (👁 / ✔): pones lo <b>devuelto</b> y eliges de qué tubo se descuenta. Ahí recién baja el stock.</li>
     <li><b>Consumido = Enviado − Devuelto.</b></li>
     <li>El lápiz ✏️ abre <b>toda la OP</b> con sus líneas para corregirlas juntas.</li>
-    <li>Si un sobrante ya no sirve, márcalo como <b>merma</b> al cerrar (o agota el tubo desde Materia Prima).</li>
+    <li>Si un sobrante ya no sirve, márcalo como <b>descarte</b> al cerrar (o agota el tubo desde Materia Prima).</li>
   </ul>`);}
 function ayudaAlmacen(){mostrarAyuda("Almacenes — ¿cómo funciona?",`
   <ul style="padding-left:18px;display:flex;flex-direction:column;gap:8px;margin:0">
@@ -3007,8 +3030,8 @@ const NAV_ITEMS={
   dashboard:    {icon:"ti-layout-dashboard",label:"Dashboard",sec:"Principal"},
   mp_custom:    {icon:"ti-cylinder",label:"Mat. Prima — Custom",sec:"Almacenes"},
   mp_mecaniza:  {icon:"ti-cylinder",label:"Mat. Prima — Mecaniza",sec:"Almacenes"},
-  mercaderias:  {icon:"ti-box",label:"Almacén — Custom",sec:"Almacenes"},
-  alm_mecaniza: {icon:"ti-box",label:"Almacén — Mecaniza",sec:"Almacenes"},
+  mercaderias:  {icon:"ti-box",label:"Almacén Mercaderías — Custom",sec:"Almacenes"},
+  alm_mecaniza: {icon:"ti-box",label:"Almacén Mercaderías — Mecaniza",sec:"Almacenes"},
   suministros:  {icon:"ti-tools",label:"Almacén — Suministros",sec:"Almacenes"},
   consumos:     {icon:"ti-clipboard-list",label:"Consumos — Custom",sec:"Operación"},
   consumos_mec: {icon:"ti-clipboard-list",label:"Consumos — Mecaniza",sec:"Operación"},
@@ -4334,7 +4357,7 @@ async function cargarUsoDB(){
 // ────────────────────────────────────────────────────────────────────────────
 const DEFAULT_WIDGETS={opsmes:true,stockbajo:true,consumos:true,merma:true,eficiencia:false,valorinv:true,comprasmes:true,tendencia:true,rotcli:true};
 // Etiquetas legibles (para la config por rol y por usuario)
-const WIDGET_LABELS={opsmes:"OPs del período",stockbajo:"Stock crítico",consumos:"Consumos por material",merma:"Mermas",eficiencia:"Eficiencia",valorinv:"Valor del inventario",comprasmes:"Compras del mes",tendencia:"Tendencia de consumo",rotcli:"Rotación + top clientes"};
+const WIDGET_LABELS={opsmes:"OPs del período",stockbajo:"Stock crítico",consumos:"Consumos por material",merma:"Agotados",eficiencia:"Eficiencia",valorinv:"Valor del inventario",comprasmes:"Compras del mes",tendencia:"Tendencia de consumo",rotcli:"Rotación + top clientes"};
 // Config de widgets por ROL (admin la define). Compatibilidad con la config global vieja.
 function getRoleWidgets(rol){
   try{
@@ -4397,7 +4420,7 @@ async function loadDashboard(){
     ${widgets.opsmes?`<div class="kpi clickable" id="kpiOpsMes" onclick="openDashModal('opsmes')"><div class="kpi-label"><i class="ti ti-calendar"></i> OPs del mes</div><div class="kpi-val violet" data-loading="…">…</div><div class="kpi-sub">click para ver detalle</div></div>`:""}
     ${widgets.stockbajo?`<div class="kpi clickable" id="kpiStockBajo" onclick="openDashModal('stockbajo')"><div class="kpi-label"><i class="ti ti-alert-triangle"></i> Stock crítico</div><div class="kpi-val red" data-loading="…">…</div><div class="kpi-sub">productos bajo mínimo</div></div>`:""}
     ${widgets.consumos?`<div class="kpi clickable" id="kpiConsumos" onclick="openDashModal('consumos')"><div class="kpi-label"><i class="ti ti-clipboard-list"></i> Consumos por material</div><div class="kpi-val amber" data-loading="…">…</div><div class="kpi-sub">mm total · click para lista</div></div>`:""}
-    ${widgets.merma?`<div class="kpi clickable" id="kpiMermaDash" onclick="openDashModal('merma')"><div class="kpi-label"><i class="ti ti-trash-x"></i> Mermas</div><div class="kpi-val red" data-loading="…">…</div><div class="kpi-sub">% sobre total</div></div>`:""}
+    ${widgets.merma?`<div class="kpi clickable" id="kpiMermaDash" onclick="openDashModal('merma')"><div class="kpi-label"><i class="ti ti-trash-x"></i> Agotados</div><div class="kpi-val red" data-loading="…">…</div><div class="kpi-sub">mm descartados</div></div>`:""}
     ${widgets.eficiencia?`<div class="kpi clickable" id="kpiEficiencia" onclick="openDashModal('eficiencia')"><div class="kpi-label"><i class="ti ti-recycle"></i> Eficiencia</div><div class="kpi-val green" data-loading="…">…</div><div class="kpi-sub">mm recuperados</div></div>`:""}`;
 
   if(!Object.values(widgets).some(v=>v)){
@@ -4511,7 +4534,7 @@ async function buscarReporteConsumo(){
       <div class="kpi"><div class="kpi-label">Consumido total</div><div class="kpi-val amber">${totCons.toLocaleString()}mm</div><div class="kpi-sub">${ops.size} OP${ops.size!==1?"s":""}</div></div>
       <div class="kpi"><div class="kpi-label">Enviado total</div><div class="kpi-val blue">${totEnv.toLocaleString()}mm</div></div>
       <div class="kpi"><div class="kpi-label">Devuelto total</div><div class="kpi-val green">${totDev.toLocaleString()}mm</div></div>
-      <div class="kpi"><div class="kpi-label">Registros</div><div class="kpi-val white">${data.length.toLocaleString()}</div><div class="kpi-sub">${mermas} merma${mermas!==1?"s":""}</div></div>
+      <div class="kpi"><div class="kpi-label">Registros</div><div class="kpi-val white">${data.length.toLocaleString()}</div><div class="kpi-sub">${mermas} descarte${mermas!==1?"s":""}</div></div>
     </div>
     <div class="tbl-wrap" style="max-height:420px">
       <table>
@@ -4606,18 +4629,22 @@ async function calcConsumosPorMaterial(){
 
 async function calcMerma(){
   const since=getDashRangeStart();
-  const inclHist=cfg.dashboard_incl_historico==="true"||cfg.dashboard_incl_historico===true;
-  let q=sb.from("consumos_ops").select("es_merma").limit(50000);
+  // "Agotados": descartes reales de tubos (movimientos tipo 'merma' = sobrante descartado / tubo
+  // agotado por merma) en el período. Se compara contra lo consumido para sacar el % desperdiciado.
+  let q=sb.from("movimientos").select("tipo,altura_usada,fecha").in("tipo",["merma","consumo"]).limit(50000);
   if(since) q=q.gte("fecha",since);
-  if(!inclHist) q=q.eq("es_historico",false);
   const {data}=await q;
-  const total=(data||[]).length;
-  const mermas=(data||[]).filter(c=>c.es_merma).length;
-  const pct=total>0?(mermas/total*100).toFixed(1):0;
+  const rows=data||[];
+  const desc=rows.filter(m=>m.tipo==="merma");
+  const mmDesc=desc.reduce((a,m)=>a+(Number(m.altura_usada)||0),0);
+  const nDesc=desc.length;
+  const mmCons=rows.filter(m=>m.tipo==="consumo").reduce((a,m)=>a+(Number(m.altura_usada)||0),0);
+  const base=mmDesc+mmCons;
+  const pct=base>0?(mmDesc/base*100).toFixed(1):0;
   const thr=parseFloat(cfg.merma_alerta_pct)||5;
   const el=document.querySelector("#kpiMermaDash .kpi-val");
-  if(el){el.textContent=mermas;el.style.color=pct>=thr?"var(--red)":"var(--green)";}
-  document.querySelector("#kpiMermaDash .kpi-sub").textContent=`${pct}% del total`;
+  if(el){el.textContent=`${Math.round(mmDesc).toLocaleString()}mm`;el.style.color=pct>=thr?"var(--red)":"var(--green)";}
+  document.querySelector("#kpiMermaDash .kpi-sub").textContent=`${nDesc} descarte${nDesc!==1?"s":""} · ${pct}% del material`;
 }
 
 async function calcEficiencia(){
@@ -4949,7 +4976,7 @@ async function openDashModal(tipo){
     opsmes:"OPs del período",
     stockbajo:"Productos con stock crítico",
     consumos:"Consumos por material",
-    merma:"Mermas registradas",
+    merma:"Agotados (tubos descartados)",
     eficiencia:"Eficiencia de uso de material",
     valorinv:"Valor del inventario",
     comprasmes:"Compras del mes",
@@ -5087,22 +5114,25 @@ async function dashDetalleConsumos(){
 
 async function dashDetalleMerma(){
   const since=getDashRangeStart();
-  const inclHist=cfg.dashboard_incl_historico==="true"||cfg.dashboard_incl_historico===true;
-  let q=sb.from("consumos_ops").select("op,fecha,material,consumido,motivo_merma,cliente_nombre").eq("es_merma",true).limit(5000);
+  // Descartes reales: movimientos de tubos tipo 'merma' (sobrante descartado / tubo agotado).
+  let q=sb.from("movimientos").select("fecha,op_numero,altura_usada,motivo,nota,tubo_id").eq("tipo","merma").limit(5000);
   if(since) q=q.gte("fecha",since);
-  if(!inclHist) q=q.eq("es_historico",false);
   const {data}=await q.order("fecha",{ascending:false});
-  if(!data?.length) return `<div style="text-align:center;padding:30px;color:var(--green)"><i class="ti ti-circle-check" style="font-size:32px"></i><div style="margin-top:10px">Sin mermas en el período ✓</div></div>`;
-  return `<div style="margin-bottom:10px;font-size:11px;color:var(--text-soft)">${data.length} mermas · ${data.reduce((a,c)=>a+(c.consumido||0),0).toLocaleString()}mm perdidos</div>
+  if(!data?.length) return `<div style="text-align:center;padding:30px;color:var(--green)"><i class="ti ti-circle-check" style="font-size:32px"></i><div style="margin-top:10px">Sin descartes en el período ✓</div></div>`;
+  // Descripción de cada tubo descartado
+  const ids=[...new Set(data.map(m=>m.tubo_id).filter(Boolean))];
+  const tmap={};
+  if(ids.length){const {data:ts}=await sb.from("tubos").select("id,descripcion").in("id",ids);(ts||[]).forEach(t=>tmap[t.id]=t.descripcion);}
+  const totalMm=data.reduce((a,m)=>a+(Number(m.altura_usada)||0),0);
+  return `<div style="margin-bottom:10px;font-size:11px;color:var(--text-soft)">${data.length} descarte${data.length!==1?"s":""} · ${Math.round(totalMm).toLocaleString()}mm descartados</div>
     <div class="tbl-wrap" style="max-height:60vh"><table>
-      <thead><tr><th>Fecha</th><th>OP</th><th>Material</th><th>Cliente</th><th>Motivo</th><th style="text-align:right">mm</th></tr></thead>
-      <tbody>${data.map(c=>`<tr>
-        <td style="font-size:11px;color:var(--text-soft)">${esc(c.fecha)}</td>
-        <td style="font-family:monospace;color:var(--text-strong)">${esc(c.op)}</td>
-        <td style="color:var(--text)">${esc(c.material)}</td>
-        <td style="font-size:11px;color:var(--text-soft)">${esc(c.cliente_nombre)||"—"}</td>
-        <td style="font-size:11px;color:var(--red)">${esc(c.motivo_merma)||"—"}</td>
-        <td style="text-align:right;color:var(--red);font-weight:600">${(c.consumido||0).toLocaleString()}</td>
+      <thead><tr><th>Fecha</th><th>OP</th><th>Tubo</th><th>Motivo</th><th style="text-align:right">mm</th></tr></thead>
+      <tbody>${data.map(m=>`<tr>
+        <td style="font-size:11px;color:var(--text-soft)">${esc(new Date(m.fecha).toLocaleDateString("es-PE"))}</td>
+        <td style="font-family:monospace;color:var(--text-strong)">${esc(m.op_numero)||"—"}</td>
+        <td style="color:var(--text)">${esc(tmap[m.tubo_id]||"—")}</td>
+        <td style="font-size:11px;color:var(--red)">${esc(m.motivo||m.nota)||"—"}</td>
+        <td style="text-align:right;color:var(--red);font-weight:600">${Math.round(Number(m.altura_usada)||0).toLocaleString()}</td>
       </tr>`).join("")}</tbody>
     </table></div>`;
 }
@@ -5235,26 +5265,26 @@ async function widgetStockBajo(){
 
 async function widgetMerma(){
   const since=getDashRangeStart();
-  const inclHist=cfg.dashboard_incl_historico==="true"||cfg.dashboard_incl_historico===true;
-  let q=sb.from("consumos_ops").select("fecha,es_merma,consumido").limit(50000);
+  // % de material descartado por mes: mm de movimientos 'merma' sobre (merma + consumo).
+  let q=sb.from("movimientos").select("fecha,tipo,altura_usada").in("tipo",["merma","consumo"]).limit(50000);
   if(since) q=q.gte("fecha",since);
-  if(!inclHist) q=q.eq("es_historico",false);
   const {data}=await q;
-  if(!data?.length) return `<div class="card"><div class="card-title"><i class="ti ti-trash-x"></i>% Merma por mes</div><div class="no-data">Sin datos</div></div>`;
+  if(!data?.length) return `<div class="card"><div class="card-title"><i class="ti ti-trash-x"></i>% Descarte por mes</div><div class="no-data">Sin datos</div></div>`;
   const byMonth={};
-  data.forEach(c=>{
-    const m=(c.fecha||"").slice(0,7);
-    byMonth[m]=byMonth[m]||{total:0,merma:0};
-    byMonth[m].total++;
-    if(c.es_merma) byMonth[m].merma++;
+  data.forEach(m=>{
+    const k=(m.fecha||"").slice(0,7);
+    byMonth[k]=byMonth[k]||{desc:0,cons:0};
+    const mm=Number(m.altura_usada)||0;
+    if(m.tipo==="merma") byMonth[k].desc+=mm; else byMonth[k].cons+=mm;
   });
   const thr=parseFloat(cfg.merma_alerta_pct)||5;
-  const items=Object.entries(byMonth).sort().map(([m,v])=>{
-    const pct=v.total>0?(v.merma/v.total)*100:0;
-    return {label:m,val:pct,display:`${pct.toFixed(1)}% (${v.merma}/${v.total})`,critico:pct>=thr};
+  const items=Object.entries(byMonth).sort().map(([k,v])=>{
+    const base=v.desc+v.cons;
+    const pct=base>0?(v.desc/base)*100:0;
+    return {label:k,val:pct,display:`${pct.toFixed(1)}% (${Math.round(v.desc).toLocaleString()}mm)`,critico:pct>=thr};
   });
   return `<div class="card">
-    <div class="card-title"><i class="ti ti-trash-x"></i>% Merma por mes <span style="font-size:10px;color:var(--text-soft);margin-left:6px;text-transform:none">umbral crítico: ${thr}%</span></div>
+    <div class="card-title"><i class="ti ti-trash-x"></i>% Descarte por mes <span style="font-size:10px;color:var(--text-soft);margin-left:6px;text-transform:none">umbral crítico: ${thr}%</span></div>
     ${barChart(items,100,i=>i.critico?"#e85a5a":"#4caf8c")}
   </div>`;
 }
@@ -5360,8 +5390,8 @@ let _histState={tipo:"merc",itemId:null,itemName:"",itemCode:"",data:[]};
 
 // Mapa central de los tres almacenes de productos (merc/alm/sum). Evita ternarios frágiles.
 const ALM_DEFS={
-  merc:{key:"merc",prod:"mercaderias",            mov:"mercaderia_movimientos",  fk:"mercaderia_id",cache:"mercaderias",permEdit:"editarMerc", mod:"Merc",  nombre:"Almacén Custom",     catLabel:mercCatLabel,reload:()=>loadMercaderias(true), getCache:()=>_mercCache,cargasList:"mercCargasList",importProg:"mercImportProgress"},
-  alm: {key:"alm", prod:"alm_mecaniza_productos", mov:"alm_mecaniza_movimientos",fk:"producto_id",  cache:"alm_mecaniza",permEdit:"editarAlmMec",mod:"AlmMec",nombre:"Almacén Mecaniza",   catLabel:mercCatLabel,reload:()=>loadAlmMecaniza(true),getCache:()=>_almCache, cargasList:"almCargasList", importProg:"almImportProgress"},
+  merc:{key:"merc",prod:"mercaderias",            mov:"mercaderia_movimientos",  fk:"mercaderia_id",cache:"mercaderias",permEdit:"editarMerc", mod:"Merc",  nombre:"Almacén Mercaderías Custom",     catLabel:mercCatLabel,reload:()=>loadMercaderias(true), getCache:()=>_mercCache,cargasList:"mercCargasList",importProg:"mercImportProgress"},
+  alm: {key:"alm", prod:"alm_mecaniza_productos", mov:"alm_mecaniza_movimientos",fk:"producto_id",  cache:"alm_mecaniza",permEdit:"editarAlmMec",mod:"AlmMec",nombre:"Almacén Mercaderías Mecaniza",   catLabel:mercCatLabel,reload:()=>loadAlmMecaniza(true),getCache:()=>_almCache, cargasList:"almCargasList", importProg:"almImportProgress"},
   sum: {key:"sum", prod:"suministros_productos",  mov:"suministros_movimientos", fk:"producto_id",  cache:"suministros", permEdit:"editarSum",   mod:"Sum",   nombre:"Almacén Suministros",catLabel:sumCatLabel, reload:()=>loadSuministros(true),getCache:()=>_sumCache, cargasList:"sumCargasList", importProg:"sumImportProgress"},
 };
 function _almT(t){return ALM_DEFS[t]||ALM_DEFS.merc;}                 // por clave de historial (merc/alm/sum)
@@ -5715,6 +5745,115 @@ async function generarRepMov(){
     closeModal("modalRepMov");
     abrirReporteHTML(`Movimientos — ${nombreAlm}`, sub, aoa, resumen);
   }catch(err){setBtnLoading("btnGenRepMov",false);toast(errMsg(err),"err");}
+}
+
+// ── Análisis de precios de venta: compara precio de cada salida vs precio del producto ──
+function openAnalisisPrecios(almT){
+  const _d=_almT(almT);
+  document.getElementById("ap_alm").value=almT;
+  document.getElementById("apTitle").textContent=`Análisis de precios — ${_d.nombre}`;
+  document.getElementById("ap_desde").value="";
+  document.getElementById("ap_hasta").value="";
+  document.getElementById("ap_cli").value="";
+  const sel=document.getElementById("ap_cat");
+  const cats=getCategoriasMerc();
+  if(sel) sel.innerHTML=`<option value="">Todas</option>`+cats.map(c=>`<option value="${escAttr(c.code)}">${escAttr(c.label)}</option>`).join("");
+  // Datalist de clientes (autocomplete como en Consumos)
+  getClientesList().then(cs=>{const dl=document.getElementById("consClientesList");if(dl)dl.innerHTML=cs.map(c=>`<option value="${escAttr(c.nombre)}"></option>`).join("");});
+  document.getElementById("modalAnalPrecios").style.display="flex";
+}
+
+async function generarAnalisisPrecios(){
+  const almT=document.getElementById("ap_alm").value;
+  const _d=_almT(almT);
+  const desde=document.getElementById("ap_desde").value, hasta=document.getElementById("ap_hasta").value;
+  const cat=document.getElementById("ap_cat").value;
+  const cliRaw=document.getElementById("ap_cli").value.trim();
+  const cliFil=cliRaw.toLowerCase();
+  const movTable=_d.mov, prodTable=_d.prod, fk=_d.fk;
+  setBtnLoading("btnGenAnalPrecios",true,"Generando...");
+  try{
+    // Mapa de productos: id → {codigo,nombre,categoria,precio_unitario,moneda}
+    const prodMap={};
+    for(let from=0;;from+=1000){
+      const {data}=await sb.from(prodTable).select("id,codigo,nombre,categoria,precio_unitario,moneda").range(from,from+999);
+      if(!data?.length) break;
+      data.forEach(p=>prodMap[p.id]=p);
+      if(data.length<1000) break;
+    }
+    // Salidas (ventas) del período
+    let movs=[];
+    for(let from=0;;from+=1000){
+      let q=sb.from(movTable).select("*").eq("tipo","salida").order("fecha",{ascending:false}).range(from,from+999);
+      if(desde) q=q.gte("fecha",desde);
+      if(hasta) q=q.lte("fecha",hasta+"T23:59:59");
+      const {data,error}=await q;
+      if(error) throw error;
+      if(!data?.length) break;
+      movs=movs.concat(data);
+      if(data.length<1000) break;
+      if(movs.length>=50000) break;
+    }
+    const r2=x=>Math.round(x*100)/100;
+    const money=n=>`S/ ${r2(n).toLocaleString("es-PE",{minimumFractionDigits:2,maximumFractionDigits:2})}`;
+    const fmtFecha=f=>new Date(f).toLocaleDateString("es-PE");
+    let nVentas=0,totalVendido=0,ganancia=0,perdida=0,sinRef=0,sinPrecio=0;
+    const porCli={},porProd={};
+    const detalle=[["Fecha","Código","Producto","Cliente","Cantidad","Precio venta (S/)","Precio sistema (S/)","Dif. unit. (S/)","Impacto (S/)"]];
+    movs.forEach(m=>{
+      const p=prodMap[m[fk]];
+      if(!p) return;
+      if(cat && p.categoria!==cat) return;
+      const cli=m.cliente_nombre||"(sin cliente)";
+      if(cliFil && !cli.toLowerCase().includes(cliFil)) return;
+      if(m.precio_unitario==null){sinPrecio++;return;}
+      if(p.precio_unitario==null){sinRef++;return;}
+      const cant=Number(m.cantidad)||0;
+      const ventaPen=_aPen(Number(m.precio_unitario), m.moneda||p.moneda||"PEN");
+      const refPen=_aPen(Number(p.precio_unitario), p.moneda||"PEN");
+      const difUnit=ventaPen-refPen;
+      const impacto=difUnit*cant;
+      nVentas++;
+      totalVendido+=ventaPen*cant;
+      if(impacto>=0) ganancia+=impacto; else perdida+=-impacto;
+      if(!porCli[cli]) porCli[cli]={n:0,impacto:0,vendido:0};
+      porCli[cli].n++; porCli[cli].impacto+=impacto; porCli[cli].vendido+=ventaPen*cant;
+      const pn=p.nombre||p.codigo||"—";
+      if(!porProd[pn]) porProd[pn]={n:0,impacto:0,vendido:0};
+      porProd[pn].n++; porProd[pn].impacto+=impacto; porProd[pn].vendido+=ventaPen*cant;
+      detalle.push([fmtFecha(m.fecha),p.codigo||"",pn,cli,cant,r2(ventaPen),r2(refPen),r2(difUnit),r2(impacto)]);
+    });
+    if(nVentas===0){setBtnLoading("btnGenAnalPrecios",false);toast("Sin ventas con precio en ese filtro","err");return;}
+    const neto=ganancia-perdida;
+    const cliArr=Object.entries(porCli).map(([k,v])=>({nombre:k,...v})).sort((a,b)=>a.impacto-b.impacto);
+    const prodArr=Object.entries(porProd).map(([k,v])=>({nombre:k,...v})).sort((a,b)=>a.impacto-b.impacto);
+    const celImpacto=v=>{const col=v.impacto<0?"#ef4444":(v.impacto>0?"#22c55e":"#888");return `<td style="text-align:right;color:${col};font-weight:600">${money(v.impacto)}</td>`;};
+    const tablaCli=`<h2 style="font-size:15px;margin:14px 0 6px">Por cliente</h2>
+      <table style="margin-bottom:8px"><thead><tr><th>Cliente</th><th style="text-align:right">Ventas</th><th style="text-align:right">Vendido</th><th style="text-align:right">Ganancia / Pérdida</th></tr></thead>
+      <tbody>${cliArr.map(v=>`<tr><td>${esc(v.nombre)}</td><td style="text-align:right">${v.n}</td><td style="text-align:right">${money(v.vendido)}</td>${celImpacto(v)}</tr>`).join("")}</tbody></table>`;
+    const tablaProd=`<h2 style="font-size:15px;margin:14px 0 6px">Por producto</h2>
+      <table style="margin-bottom:8px"><thead><tr><th>Producto</th><th style="text-align:right">Ventas</th><th style="text-align:right">Vendido</th><th style="text-align:right">Ganancia / Pérdida</th></tr></thead>
+      <tbody>${prodArr.map(v=>`<tr><td>${esc(v.nombre)}</td><td style="text-align:right">${v.n}</td><td style="text-align:right">${money(v.vendido)}</td>${celImpacto(v)}</tr>`).join("")}</tbody></table>`;
+    const avisos=[];
+    if(sinPrecio) avisos.push(`${sinPrecio} salida(s) sin precio (omitidas)`);
+    if(sinRef) avisos.push(`${sinRef} salida(s) cuyo producto no tiene precio de sistema (omitidas)`);
+    const resumen=`
+      <div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:6px;font-size:13px">
+        <span>Ventas analizadas: <b>${nVentas}</b></span>
+        <span>Total vendido: <b>${money(totalVendido)}</b></span>
+        <span style="color:#22c55e">Ganancia (sobre precio): <b>${money(ganancia)}</b></span>
+        <span style="color:#ef4444">Pérdida (bajo precio): <b>${money(perdida)}</b></span>
+        <span>Neto: <b style="color:${neto<0?"#ef4444":"#22c55e"}">${money(neto)}</b></span>
+      </div>
+      ${avisos.length?`<div style="font-size:11px;color:#999;margin-bottom:6px">${avisos.join(" · ")}</div>`:""}
+      <div style="font-size:11px;color:#999;margin-bottom:6px">Importes en soles. Pérdida = vendido por debajo del precio registrado; ganancia = por encima. Tablas ordenadas mostrando primero las mayores pérdidas.</div>
+      ${tablaCli}${tablaProd}
+      <h2 style="font-size:15px;margin:14px 0 6px">Detalle por venta</h2>`;
+    const sub=`${_d.nombre}${(desde||hasta)?` · ${desde||"inicio"} → ${hasta||"hoy"}`:""}${cliRaw?` · cliente: ${cliRaw}`:""}`;
+    setBtnLoading("btnGenAnalPrecios",false);
+    closeModal("modalAnalPrecios");
+    abrirReporteHTML(`Análisis de precios — ${_d.nombre}`, sub, detalle, resumen);
+  }catch(err){setBtnLoading("btnGenAnalPrecios",false);toast(errMsg(err),"err");}
 }
 
 function exportHistorial(){
@@ -6190,7 +6329,7 @@ async function verDetalleTubo(tuboId){
           return `<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;background:var(--bg-card);border:.5px solid ${mermaSugerida?"#7a5a2a":"var(--border)"};border-radius:8px;padding:6px 10px;flex-wrap:wrap">
             <div style="font-size:11px;color:var(--text);flex:1;min-width:150px;display:flex;align-items:center;gap:8px">
               ${(pElimT||pEditT)?`<input type="checkbox" class="inst-chk" value="${inst.id}" style="cursor:pointer">`:""}
-              <span>T${idx+1} · <strong>${mmR}mm</strong> de ${aTot}mm · <span style="color:${ec};text-transform:uppercase;font-size:10px">${estLabel}</span>${sepInfo}${mermaSugerida?` · <span style="color:#f5a623;font-size:10px" title="Por debajo del mínimo aprovechable (${altMinInst}mm)"><i class="ti ti-alert-triangle"></i> merma sugerida</span>`:""}</span>
+              <span>T${idx+1} · <strong>${mmR}mm</strong> de ${aTot}mm · <span style="color:${ec};text-transform:uppercase;font-size:10px">${estLabel}</span>${sepInfo}${mermaSugerida?` · <span style="color:#f5a623;font-size:10px" title="Por debajo del mínimo aprovechable (${altMinInst}mm)"><i class="ti ti-alert-triangle"></i> descarte sugerido</span>`:""}</span>
             </div>
             ${accHtml}
           </div>`;
@@ -7211,7 +7350,7 @@ async function generarRepMovTubos(){
     const uids=[...new Set(filtered.map(m=>m.usuario_id).filter(Boolean))];
     const umap={};
     if(uids.length){const {data:us}=await sb.from("perfiles").select("id,nombre,username").in("id",uids);(us||[]).forEach(u=>umap[u.id]=u.nombre||u.username);}
-    const tipoLabel={entrada:"Entrada",consumo:"Consumo",consumo_extra:"Consumo extra",salida:"Salida",merma:"Merma",ajuste:"Ajuste",transferencia_in:"Transf. +",transferencia_out:"Transf. -"};
+    const tipoLabel={entrada:"Entrada",consumo:"Consumo",consumo_extra:"Consumo extra",salida:"Salida",merma:"Descarte",ajuste:"Ajuste",transferencia_in:"Transf. +",transferencia_out:"Transf. -"};
     const aoa=[["Fecha","Código","Material","Tipo","Cantidad","mm","Precio unit.","Total","Moneda","Usuario"]];
     let tEnt=0,gastadoPen=0;
     filtered.forEach(m=>{
@@ -7299,7 +7438,7 @@ function renderHistTubo(){
     <div class="kpi"><div class="kpi-label">Salidas (tubos)</div><div class="kpi-val amber">-${tOut}</div></div>
     <div class="kpi"><div class="kpi-label">mm consumidos</div><div class="kpi-val red">${mmCons.toFixed(0)}</div></div>`;
   const tipoColor={entrada:"#4caf8c",salida:"#f5a623",consumo:"#e85a5a",consumo_extra:"#e85a5a",ajuste:"#5b9bd5",transferencia_in:"#a78bfa",transferencia_out:"#a78bfa",merma:"#e85a5a"};
-  const tipoLabel={entrada:"ENTRADA",salida:"SALIDA",consumo:"CONSUMO",consumo_extra:"CONSUMO+",ajuste:"AJUSTE",transferencia_in:"TRANS+",transferencia_out:"TRANS-",merma:"MERMA"};
+  const tipoLabel={entrada:"ENTRADA",salida:"SALIDA",consumo:"CONSUMO",consumo_extra:"CONSUMO+",ajuste:"AJUSTE",transferencia_in:"TRANS+",transferencia_out:"TRANS-",merma:"DESCARTE"};
   const verAutor=(CU?.rol==="admin")||cfgBool("mp_ver_autor",false);
   const pElim=userCanCRUD("eliminar","Tubos");
   const sede=_histTuboState.sede||"custom";
@@ -8240,7 +8379,9 @@ async function renderConsumos(){
   if(solo==="merma") query=query.eq("es_merma",true);
   if(solo==="historico") query=query.eq("es_historico",true);
   if(solo==="actual") query=query.eq("es_historico",false);
-  query=query.order("fecha",{ascending:false}).order("id",{ascending:false}).range(start,start+per-1);
+  // Orden: agrupar por OP (todas las líneas de una misma OP juntas, OP mayor arriba),
+  // y dentro de cada OP por fecha/id descendente.
+  query=query.order("op",{ascending:false}).order("fecha",{ascending:false}).order("id",{ascending:false}).range(start,start+per-1);
 
   const {data,count,error}=await query;
   if(error){
@@ -8270,10 +8411,10 @@ async function renderConsumos(){
   // Para evitar bloquear el render, los KPIs se calculan en paralelo y se actualizan después.
   document.getElementById("consKpis").innerHTML=`
     <div class="kpi"><div class="kpi-label">Registros</div><div class="kpi-val white">${total.toLocaleString()}</div><div class="kpi-sub">en filtro actual</div></div>
-    <div class="kpi"><div class="kpi-label">Página</div><div class="kpi-val blue">${page} / ${totalPg}</div></div>
+    <div class="kpi"><div class="kpi-label">OPs registradas</div><div class="kpi-val blue" id="kpiOps">…</div><div class="kpi-sub">en filtro actual</div></div>
     <div class="kpi"><div class="kpi-label" id="kpiEnviadosLabel">mm enviados</div><div class="kpi-val blue" id="kpiEnviados">…</div></div>
     <div class="kpi"><div class="kpi-label">mm consumidos</div><div class="kpi-val amber" id="kpiConsumidos">…</div><div class="kpi-sub" id="kpiDevueltosSub">…</div></div>
-    <div class="kpi"><div class="kpi-label">Mermas</div><div class="kpi-val red" id="kpiMermas">…</div><div class="kpi-sub" id="kpiMermasSub">…</div></div>`;
+    <div class="kpi"><div class="kpi-label">Agotados</div><div class="kpi-val red" id="kpiMermas">…</div><div class="kpi-sub" id="kpiMermasSub">…</div></div>`;
   // Calcular KPIs en background sin bloquear render.
   // Vía RPC (consumos_kpis): la base devuelve los 4 totales ya sumados (1 fila),
   // en vez de traer miles de filas. Si la función no existe, cae al método viejo.
@@ -8282,8 +8423,7 @@ async function renderConsumos(){
       const ke=document.getElementById("kpiEnviados");if(ke)ke.textContent=tEnv.toLocaleString();
       const kc=document.getElementById("kpiConsumidos");if(kc)kc.textContent=tCon.toLocaleString();
       const kds=document.getElementById("kpiDevueltosSub");if(kds)kds.textContent=`${tDev.toLocaleString()}mm devueltos`;
-      const km=document.getElementById("kpiMermas");if(km){km.textContent=mermas;km.style.color=mermas>0?"#e85a5a":"#4caf8c";}
-      const kms=document.getElementById("kpiMermasSub");if(kms)kms.textContent=`${pctM}% del filtro`;
+      // La tarjeta "Agotados" se calcula aparte (descartes reales), no aquí.
     };
     try{
       const {data,error}=await sb.rpc("consumos_kpis",{
@@ -8317,6 +8457,41 @@ async function renderConsumos(){
     }
   })();
 
+  // OPs distintas en el filtro actual (tarjeta "OPs registradas"). Consulta ligera: solo la columna op.
+  (async()=>{
+    let opQ=sb.from("consumos_ops").select("op").eq("sede",_consSede).limit(50000);
+    if(rf){if(rf.ini)opQ=opQ.gte("fecha",rf.ini);if(rf.fin)opQ=opQ.lte("fecha",rf.fin);}
+    if(op){const safe=op.replace(/[%,]/g," ");opQ=opQ.ilike("op",`%${safe}%`);}
+    if(mat){const safe=mat.replace(/[%,]/g," ");opQ=opQ.ilike("material",`%${safe}%`);}
+    if(cli){const safe=cli.replace(/[%,]/g," ");opQ=opQ.ilike("cliente_nombre",`%${safe}%`);}
+    if(solo==="abiertos") opQ=opQ.is("devuelto",null).eq("es_merma",false);
+    if(solo==="merma") opQ=opQ.eq("es_merma",true);
+    if(solo==="historico") opQ=opQ.eq("es_historico",true);
+    if(solo==="actual") opQ=opQ.eq("es_historico",false);
+    const {data:od}=await opQ;
+    const el=document.getElementById("kpiOps");
+    if(el) el.textContent=od?new Set(od.map(r=>(r.op??"").toString().trim()).filter(Boolean)).size.toLocaleString():"0";
+  })();
+
+  // "Agotados": descartes reales (movimientos tipo 'merma') de tubos de ESTA sede en el rango de fechas.
+  // Nota: los descartes son por tubo, así que esta tarjeta respeta sede + fechas, no los filtros de OP/material/cliente.
+  (async()=>{
+    const km=document.getElementById("kpiMermas"), kms=document.getElementById("kpiMermasSub");
+    const pintar=(mm,n)=>{ if(km){km.textContent=`${Math.round(mm).toLocaleString()}mm`;km.style.color=mm>0?"#e85a5a":"#4caf8c";} if(kms)kms.textContent=`${n} descarte${n!==1?"s":""}`; };
+    let mq=sb.from("movimientos").select("tubo_id,altura_usada").eq("tipo","merma").limit(50000);
+    if(rf){if(rf.ini)mq=mq.gte("fecha",rf.ini);if(rf.fin)mq=mq.lte("fecha",rf.fin+"T23:59:59");}
+    const {data:mv}=await mq;
+    if(!mv||!mv.length){pintar(0,0);return;}
+    const ids=[...new Set(mv.map(m=>m.tubo_id).filter(Boolean))];
+    const sedeIds=new Set();
+    for(let i=0;i<ids.length;i+=300){
+      const {data:ts}=await sb.from("tubos").select("id").eq("sede",_consSede).in("id",ids.slice(i,i+300));
+      (ts||[]).forEach(t=>sedeIds.add(t.id));
+    }
+    const desc=mv.filter(m=>sedeIds.has(m.tubo_id));
+    pintar(desc.reduce((a,m)=>a+(Number(m.altura_usada)||0),0), desc.length);
+  })();
+
   const visible=lista;
 
   document.getElementById("cons-tbody").innerHTML=visible.length?visible.map(c=>{
@@ -8337,7 +8512,7 @@ async function renderConsumos(){
       <td style="text-align:right;color:#5b9bd5;font-weight:500">${c.enviado??""}</td>
       <td style="text-align:right;color:${c.devuelto!=null?'#4caf8c':'var(--text-faint)'}">${c.devuelto??"—"}</td>
       <td style="text-align:right;color:${c.consumido>0?'#f5a623':'var(--text-soft)'};font-weight:500">${c.consumido??""}</td>
-      <td style="font-size:10px;color:${merma?'#e85a5a':'var(--text-soft)'}">${merma?`<i class="ti ti-trash-x"></i> MERMA${c.motivo_merma?`: ${esc(c.motivo_merma)}`:''}`:esc(c.observaciones)}${c._usuario?`<div style="color:#5b9bd5;font-size:9px"><i class="ti ti-user"></i> ${esc(c._usuario)}</div>`:""}</td>
+      <td style="font-size:10px;color:${merma?'#e85a5a':'var(--text-soft)'}">${merma?`<i class="ti ti-trash-x"></i> DESCARTE${c.motivo_merma?`: ${esc(c.motivo_merma)}`:''}`:esc(c.observaciones)}${c._usuario?`<div style="color:#5b9bd5;font-size:9px"><i class="ti ti-user"></i> ${esc(c._usuario)}</div>`:""}</td>
       <td style="white-space:nowrap">
         ${!histo?`<button class="btn btn-ghost" style="padding:3px 7px;font-size:10px;color:#5b9bd5" onclick="openCierreOp('${String(c.op).replace(/'/g,"\\'")}')" title="Ver OP (líneas, cierre y reabrir)"><i class="ti ti-eye"></i></button>`:""}
         ${puedeEditarCons&&!histo?`
@@ -8491,7 +8666,7 @@ async function openGridConsumo(){
   getClientesList().then(cs=>{const dl=document.getElementById("consClientesList");if(dl)dl.innerHTML=cs.map(c=>`<option value="${escAttr(c.nombre)}"></option>`).join("");});
   getMaterialesList().then(ms=>{const dl=document.getElementById("consMaterialesList");if(dl)dl.innerHTML=ms.map(m=>`<option value="${escAttr(m)}"></option>`).join("");});
   const body=document.getElementById("grid-body");body.innerHTML="";
-  for(let i=0;i<6;i++) gridAddRow();
+  gridAddRow();
   gridUpdateResumen();
   document.getElementById("modalGrid").style.display="flex";
   setTimeout(()=>{const f=document.querySelector("#grid-body .g-mat");if(f)f.focus();},80);
@@ -8583,7 +8758,7 @@ async function editarOpCompleta(op){
   document.getElementById("eop-body").innerHTML=lineas.map((l,i)=>{
     const cerrada=l.devuelto!=null||l.es_merma;
     const dis=cerrada?"disabled":"";
-    const badge=cerrada?(l.es_merma?'<span style="color:#e85a5a;font-weight:600">MERMA</span>':'<span style="color:#4caf8c;font-weight:600">Cerrada</span>'):'<span style="color:#f5a623;font-weight:600">Pendiente</span>';
+    const badge=cerrada?(l.es_merma?'<span style="color:#e85a5a;font-weight:600">DESCARTE</span>':'<span style="color:#4caf8c;font-weight:600">Cerrada</span>'):'<span style="color:#f5a623;font-weight:600">Pendiente</span>';
     return `<tr data-id="${l.id}" data-cerrada="${cerrada?"1":""}">
       <td style="padding:3px 5px"><input class="form-input eo-mat" list="consMaterialesList" autocomplete="off" onchange="this.value=this.value.toUpperCase()" value="${escAttr(l.material||"")}" style="height:30px;font-size:12px;padding:4px 7px;text-transform:uppercase"></td>
       <td style="padding:3px 4px"><input class="form-input eo-di" type="number" min="0" value="${l.di??""}" style="height:30px;font-size:12px;padding:4px 6px;text-align:right"></td>
@@ -9388,7 +9563,7 @@ async function confirmMerma(){
   if(e3){setBtnLoading("btnConfirmMerma",false);toast("Error registro: "+e3.message,"err");return;}
   setBtnLoading("btnConfirmMerma",false);
   closeModal("modalMerma");
-  toast("✓ MERMA registrada. Tubo eliminado del stock.","ok");
+  toast("✓ Descarte registrado. Tubo eliminado del stock.","ok");
   clearCache("consumos");clearCache("tubos_custom");clearCache("tubos_mecaniza");_consMatTuboCache=null;loadConsumos(true);
 }
 
@@ -9397,10 +9572,15 @@ async function confirmMerma(){
 // ════════════════════════════════════════════════════════════════════════════
 let _cierreState={op:null,lineas:[]};
 
-// Devuelve las instancias físicas disponibles que matchean DI/DE/LARGO
-function _cierreMatches(di,de,largo){
+// Devuelve las instancias físicas disponibles que matchean DI/DE/LARGO.
+// Si se pasa `material`, además exige que el material del tubo sea EXACTAMENTE
+// el mismo que el anotado en la línea (normalizado: mayúsculas y espacios).
+function _cierreMatches(di,de,largo,material){
+  const matNorm=(material||"").trim().toUpperCase().replace(/\s+/g," ");
   const matches=[];
   for(const mat of Object.keys(_consMatTuboCache?.byMaterial||{})){
+    // Filtrar por material anotado (igualdad exacta tras normalizar)
+    if(matNorm && mat.trim().toUpperCase().replace(/\s+/g," ")!==matNorm) continue;
     for(const grupo of _consMatTuboCache.byMaterial[mat]){
       const med=parseMedidas(grupo.tubo.descripcion);
       const okDi=med.di===di||grupo.tubo.di===di;
@@ -9457,6 +9637,15 @@ function renderCierre(){
   if(btnRe) btnRe.style.display=(puedeEditar&&cerradasReabribles>0)?"":"none";
 
   const cont=document.getElementById("cierreLineas");
+  // Preservar el progreso en curso de las líneas pendientes (tubo elegido + DEVUELTO escrito
+  // pero aún NO guardado) para no perderlo al re-renderizar tras guardar otra línea.
+  const _prevEdits={};
+  cont.querySelectorAll(".cierre-card").forEach(c=>{
+    const id=c.dataset.lineid; if(!id) return;
+    const tubo=c.querySelector(".ck-tubo")?.value||"";
+    const dev=c.querySelector(".ck-dev")?.value||"";
+    if(tubo||dev) _prevEdits[id]={tubo,dev};
+  });
   cont.innerHTML=lineas.map((l,i)=>{
     const cerrada=l.devuelto!=null||l.es_merma;
     if(cerrada){
@@ -9465,13 +9654,13 @@ function renderCierre(){
       return `<div class="card" style="padding:10px 12px;margin:0;background:${esMerma?"#241616":"#13241a"};border:.5px solid ${esMerma?"#5e2c2c":"#2c5e44"}">
         <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
           <div style="font-size:12px">
-            <span style="color:${esMerma?"#e85a5a":"#4caf8c"}"><i class="ti ti-${esMerma?"trash-x":"circle-check"}"></i> ${esMerma?"MERMA":"Cerrada"}</span>
+            <span style="color:${esMerma?"#e85a5a":"#4caf8c"}"><i class="ti ti-${esMerma?"trash-x":"circle-check"}"></i> ${esMerma?"DESCARTE":"Cerrada"}</span>
             <strong style="color:var(--text-strong);margin-left:6px">${esc(l.material)}</strong>
             <span style="color:var(--text-soft);font-size:11px;margin-left:6px">DI ${l.di??"?"} · DE ${l.de??"?"} · L ${l.largo??"?"}</span>
           </div>
           <div style="font-size:11px;color:var(--text);white-space:nowrap">
             Env ${l.enviado??0} · Dev ${l.devuelto??0} · <span style="color:#f5a623">Cons ${consumido}mm</span>
-            ${puedeEditar&&esMerma?`<button class="btn btn-ghost" style="padding:2px 8px;font-size:10px;color:#f5a623;margin-left:6px" onclick="deshacerMermaLinea(${l.id})" title="Deshacer merma: devuelve el tubo al stock y reabre la línea"><i class="ti ti-arrow-back-up"></i> Deshacer merma</button>`:""}
+            ${puedeEditar&&esMerma?`<button class="btn btn-ghost" style="padding:2px 8px;font-size:10px;color:#f5a623;margin-left:6px" onclick="deshacerMermaLinea(${l.id})" title="Deshacer descarte: devuelve el tubo al stock y reabre la línea"><i class="ti ti-arrow-back-up"></i> Deshacer descarte</button>`:""}
             ${puedeEditar&&!esMerma?`<button class="btn btn-ghost" style="padding:2px 6px;font-size:10px;color:#e85a5a;margin-left:6px" onclick="revertirCierreLinea(${l.id})" title="Deshacer descuento (reabrir línea)"><i class="ti ti-arrow-back-up"></i></button>`:""}
           </div>
         </div>
@@ -9486,10 +9675,10 @@ function renderCierre(){
       </div>`;
     }
     // Pendiente: editor
-    const matches=_cierreMatches(parseFloat(l.di),parseFloat(l.de),parseFloat(l.largo));
+    const matches=_cierreMatches(parseFloat(l.di),parseFloat(l.de),parseFloat(l.largo),l.material);
     const opts=matches.length
       ? `<option value="">— Elige tubo (${matches.length} disponible${matches.length>1?"s":""}) —</option>`+matches.map(m=>`<option value="${m.tuboId}:${m.instId}"${l.tubo_instancia_id===m.instId?" selected":""}>${esc(m.descripcion)} · T${m.instIdx} · ${m.mmRest}mm restantes</option>`).join("")
-      : `<option value="">— Sin tubos en stock con DI ${l.di} · DE ${l.de} · L ${l.largo} —</option>`;
+      : `<option value="">— Sin tubos de ${esc(l.material||"ese material")} con DI ${l.di} · DE ${l.de} · L ${l.largo} —</option>`;
     return `<div class="card cierre-card" data-lineid="${l.id}" data-enviado="${l.enviado||0}" style="padding:10px 12px;margin:0;background:var(--bg-card);border:.5px solid var(--border)">
       <div style="font-size:10px;color:var(--text-soft);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px">
         Línea ${i+1} — <strong style="color:var(--text)">${esc(l.material)}</strong> · DI ${l.di??"?"} · DE ${l.de??"?"} · L ${l.largo??"?"} · Enviado ${l.enviado??0}mm
@@ -9507,12 +9696,22 @@ function renderCierre(){
       <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
         <div class="ck-info" style="font-size:11px;color:var(--text-faint)"></div>
         <div style="display:flex;gap:6px">
-          <button class="btn btn-amber ck-merma-btn" style="display:none;padding:5px 10px;font-size:11px;box-shadow:0 0 0 1px #f5a623" onclick="mermarCierreLinea(${l.id},this)" title="El tubo quedaría bajo el mínimo aprovechable — descártalo como MERMA"><i class="ti ti-trash-x"></i>Descartar tubo</button>
+          <button class="btn btn-amber ck-merma-btn" style="display:none;padding:5px 10px;font-size:11px;box-shadow:0 0 0 1px #f5a623" onclick="mermarCierreLinea(${l.id},this)" title="El tubo quedaría bajo el mínimo aprovechable — descártalo (queda agotado)"><i class="ti ti-trash-x"></i>Descartar tubo</button>
           <button class="btn btn-green" style="padding:5px 12px;font-size:11px" onclick="guardarCierreLinea(${l.id},this)"><i class="ti ti-device-floppy"></i>Guardar línea</button>
         </div>
       </div>
     </div>`;
   }).join("")||`<div class="no-data">Esta OP no tiene líneas registradas.</div>`;
+  // Restaurar el progreso capturado en las líneas que siguen pendientes.
+  Object.entries(_prevEdits).forEach(([id,v])=>{
+    const c=cont.querySelector(`.cierre-card[data-lineid="${id}"]`);
+    if(!c) return;
+    const selT=c.querySelector(".ck-tubo");
+    if(selT&&v.tubo&&[...selT.options].some(o=>o.value===v.tubo)) selT.value=v.tubo;
+    const inpD=c.querySelector(".ck-dev");
+    if(inpD&&v.dev) inpD.value=v.dev;
+    if(selT) _cierreCalc(selT);
+  });
 }
 
 // Marca el tubo seleccionado como MERMA desde dentro del modal Cerrar OP.
@@ -9590,7 +9789,7 @@ async function deshacerMermaLinea(lineId){
     L.es_merma=false;L.devuelto=null;
     await loadConsMatTuboCache(true);
     showLoading(false);
-    toast("✓ Merma deshecha · tubo restaurado · línea reabierta","ok");
+    toast("✓ Descarte deshecho · tubo restaurado · línea reabierta","ok");
     renderCierre();
     clearCache("consumos");clearCache("tubos_custom");clearCache("tubos_mecaniza");
   }catch(err){showLoading(false);toast(errMsg(err),"err");}
@@ -9631,7 +9830,7 @@ function _cierreCalc(inp){
     altMin=alturaMinPara(tubo);
     if(mmRestDespues>0 && mmRestDespues<altMin){
       mermaSugerida=true;
-      html+=` · <span style="color:#f5a623"><i class="ti ti-alert-triangle"></i> Quedarían <strong>${mmRestDespues}mm</strong> (bajo el mínimo de ${altMin}mm) — <strong>merma sugerida</strong></span>`;
+      html+=` · <span style="color:#f5a623"><i class="ti ti-alert-triangle"></i> Quedarían <strong>${mmRestDespues}mm</strong> (bajo el mínimo de ${altMin}mm) — <strong>descarte sugerido</strong></span>`;
     }
   }
   info.innerHTML=html;
@@ -9691,7 +9890,7 @@ async function guardarCierreLinea(lineId,btn,skipRender=false){
   // Mensaje claro sobre el estado del tubo tras el cierre
   let estadoMsg="";
   if(nuevoEstado==="agotado") estadoMsg=" · tubo AGOTADO (sin material)";
-  else if(mmRest>0&&mmRest<altMin) estadoMsg=` · quedan ${mmRest}mm (bajo el mínimo de ${altMin}mm): puedes descartarlo como merma`;
+  else if(mmRest>0&&mmRest<altMin) estadoMsg=` · quedan ${mmRest}mm (bajo el mínimo de ${altMin}mm): puedes descartarlo`;
   if(!skipRender){
     toast(`✓ Línea cerrada · -${consumido}mm${estadoMsg}`,"ok");
     if(mmRest>0&&mmRest<altMin&&nuevoEstado!=="agotado") toast(`Sugerencia: el sobrante (${mmRest}mm) está bajo el mínimo. Si ya no sirve, usa "Descartar tubo".`,"info");
