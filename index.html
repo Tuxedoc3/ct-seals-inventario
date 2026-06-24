@@ -9573,14 +9573,20 @@ async function confirmMerma(){
 let _cierreState={op:null,lineas:[]};
 
 // Devuelve las instancias físicas disponibles que matchean DI/DE/LARGO.
-// Si se pasa `material`, además exige que el material del tubo sea EXACTAMENTE
-// el mismo que el anotado en la línea (normalizado: mayúsculas y espacios).
+// Si se pasa `material`, además exige que el material del tubo coincida con el
+// anotado con regla "genérico amplía, específico exacto":
+//   · anotar "NBR" encuentra "NBR", "NBR 70", "NBR 90", "NBR 300"… (todos los NBR)
+//   · anotar "NBR 300" encuentra SOLO "NBR 300" (no el genérico ni otros grados)
+//   · "PU RED" nunca se mezcla con "PU GREY"
+// Es decir: el material del tubo debe ser igual al anotado, o empezar con el anotado
+// + espacio. (Normalizado: mayúsculas y espacios.)
 function _cierreMatches(di,de,largo,material){
   const matNorm=(material||"").trim().toUpperCase().replace(/\s+/g," ");
   const matches=[];
   for(const mat of Object.keys(_consMatTuboCache?.byMaterial||{})){
-    // Filtrar por material anotado (igualdad exacta tras normalizar)
-    if(matNorm && mat.trim().toUpperCase().replace(/\s+/g," ")!==matNorm) continue;
+    // Filtrar por material anotado (exacto, o el anotado como prefijo de palabra del tubo)
+    const tuboMat=mat.trim().toUpperCase().replace(/\s+/g," ");
+    if(matNorm && !(tuboMat===matNorm || tuboMat.startsWith(matNorm+" "))) continue;
     for(const grupo of _consMatTuboCache.byMaterial[mat]){
       const med=parseMedidas(grupo.tubo.descripcion);
       const okDi=med.di===di||grupo.tubo.di===di;
