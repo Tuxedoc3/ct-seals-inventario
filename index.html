@@ -9581,13 +9581,16 @@ let _cierreState={op:null,lineas:[]};
 // Es decir: el material del tubo debe ser igual al anotado, o empezar con el anotado
 // + espacio. (Normalizado: mayúsculas y espacios.)
 function _cierreMatches(di,de,largo,material){
-  const matNorm=(material||"").trim().toUpperCase().replace(/\s+/g," ");
+  // Normaliza: mayúsculas; trata guiones y barras como separadores (así "NBR-85" = "NBR 85").
+  const _normMat=s=>(s||"").toString().trim().toUpperCase().replace(/[\-\/]+/g," ").replace(/\s+/g," ").trim();
+  const matNorm=_normMat(material);
+  // El material anotado coincide si es el comienzo (palabra completa) de la DESCRIPCIÓN del tubo:
+  // anotar "NBR" trae "NBR-85 N107…"; anotar "NBR 85" solo los "NBR 85…"; "PU RED" no trae "PU GREY".
+  const okMaterial=desc=>{ if(!matNorm) return true; const t=_normMat(desc); return t===matNorm||t.startsWith(matNorm+" "); };
   const matches=[];
   for(const mat of Object.keys(_consMatTuboCache?.byMaterial||{})){
-    // Filtrar por material anotado (exacto, o el anotado como prefijo de palabra del tubo)
-    const tuboMat=mat.trim().toUpperCase().replace(/\s+/g," ");
-    if(matNorm && !(tuboMat===matNorm || tuboMat.startsWith(matNorm+" "))) continue;
     for(const grupo of _consMatTuboCache.byMaterial[mat]){
+      if(!okMaterial(grupo.tubo.descripcion)) continue;
       const med=parseMedidas(grupo.tubo.descripcion);
       const okDi=med.di===di||grupo.tubo.di===di;
       const okDe=med.de===de||grupo.tubo.de===de;
