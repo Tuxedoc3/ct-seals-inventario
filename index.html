@@ -917,9 +917,8 @@ tbody tr:hover td{background:var(--bg-card-2)!important}
         </div>
         <div class="btn-row">
           <button class="btn btn-ghost" onclick="resetFiltrosCons()"><i class="ti ti-refresh"></i>Limpiar</button>
-          <button class="btn btn-ghost" onclick="openRankingMateriales()"><i class="ti ti-trophy"></i>Ranking de materiales</button>
           <button class="btn btn-red" id="btnGridCons" onclick="openGridConsumo()"><i class="ti ti-plus"></i>Nuevo registro</button>
-          <button class="btn btn-blue" id="btnImportCons" onclick="document.getElementById('consImportInput').click()"><i class="ti ti-upload"></i>Importar histórico Excel</button>
+          <button class="btn btn-blue" id="btnExportCons" onclick="exportarConsumosExcel()"><i class="ti ti-download"></i>Exportar a Excel</button>
           <button class="btn btn-ghost" onclick="ayudaConsumos()" title="¿Cómo funciona esta pantalla?"><i class="ti ti-help-circle"></i>¿Cómo funciona?</button>
           <input type="file" id="consImportInput" style="display:none" accept=".xlsx,.xls" onchange="importConsumosExcel(event)">
         </div>
@@ -936,7 +935,7 @@ tbody tr:hover td{background:var(--bg-card-2)!important}
           <table>
             <thead><tr>
               <th id="consChkHead" style="width:34px;text-align:center"><input type="checkbox" id="consChkAll" onclick="toggleConsSelAll(this)" title="Seleccionar todo"></th>
-              <th>FECHA</th><th>OP</th><th>CLIENTE</th><th>MATERIAL</th>
+              <th>FECHA</th><th>OP</th><th style="min-width:180px">CLIENTE</th><th>MATERIAL</th>
               <th style="text-align:right">DI</th><th style="text-align:right">DE</th><th style="text-align:right">LARGO</th>
               <th style="text-align:right">ENVIADO</th><th style="text-align:right">DEVUELTO</th>
               <th style="text-align:right">CONSUMIDO</th>
@@ -1446,7 +1445,7 @@ tbody tr:hover td{background:var(--bg-card-2)!important}
   <div class="modal" style="max-width:920px">
     <div class="modal-title"><i class="ti ti-edit" style="color:#5b9bd5"></i><span id="eopTitle">Editar OP</span></div>
     <div style="font-size:11px;color:var(--text-soft);margin-bottom:10px">Edita todas las líneas de la OP a la vez. En las líneas <strong>cerradas</strong> no se puede cambiar el ENVIADO (reábrelas primero desde "Cerrar OP" si necesitas corregir el descuento).</div>
-    <div class="form-row-3" style="margin-bottom:10px">
+    <div style="display:grid;grid-template-columns:150px 160px minmax(0,1fr);gap:10px;margin-bottom:10px">
       <div class="form-group"><label class="form-label">Fecha</label><input class="form-input" id="eop_fecha" type="date"></div>
       <div class="form-group"><label class="form-label">N° OP</label><input class="form-input" id="eop_op"></div>
       <div class="form-group"><label class="form-label">Cliente</label><input class="form-input" id="eop_cliente" list="consClientesList" autocomplete="off"></div>
@@ -1460,6 +1459,7 @@ tbody tr:hover td{background:var(--bg-card-2)!important}
         <tbody id="eop-body"></tbody>
       </table>
     </div>
+    <button class="btn btn-ghost" style="font-size:11px;padding:5px 10px;margin-bottom:10px" onclick="eopAddRow()"><i class="ti ti-plus"></i>Agregar material</button>
     <input type="hidden" id="eop_op_orig">
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modalEditOp')">Cancelar</button>
@@ -1736,7 +1736,7 @@ tbody tr:hover td{background:var(--bg-card-2)!important}
 
 <!-- MODAL: Movimiento Mercadería (entrada/salida) -->
 <div class="modal-overlay" id="modalMercMov" style="display:none" onclick="if(event.target===this)closeModalSafe('modalMercMov')">
-  <div class="modal">
+  <div class="modal" style="max-width:620px">
     <div class="modal-title"><i class="ti ti-arrows-transfer-up" id="modalMercMovIcon"></i><span id="modalMercMovTitle">Entrada</span></div>
     <div id="mercMovInfo" style="background:var(--bg-card);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--text);margin-bottom:12px"></div>
     <div class="form-row">
@@ -1756,7 +1756,7 @@ tbody tr:hover td{background:var(--bg-card-2)!important}
       <div class="form-group"><label class="form-label">Cotización</label><input class="form-input" id="mm_op"></div>
     </div>
     <div class="form-row" id="mm_cli_box" style="display:none">
-      <div class="form-group"><label class="form-label">Cliente</label><input class="form-input" id="mm_cliente"></div>
+      <div class="form-group"><label class="form-label">Cliente</label><input class="form-input" id="mm_cliente" list="consClientesList" autocomplete="off" placeholder="Elige o escribe un cliente"></div>
       <div class="form-group"><label class="form-label">Cotización</label><input class="form-input" id="mm_op_sal"></div>
     </div>
     <div class="form-group">
@@ -1819,7 +1819,7 @@ tbody tr:hover td{background:var(--bg-card-2)!important}
 
 <!-- MODAL: Movimiento Almacén Mecaniza -->
 <div class="modal-overlay" id="modalAlmMov" style="display:none" onclick="if(event.target===this)closeModalSafe('modalAlmMov')">
-  <div class="modal">
+  <div class="modal" style="max-width:620px">
     <div class="modal-title"><i class="ti ti-arrows-transfer-up" id="modalAlmMovIcon"></i><span id="modalAlmMovTitle">Entrada</span></div>
     <div id="almMovInfo" style="background:var(--bg-card);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--text);margin-bottom:12px"></div>
     <div class="form-row">
@@ -1839,7 +1839,7 @@ tbody tr:hover td{background:var(--bg-card-2)!important}
       <div class="form-group"><label class="form-label">Cotización</label><input class="form-input" id="am_op"></div>
     </div>
     <div class="form-row" id="am_cli_box" style="display:none">
-      <div class="form-group"><label class="form-label">Cliente</label><input class="form-input" id="am_cliente"></div>
+      <div class="form-group"><label class="form-label">Cliente</label><input class="form-input" id="am_cliente" list="consClientesList" autocomplete="off" placeholder="Elige o escribe un cliente"></div>
       <div class="form-group"><label class="form-label">Cotización</label><input class="form-input" id="am_op_sal"></div>
     </div>
     <div class="form-group">
@@ -4357,7 +4357,7 @@ async function cargarUsoDB(){
 // ────────────────────────────────────────────────────────────────────────────
 const DEFAULT_WIDGETS={opsmes:true,stockbajo:true,consumos:true,merma:true,eficiencia:false,valorinv:true,comprasmes:true,tendencia:true,rotcli:true};
 // Etiquetas legibles (para la config por rol y por usuario)
-const WIDGET_LABELS={opsmes:"OPs del período",stockbajo:"Stock crítico",consumos:"Consumos por material",merma:"Agotados",eficiencia:"Eficiencia",valorinv:"Valor del inventario",comprasmes:"Compras del mes",tendencia:"Tendencia de consumo",rotcli:"Rotación + top clientes"};
+const WIDGET_LABELS={opsmes:"OPs del período",stockbajo:"Stock crítico",consumos:"Consumos — Mecaniza",merma:"Agotados",eficiencia:"Eficiencia",valorinv:"Valor del inventario",comprasmes:"Compras del mes",tendencia:"Consumos — Custom",rotcli:"Rotación + top clientes"};
 // Config de widgets por ROL (admin la define). Compatibilidad con la config global vieja.
 function getRoleWidgets(rol){
   try{
@@ -4415,11 +4415,11 @@ async function loadDashboard(){
   document.getElementById("dashKpis").innerHTML=`
     ${widgets.valorinv?`<div class="kpi clickable" id="kpiValorInv" onclick="openDashModal('valorinv')"><div class="kpi-label"><i class="ti ti-cash"></i> Valor del inventario</div><div class="kpi-val green" data-loading="…">…</div><div class="kpi-sub">stock × precio</div></div>`:""}
     ${widgets.comprasmes?`<div class="kpi clickable" id="kpiComprasMes" onclick="openDashModal('comprasmes')"><div class="kpi-label"><i class="ti ti-shopping-cart"></i> Compras del mes</div><div class="kpi-val blue" data-loading="…">…</div><div class="kpi-sub">entradas a almacenes</div></div>`:""}
-    ${widgets.tendencia?`<div class="kpi clickable" id="kpiTendencia" onclick="openDashModal('tendencia')"><div class="kpi-label"><i class="ti ti-chart-line"></i> Consumo del mes</div><div class="kpi-val amber" data-loading="…">…</div><div class="kpi-sub">tendencia vs mes previo</div></div>`:""}
+    ${widgets.tendencia?`<div class="kpi clickable" id="kpiConsCustom" onclick="goTo('consumos')"><div class="kpi-label"><i class="ti ti-clipboard-list" style="color:#5b9bd5"></i> Consumos — Custom</div><div class="kpi-val blue" data-loading="…">…</div><div class="kpi-sub">del mes · click para abrir</div></div>`:""}
     ${widgets.rotcli?`<div class="kpi clickable" id="kpiRotCli" onclick="openDashModal('rotcli')"><div class="kpi-label"><i class="ti ti-users"></i> Top cliente</div><div class="kpi-val violet" data-loading="…">…</div><div class="kpi-sub">rotación + clientes</div></div>`:""}
     ${widgets.opsmes?`<div class="kpi clickable" id="kpiOpsMes" onclick="openDashModal('opsmes')"><div class="kpi-label"><i class="ti ti-calendar"></i> OPs del mes</div><div class="kpi-val violet" data-loading="…">…</div><div class="kpi-sub">click para ver detalle</div></div>`:""}
     ${widgets.stockbajo?`<div class="kpi clickable" id="kpiStockBajo" onclick="openDashModal('stockbajo')"><div class="kpi-label"><i class="ti ti-alert-triangle"></i> Stock crítico</div><div class="kpi-val red" data-loading="…">…</div><div class="kpi-sub">productos bajo mínimo</div></div>`:""}
-    ${widgets.consumos?`<div class="kpi clickable" id="kpiConsumos" onclick="openDashModal('consumos')"><div class="kpi-label"><i class="ti ti-clipboard-list"></i> Consumos por material</div><div class="kpi-val amber" data-loading="…">…</div><div class="kpi-sub">mm total · click para lista</div></div>`:""}
+    ${widgets.consumos?`<div class="kpi clickable" id="kpiConsMec" onclick="goTo('consumos_mec')"><div class="kpi-label"><i class="ti ti-clipboard-list" style="color:#a78bfa"></i> Consumos — Mecaniza</div><div class="kpi-val violet" data-loading="…">…</div><div class="kpi-sub">del mes · click para abrir</div></div>`:""}
     ${widgets.merma?`<div class="kpi clickable" id="kpiMermaDash" onclick="openDashModal('merma')"><div class="kpi-label"><i class="ti ti-trash-x"></i> Agotados</div><div class="kpi-val red" data-loading="…">…</div><div class="kpi-sub">mm descartados</div></div>`:""}
     ${widgets.eficiencia?`<div class="kpi clickable" id="kpiEficiencia" onclick="openDashModal('eficiencia')"><div class="kpi-label"><i class="ti ti-recycle"></i> Eficiencia</div><div class="kpi-val green" data-loading="…">…</div><div class="kpi-sub">mm recuperados</div></div>`:""}`;
 
@@ -4439,11 +4439,10 @@ async function loadDashboard(){
   const tasks=[];
   if(widgets.valorinv) tasks.push(calcValorInventario());
   if(widgets.comprasmes) tasks.push(calcComprasMes());
-  if(widgets.tendencia) tasks.push(calcTendenciaConsumo());
+  if(widgets.tendencia||widgets.consumos) tasks.push(calcConsumosSede());
   if(widgets.rotcli) tasks.push(calcRotCli());
   if(widgets.opsmes) tasks.push(calcOpsMes());
   if(widgets.stockbajo) tasks.push(calcStockBajo());
-  if(widgets.consumos) tasks.push(calcConsumosPorMaterial());
   if(widgets.merma) tasks.push(calcMerma());
   if(widgets.eficiencia) tasks.push(calcEficiencia());
   await Promise.all(tasks);
@@ -4613,18 +4612,24 @@ async function calcStockBajo(){
   document.querySelector("#kpiStockBajo .kpi-sub").textContent=total===0?"todo OK ✓":`${m} merc · ${a} alm · ${s} sum · ${t} mp`;
 }
 
-async function calcConsumosPorMaterial(){
+// Llena las dos tarjetas de consumo del dashboard (una por sede): consumo del mes + nº de materiales.
+async function calcConsumosSede(){
   const since=getDashRangeStart();
   const inclHist=cfg.dashboard_incl_historico==="true"||cfg.dashboard_incl_historico===true;
-  let q=sb.from("consumos_ops").select("material,consumido").limit(50000);
+  let q=sb.from("consumos_ops").select("material,consumido,sede").limit(50000);
   if(since) q=q.gte("fecha",since);
   if(!inclHist) q=q.eq("es_historico",false);
   const {data}=await q;
-  const tot=(data||[]).reduce((a,c)=>a+(c.consumido||0),0);
-  const set=new Set((data||[]).map(c=>c.material).filter(Boolean));
-  const el=document.querySelector("#kpiConsumos .kpi-val");
-  if(el) el.textContent=tot.toLocaleString()+"mm";
-  document.querySelector("#kpiConsumos .kpi-sub").textContent=`${set.size} materiales distintos`;
+  const rows=data||[];
+  const fill=(sede,cardId)=>{
+    const r=rows.filter(c=>c.sede===sede);
+    const mm=r.reduce((a,c)=>a+(Number(c.consumido)||0),0);
+    const mats=new Set(r.map(c=>c.material).filter(Boolean)).size;
+    const elV=document.querySelector(`#${cardId} .kpi-val`); if(elV) elV.textContent=Math.round(mm).toLocaleString()+"mm";
+    const elS=document.querySelector(`#${cardId} .kpi-sub`); if(elS) elS.textContent=`${mats} material${mats!==1?"es":""} · click para abrir`;
+  };
+  fill("custom","kpiConsCustom");
+  fill("mecaniza","kpiConsMec");
 }
 
 async function calcMerma(){
@@ -4774,13 +4779,18 @@ async function calcComprasMes(){
 }
 async function calcTendenciaConsumo(){
   const since=new Date();since.setMonth(since.getMonth()-6);
-  const {data}=await sb.from("consumos_ops").select("fecha,consumido").eq("es_historico",false).gte("fecha",since.toISOString().slice(0,10)).limit(50000);
-  const byM={};(data||[]).forEach(c=>{const m=String(c.fecha||"").slice(0,7);if(m)byM[m]=(byM[m]||0)+(Number(c.consumido)||0);});
+  const {data}=await sb.from("consumos_ops").select("fecha,consumido,sede").eq("es_historico",false).gte("fecha",since.toISOString().slice(0,10)).limit(50000);
+  const rows=data||[];
+  const byM={};rows.forEach(c=>{const m=String(c.fecha||"").slice(0,7);if(m)byM[m]=(byM[m]||0)+(Number(c.consumido)||0);});
   const keys=Object.keys(byM).sort();
   const ult=keys.length?byM[keys[keys.length-1]]:0, prev=keys.length>1?byM[keys[keys.length-2]]:0;
   const pct=prev>0?Math.round((ult-prev)/prev*100):0;
+  const ultKey=keys.length?keys[keys.length-1]:null;
+  const enMes=c=>String(c.fecha||"").slice(0,7)===ultKey;
+  const cCustom=ultKey?rows.filter(c=>enMes(c)&&c.sede==="custom").reduce((a,c)=>a+(Number(c.consumido)||0),0):0;
+  const cMeca=ultKey?rows.filter(c=>enMes(c)&&c.sede==="mecaniza").reduce((a,c)=>a+(Number(c.consumido)||0),0):0;
   const el=document.querySelector("#kpiTendencia .kpi-val");if(el)el.textContent=Math.round(ult).toLocaleString()+"mm";
-  const s=document.querySelector("#kpiTendencia .kpi-sub");if(s)s.textContent=keys.length>1?`${pct>=0?"▲":"▼"} ${Math.abs(pct)}% vs mes previo`:"consumo del mes";
+  const s=document.querySelector("#kpiTendencia .kpi-sub");if(s)s.textContent=keys.length?`Custom ${Math.round(cCustom).toLocaleString()} · Mec ${Math.round(cMeca).toLocaleString()}mm${keys.length>1?` · ${pct>=0?"▲":"▼"}${Math.abs(pct)}%`:""}`:"consumo del mes";
 }
 async function calcRotCli(){
   const since=getDashRangeStart();
@@ -5875,6 +5885,85 @@ function exportHistorial(){
   ]));
   abrirReporteHTML(`Historial de movimientos — ${_histState.itemCode||""}`,`${lista.length} movimiento(s)`,rows);
 }
+
+// Exporta TODOS los consumos de la sede activa a un Excel con una hoja por mes.
+async function exportarConsumosExcel(){
+  if(typeof XLSX==="undefined"){toast("La librería de Excel no está disponible","err");return;}
+  setBtnLoading("btnExportCons",true,"Generando...");
+  try{
+    let all=[];
+    for(let from=0;;from+=1000){
+      const {data,error}=await sb.from("consumos_ops").select("*").eq("sede",_consSede).order("fecha",{ascending:true}).order("op").range(from,from+999);
+      if(error) throw error;
+      if(!data?.length) break;
+      all=all.concat(data);
+      if(data.length<1000) break;
+    }
+    if(!all.length){setBtnLoading("btnExportCons",false);toast("No hay consumos para exportar en esta sede","err");return;}
+    // Agrupar por mes (YYYY-MM)
+    const byMonth={};
+    all.forEach(c=>{const m=String(c.fecha||"").slice(0,7)||"sin-fecha";(byMonth[m]=byMonth[m]||[]).push(c);});
+    const header=["Fecha","OP","Cliente","Material","DI","DE","Largo","Enviado","Devuelto","Consumido","Estado","Observaciones"];
+    const estado=c=>c.es_merma?"Descarte":(c.devuelto!=null?"Cerrada":"Pendiente");
+    const wb=XLSX.utils.book_new();
+    Object.keys(byMonth).sort().forEach(mes=>{
+      const aoa=[header];
+      byMonth[mes].forEach(c=>{
+        const consumido=c.consumido!=null?c.consumido:(c.devuelto!=null?(c.enviado||0)-(c.devuelto||0):"");
+        aoa.push([c.fecha||"",c.op||"",c.cliente_nombre||"",c.material||"",c.di??"",c.de??"",c.largo??"",c.enviado??"",c.devuelto??"",consumido,estado(c),c.observaciones||""]);
+      });
+      const ws=XLSX.utils.aoa_to_sheet(aoa);
+      const sheetName=(mes||"sin-fecha").replace(/[\\\/\?\*\[\]:]/g,"-").slice(0,31);
+      XLSX.utils.book_append_sheet(wb,ws,sheetName);
+    });
+    const sede=_consSede==="mecaniza"?"Mecaniza":"Custom";
+    XLSX.writeFile(wb,`Consumos_${sede}_${new Date().toISOString().slice(0,10)}.xlsx`);
+    setBtnLoading("btnExportCons",false);
+    toast(`✓ Excel generado · ${all.length} registros · ${Object.keys(byMonth).length} mes(es)`,"ok");
+  }catch(err){setBtnLoading("btnExportCons",false);toast(errMsg(err),"err");}
+}
+
+// ── Navegación por teclado: las 4 flechas mueven el foco al campo vecino ──────
+// (aplica a todo el sistema; en campos de texto/número las flechas dejan de mover
+//  el cursor/valor y pasan a saltar de campo, según lo pedido por el usuario).
+document.addEventListener("keydown",function(e){
+  if(!["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(e.key)) return;
+  if(e.ctrlKey||e.altKey||e.metaKey) return;
+  const el=document.activeElement; if(!el) return;
+  const tag=el.tagName;
+  const tipo=(el.type||"").toLowerCase();
+  const navegable=(tag==="INPUT"&&!["checkbox","radio","range","hidden","file"].includes(tipo))||tag==="SELECT";
+  if(!navegable) return;
+  const scope=el.closest(".modal, .page.active, .card")||document.body;
+  const campos=[...scope.querySelectorAll("input,select")].filter(c=>{
+    if(c===el) return true;
+    if(c.disabled||c.readOnly) return false;
+    const t=(c.type||"").toLowerCase();
+    if(["checkbox","radio","range","hidden","file"].includes(t)) return false;
+    const r=c.getBoundingClientRect();
+    return r.width>0&&r.height>0;
+  });
+  if(campos.length<2) return;
+  const cur=el.getBoundingClientRect();
+  const cx=cur.left+cur.width/2, cy=cur.top+cur.height/2;
+  let best=null,bestD=Infinity;
+  for(const c of campos){
+    if(c===el) continue;
+    const r=c.getBoundingClientRect();
+    const x=r.left+r.width/2, y=r.top+r.height/2;
+    const dx=x-cx, dy=y-cy;
+    let ok=false;
+    if(e.key==="ArrowRight") ok=dx>4 && Math.abs(dy)<Math.max(cur.height,r.height);
+    else if(e.key==="ArrowLeft") ok=dx<-4 && Math.abs(dy)<Math.max(cur.height,r.height);
+    else if(e.key==="ArrowDown") ok=dy>4;
+    else if(e.key==="ArrowUp") ok=dy<-4;
+    if(!ok) continue;
+    const horizontal=(e.key==="ArrowLeft"||e.key==="ArrowRight");
+    const dist=horizontal?(Math.abs(dx)+Math.abs(dy)*3):(Math.abs(dy)+Math.abs(dx)*3);
+    if(dist<bestD){bestD=dist;best=c;}
+  }
+  if(best){ e.preventDefault(); best.focus(); try{best.select&&best.select();}catch(_){} }
+});
 
 // ────────────────────────────────────────────────────────────────────────────
 //  TUBOS
@@ -8504,7 +8593,7 @@ async function renderConsumos(){
       <td style="text-align:center">${selectable?`<input type="checkbox" class="cons-chk" value="${c.id}" ${_consSel.has(c.id)?"checked":""} onclick="toggleConsSel(${c.id},this.checked)">`:""}</td>
       <td style="font-size:11px;color:var(--text)">${esc(c.fecha)}</td>
       <td style="font-family:monospace;color:var(--text-strong)">${esc(c.op)}</td>
-      <td style="color:var(--text);font-size:11px">${esc(c.cliente_nombre)||'<span style="color:var(--text-faint)">—</span>'}</td>
+      <td style="color:var(--text);font-size:11px;min-width:180px;white-space:nowrap">${esc(c.cliente_nombre)||'<span style="color:var(--text-faint)">—</span>'}</td>
       <td style="color:var(--text)">${esc(c.material)}${histo?' <span style="font-size:9px;color:var(--text-soft)">(hist)</span>':''}</td>
       <td style="text-align:right;color:var(--text-soft);font-size:11px">${c.di??""}</td>
       <td style="text-align:right;color:var(--text-soft);font-size:11px">${c.de??""}</td>
@@ -8618,6 +8707,20 @@ function gridUpdateResumen(){
   rows.forEach(tr=>{const m=tr.querySelector(".g-mat").value.trim();const e=parseFloat(tr.querySelector(".g-env").value);if(m||!isNaN(e)){n++;if(!isNaN(e))env+=e;}});
   const el=document.getElementById("g_resumen");if(el)el.textContent=`${n} línea(s) · ${Math.round(env)} mm enviados`;
 }
+// Siguiente N° de OP con formato E + 6 dígitos (E000001 … E009496 → E009497 …).
+// Toma el mayor número existente de las OP tipo "E######" y le suma 1.
+async function siguienteNumeroOp(){
+  try{
+    let max=0;
+    for(let from=0;;from+=1000){
+      const {data,error}=await sb.from("consumos_ops").select("op").ilike("op","E%").range(from,from+999);
+      if(error||!data?.length) break;
+      data.forEach(r=>{const m=String(r.op||"").match(/^E0*(\d+)$/i);if(m){const n=parseInt(m[1]);if(n>max)max=n;}});
+      if(data.length<1000) break;
+    }
+    return "E"+String(max+1).padStart(6,"0");
+  }catch(e){ return "E000001"; }
+}
 function gridAddRow(prefill){
   const body=document.getElementById("grid-body");
   const tr=document.createElement("tr");
@@ -8658,6 +8761,7 @@ async function openGridConsumo(){
   if(!userCanCRUD("crear","Consumos")){toast("Sin permiso para crear","err");return;}
   document.getElementById("g_fecha").value=new Date().toISOString().slice(0,10);
   document.getElementById("g_op").value="";
+  siguienteNumeroOp().then(n=>{const el=document.getElementById("g_op");if(el&&!el.value)el.value=n;});
   document.getElementById("g_tipo").value="externa";
   document.getElementById("g_cliente").value="";
   document.getElementById("g_paste").value="";
@@ -8693,7 +8797,10 @@ function gridPasteApply(){
   gridUpdateResumen();
   toast(`✓ ${added} fila(s) cargada(s)`,"ok");
 }
+let _consumoSaving=false; // candado anti-doble-envío (compartido por los guardados de consumo)
 async function gridSave(){
+  if(_consumoSaving) return; _consumoSaving=true;
+  try{
   const fecha=document.getElementById("g_fecha").value.trim();
   const tipoOp=document.getElementById("g_tipo").value;
   let op=document.getElementById("g_op").value.trim();
@@ -8735,6 +8842,7 @@ async function gridSave(){
   toast(`✓ OP ${op} anotada · ${rows.length} línea(s) pendiente(s) de cerrar`,"ok");
   if(corr.length) toast(`Reconocido del catálogo: ${corr.join(", ")}`,"ok");
   clearCache("consumos");clearCache("materiales_list");_consMatTuboCache=null;loadConsumos(true);
+  }finally{_consumoSaving=false;}
 }
 
 // ── Editar OP completa (todas las líneas a la vez) ──
@@ -8770,41 +8878,69 @@ async function editarOpCompleta(op){
     </tr>`;
   }).join("");
 }
+// Agrega una fila NUEVA (sin id) al editor de OP, para registrar material adicional.
+function eopAddRow(){
+  const body=document.getElementById("eop-body");
+  if(!body) return;
+  const tr=document.createElement("tr");
+  tr.innerHTML=`
+    <td style="padding:3px 5px"><input class="form-input eo-mat" list="consMaterialesList" autocomplete="off" onchange="this.value=this.value.toUpperCase()" style="height:30px;font-size:12px;padding:4px 7px;text-transform:uppercase"></td>
+    <td style="padding:3px 4px"><input class="form-input eo-di" type="number" min="0" style="height:30px;font-size:12px;padding:4px 6px;text-align:right"></td>
+    <td style="padding:3px 4px"><input class="form-input eo-de" type="number" min="0" style="height:30px;font-size:12px;padding:4px 6px;text-align:right"></td>
+    <td style="padding:3px 4px"><input class="form-input eo-largo" type="number" min="0" style="height:30px;font-size:12px;padding:4px 6px;text-align:right"></td>
+    <td style="padding:3px 4px"><input class="form-input eo-env" type="number" min="0" style="height:30px;font-size:12px;padding:4px 6px;text-align:right"></td>
+    <td style="padding:3px 5px"><input class="form-input eo-obs" style="height:30px;font-size:12px;padding:4px 7px"></td>
+    <td style="text-align:center;font-size:10px"><span style="color:#5b9bd5;font-weight:600">Nueva</span> <button class="btn btn-ghost" style="padding:1px 5px;font-size:10px;color:#e85a5a" onclick="this.closest('tr').remove()" title="Quitar"><i class="ti ti-x"></i></button></td>`;
+  body.appendChild(tr);
+  const f=tr.querySelector(".eo-mat"); if(f) f.focus();
+}
 async function eopSave(){
+  if(_consumoSaving) return; _consumoSaving=true;
+  try{
   if(!userCanCRUD("editar","Consumos")){toast("Sin permiso","err");return;}
   const fecha=document.getElementById("eop_fecha").value.trim();
   const op=document.getElementById("eop_op").value.trim();
   const cliente=document.getElementById("eop_cliente").value.trim();
   if(!fecha||!op){toast("Fecha y N° OP son obligatorios","err");return;}
-  const trs=[...document.querySelectorAll("#eop-body tr")].filter(tr=>tr.dataset.id);
+  const trs=[...document.querySelectorAll("#eop-body tr")];
   if(!trs.length){toast("No hay líneas para guardar","err");return;}
   const _matMap=await _resolverMateriales();
   setBtnLoading("btnEopSave",true,"Guardando...");
   let okN=0;
   for(let i=0;i<trs.length;i++){
-    const tr=trs[i];const lid=tr.dataset.id;const cerrada=!!tr.dataset.cerrada;
+    const tr=trs[i];const lid=tr.dataset.id;const esNueva=!lid;const cerrada=!!tr.dataset.cerrada;
     let material=normMaterial(tr.querySelector(".eo-mat").value);
-    const of=_matMap.get(_matKey(material)); if(of) material=of;
     const di=parseFloat(tr.querySelector(".eo-di").value);
     const de=parseFloat(tr.querySelector(".eo-de").value);
     const largo=parseFloat(tr.querySelector(".eo-largo").value);
     const env=parseFloat(tr.querySelector(".eo-env").value);
     const obs=tr.querySelector(".eo-obs").value.trim();
+    // Fila NUEVA totalmente vacía → ignorar
+    if(esNueva && !material && isNaN(di) && isNaN(de) && isNaN(largo) && isNaN(env)) continue;
+    const of=_matMap.get(_matKey(material)); if(of) material=of;
     if(isNaN(di)||isNaN(de)||isNaN(largo)){setBtnLoading("btnEopSave",false);toast(`Línea ${i+1}: completa DI, DE y LARGO`,"err");return;}
     if(!material){setBtnLoading("btnEopSave",false);toast(`Línea ${i+1}: indica el material`,"err");return;}
     const payload={fecha,op,cliente_nombre:cliente||null,material,di,de,largo,observaciones:obs||null};
-    if(!cerrada){
-      if(isNaN(env)||env<=0){setBtnLoading("btnEopSave",false);toast(`Línea ${i+1}: ENVIADO inválido`,"err");return;}
-      payload.enviado=env;
+    if(esNueva){
+      if(isNaN(env)||env<=0){setBtnLoading("btnEopSave",false);toast(`Línea nueva ${i+1}: indica el ENVIADO (mayor que 0)`,"err");return;}
+      payload.enviado=env; payload.devuelto=null; payload.es_merma=false; payload.es_historico=false; payload.sede=_consSede; payload.usuario_id=CU?.id;
+      const {error}=await sb.from("consumos_ops").insert(payload);
+      if(error){setBtnLoading("btnEopSave",false);toast(`Error en línea nueva ${i+1}: ${error.message}`,"err");return;}
+    }else{
+      if(!cerrada){
+        if(isNaN(env)||env<=0){setBtnLoading("btnEopSave",false);toast(`Línea ${i+1}: ENVIADO inválido`,"err");return;}
+        payload.enviado=env;
+      }
+      const {error}=await sb.from("consumos_ops").update(payload).eq("id",lid);
+      if(error){setBtnLoading("btnEopSave",false);toast(`Error en línea ${i+1}: ${error.message}`,"err");return;}
     }
-    const {error}=await sb.from("consumos_ops").update(payload).eq("id",lid);
-    if(error){setBtnLoading("btnEopSave",false);toast(`Error en línea ${i+1}: ${error.message}`,"err");return;}
     okN++;
   }
   setBtnLoading("btnEopSave",false);
   closeModal("modalEditOp");
   toast(`✓ OP ${op} actualizada · ${okN} línea(s)`,"ok");
   clearCache("consumos");_consMatTuboCache=null;loadConsumos(true);
+  }finally{_consumoSaving=false;}
 }
 
 async function openModalConsumo(id=null){
@@ -8814,6 +8950,7 @@ async function openModalConsumo(id=null){
   document.getElementById("co_id").value=c?.id||"";
   document.getElementById("co_fecha").value=c?.fecha||new Date().toISOString().slice(0,10);
   document.getElementById("co_op").value=c?.op||"";
+  if(!c) siguienteNumeroOp().then(n=>{const el=document.getElementById("co_op");if(el&&!el.value)el.value=n;});
   // Detectar si es consumo interno por prefijo INT- u OBS
   const esInterno=c?String(c.op||"").toUpperCase().startsWith("INT-")||(c.observaciones||"").toUpperCase().includes("INTERNO"):false;
   document.getElementById("co_tipo_op").value=esInterno?"interno":"externa";
@@ -9141,6 +9278,8 @@ function updateConsumoResumen(){
 }
 
 async function saveConsumo(){
+  if(_consumoSaving) return; _consumoSaving=true;
+  try{
   const fecha=document.getElementById("co_fecha").value.trim();
   const tipoOp=document.getElementById("co_tipo_op").value;
   let op=document.getElementById("co_op").value.trim();
@@ -9413,6 +9552,7 @@ async function saveConsumo(){
   }else{
     toast(`Error: ${errors[0]||"falló el guardado"}`,"err");
   }
+  }finally{_consumoSaving=false;}
 }
 
 async function deleteConsumo(consumoId){
@@ -9862,6 +10002,8 @@ async function guardarCierreLinea(lineId,btn,skipRender=false){
   const [tuboIdStr,instIdStr]=tuboVal.split(":");
   const tuboId=parseInt(tuboIdStr), instId=parseInt(instIdStr);
   const consumido=env-devuelto;
+  // Aviso: si el DEVUELTO iguala al ENVIADO, el consumo queda en 0 (no se descuenta nada).
+  if(consumido===0 && !skipRender && !confirm(`El consumo de esta línea quedará en 0 mm (devolviste los ${env}mm completos, no se descontará material del tubo). ¿Guardar así?`)) return false;
 
   setBtnLoading2(btn,true,"Guardando...");
   // Traer datos frescos del tubo e instancia
@@ -10487,6 +10629,8 @@ function openMercMov(id,tipo){
   document.getElementById("mm_moneda").value=m.moneda||cfgStr("general_moneda_default","PEN");
   _updMonedaLbl("mm");
   cargarProveedoresList();
+  // Autocompletado de clientes en Salida (misma lista que Consumos)
+  if(tipo==="salida") getClientesList().then(cs=>{const dl=document.getElementById("consClientesList");if(dl)dl.innerHTML=cs.map(c=>`<option value="${escAttr(c.nombre)}"></option>`).join("");});
   document.getElementById("mm_proveedor").value=m.proveedor||"";
   document.getElementById("mm_op").value="";
   document.getElementById("mm_cliente").value="";
@@ -10757,6 +10901,8 @@ function openAlmMov(id,tipo){
   document.getElementById("am_moneda").value=a.moneda||cfgStr("general_moneda_default","PEN");
   _updMonedaLbl("am");
   cargarProveedoresList();
+  // Autocompletado de clientes en Salida (misma lista que Consumos)
+  if(tipo==="salida") getClientesList().then(cs=>{const dl=document.getElementById("consClientesList");if(dl)dl.innerHTML=cs.map(c=>`<option value="${escAttr(c.nombre)}"></option>`).join("");});
   document.getElementById("am_proveedor").value=a.proveedor||"";
   document.getElementById("am_op").value="";
   document.getElementById("am_cliente").value="";
