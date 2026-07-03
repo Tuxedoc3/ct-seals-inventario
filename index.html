@@ -935,7 +935,7 @@ tbody tr:hover td{background:var(--bg-card-2)!important}
           <table>
             <thead><tr>
               <th id="consChkHead" style="width:34px;text-align:center"><input type="checkbox" id="consChkAll" onclick="toggleConsSelAll(this)" title="Seleccionar todo"></th>
-              <th>FECHA</th><th>OP</th><th style="min-width:180px">CLIENTE</th><th>MATERIAL</th>
+              <th>FECHA</th><th>OP</th><th>CLIENTE</th><th>MATERIAL</th>
               <th style="text-align:right">DI</th><th style="text-align:right">DE</th><th style="text-align:right">LARGO</th>
               <th style="text-align:right">ENVIADO</th><th style="text-align:right">DEVUELTO</th>
               <th style="text-align:right">CONSUMIDO</th>
@@ -1751,17 +1751,18 @@ tbody tr:hover td{background:var(--bg-card-2)!important}
         </div>
       </div>
     </div>
-    <div class="form-row" id="mm_prov_box">
-      <div class="form-group"><label class="form-label">Proveedor</label><input class="form-input" id="mm_proveedor" list="proveedoresList" autocomplete="off" placeholder="Elige o escribe uno nuevo"></div>
+    <div class="form-group" id="mm_prov_box">
+      <label class="form-label">Proveedor</label><input class="form-input" id="mm_proveedor" list="proveedoresList" autocomplete="off" placeholder="Elige o escribe uno nuevo">
+    </div>
+    <div class="form-group" id="mm_cli_box" style="display:none">
+      <label class="form-label">Cliente</label><input class="form-input" id="mm_cliente" list="consClientesList" autocomplete="off" placeholder="Elige o escribe un cliente">
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Motivo <span class="req">*</span></label>
+        <select class="form-input" id="mm_motivo" onchange="toggleMotivoOtro('mm')"></select>
+      </div>
       <div class="form-group"><label class="form-label">Cotización</label><input class="form-input" id="mm_op"></div>
-    </div>
-    <div class="form-row" id="mm_cli_box" style="display:none">
-      <div class="form-group"><label class="form-label">Cliente</label><input class="form-input" id="mm_cliente" list="consClientesList" autocomplete="off" placeholder="Elige o escribe un cliente"></div>
-      <div class="form-group"><label class="form-label">Cotización</label><input class="form-input" id="mm_op_sal"></div>
-    </div>
-    <div class="form-group">
-      <label class="form-label">Motivo <span class="req">*</span></label>
-      <select class="form-input" id="mm_motivo" onchange="toggleMotivoOtro('mm')"></select>
     </div>
     <div class="form-group" id="mm_motivo_otro_box" style="display:none">
       <label class="form-label">Especificar motivo <span class="req">*</span></label>
@@ -1834,17 +1835,18 @@ tbody tr:hover td{background:var(--bg-card-2)!important}
         </div>
       </div>
     </div>
-    <div class="form-row" id="am_prov_box">
-      <div class="form-group"><label class="form-label">Proveedor</label><input class="form-input" id="am_proveedor" list="proveedoresList" autocomplete="off" placeholder="Elige o escribe uno nuevo"></div>
+    <div class="form-group" id="am_prov_box">
+      <label class="form-label">Proveedor</label><input class="form-input" id="am_proveedor" list="proveedoresList" autocomplete="off" placeholder="Elige o escribe uno nuevo">
+    </div>
+    <div class="form-group" id="am_cli_box" style="display:none">
+      <label class="form-label">Cliente</label><input class="form-input" id="am_cliente" list="consClientesList" autocomplete="off" placeholder="Elige o escribe un cliente">
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Motivo <span class="req">*</span></label>
+        <select class="form-input" id="am_motivo" onchange="toggleMotivoOtro('am')"></select>
+      </div>
       <div class="form-group"><label class="form-label">Cotización</label><input class="form-input" id="am_op"></div>
-    </div>
-    <div class="form-row" id="am_cli_box" style="display:none">
-      <div class="form-group"><label class="form-label">Cliente</label><input class="form-input" id="am_cliente" list="consClientesList" autocomplete="off" placeholder="Elige o escribe un cliente"></div>
-      <div class="form-group"><label class="form-label">Cotización</label><input class="form-input" id="am_op_sal"></div>
-    </div>
-    <div class="form-group">
-      <label class="form-label">Motivo <span class="req">*</span></label>
-      <select class="form-input" id="am_motivo" onchange="toggleMotivoOtro('am')"></select>
     </div>
     <div class="form-group" id="am_motivo_otro_box" style="display:none">
       <label class="form-label">Especificar motivo <span class="req">*</span></label>
@@ -8375,7 +8377,7 @@ async function loadConsumos(forceReload=false){
   const tEl=document.querySelector("#page-consumos .page-title");
   if(tEl){const sc=_consSede==="mecaniza"?"#f5a623":"var(--red)";tEl.innerHTML=`<i class="ti ti-clipboard-list" style="color:${sc}"></i>Consumos de Material — <span style="color:${sc}">${_consSede==="mecaniza"?"Mecaniza":"Custom"}</span>`;}
   {const bg=document.getElementById("btnGridCons");if(bg)bg.style.display=userCanCRUD("crear","Consumos")?"inline-flex":"none";}
-  document.getElementById("btnImportCons").style.display=perm.importar?"inline-flex":"none";
+  {const be=document.getElementById("btnExportCons");if(be)be.style.display=(perm.exportar!==false)?"inline-flex":"none";}
   // Default: mes actual
   if(!document.getElementById("consMes").value){
     const d=new Date();
@@ -8593,7 +8595,7 @@ async function renderConsumos(){
       <td style="text-align:center">${selectable?`<input type="checkbox" class="cons-chk" value="${c.id}" ${_consSel.has(c.id)?"checked":""} onclick="toggleConsSel(${c.id},this.checked)">`:""}</td>
       <td style="font-size:11px;color:var(--text)">${esc(c.fecha)}</td>
       <td style="font-family:monospace;color:var(--text-strong)">${esc(c.op)}</td>
-      <td style="color:var(--text);font-size:11px;min-width:180px;white-space:nowrap">${esc(c.cliente_nombre)||'<span style="color:var(--text-faint)">—</span>'}</td>
+      <td style="color:var(--text);font-size:11px">${esc(c.cliente_nombre)||'<span style="color:var(--text-faint)">—</span>'}</td>
       <td style="color:var(--text)">${esc(c.material)}${histo?' <span style="font-size:9px;color:var(--text-soft)">(hist)</span>':''}</td>
       <td style="text-align:right;color:var(--text-soft);font-size:11px">${c.di??""}</td>
       <td style="text-align:right;color:var(--text-soft);font-size:11px">${c.de??""}</td>
@@ -10634,7 +10636,6 @@ function openMercMov(id,tipo){
   document.getElementById("mm_proveedor").value=m.proveedor||"";
   document.getElementById("mm_op").value="";
   document.getElementById("mm_cliente").value="";
-  document.getElementById("mm_op_sal").value="";
   poblarMotivos("mm_motivo",tipo);
   // Auto-marcar "Inventario inicial" si es la primera carga de stock del producto
   if(tipo==="entrada"){
@@ -10645,8 +10646,8 @@ function openMercMov(id,tipo){
   }
   document.getElementById("mm_motivo_otro").value="";
   document.getElementById("mm_motivo_otro_box").style.display="none";
-  document.getElementById("mm_prov_box").style.display=tipo==="entrada"?"grid":"none";
-  document.getElementById("mm_cli_box").style.display=tipo==="salida"?"grid":"none";
+  document.getElementById("mm_prov_box").style.display=tipo==="entrada"?"":"none";
+  document.getElementById("mm_cli_box").style.display=tipo==="salida"?"":"none";
   document.getElementById("modalMercMov").style.display="flex";
 }
 
@@ -10668,7 +10669,7 @@ async function saveMercMov(){
     moneda:document.getElementById("mm_moneda").value||m.moneda,motivo,
     proveedor:tipo==="entrada"?(document.getElementById("mm_proveedor").value.trim()||null):null,
     cliente_nombre:tipo==="salida"?(document.getElementById("mm_cliente").value.trim()||null):null,
-    op_numero:tipo==="entrada"?(document.getElementById("mm_op").value.trim()||null):(document.getElementById("mm_op_sal").value.trim()||null),
+    op_numero:document.getElementById("mm_op").value.trim()||null,
     stock_antes:stockAntes,stock_despues:stockDespues,
     usuario_id:CU?.id,
   };
@@ -10680,7 +10681,7 @@ async function saveMercMov(){
   let transferMsg="";
   if(tipo==="salida"&&motivo===MOTIVO_TRANSFER){
     try{
-      const opNum=document.getElementById("mm_op_sal").value.trim();
+      const opNum=document.getElementById("mm_op").value.trim();
       const r=await transferirAOtroAlmacen("mercaderias",m,cant,opNum);
       transferMsg=` → ${r.destNombre}: stock ${r.stockDestino}${r.creado?" (producto creado)":""}`;
       clearCache("alm_mecaniza");
@@ -10906,7 +10907,6 @@ function openAlmMov(id,tipo){
   document.getElementById("am_proveedor").value=a.proveedor||"";
   document.getElementById("am_op").value="";
   document.getElementById("am_cliente").value="";
-  document.getElementById("am_op_sal").value="";
   poblarMotivos("am_motivo",tipo);
   // Auto-marcar "Inventario inicial" si es la primera carga de stock del producto
   if(tipo==="entrada"){
@@ -10917,8 +10917,8 @@ function openAlmMov(id,tipo){
   }
   document.getElementById("am_motivo_otro").value="";
   document.getElementById("am_motivo_otro_box").style.display="none";
-  document.getElementById("am_prov_box").style.display=tipo==="entrada"?"grid":"none";
-  document.getElementById("am_cli_box").style.display=tipo==="salida"?"grid":"none";
+  document.getElementById("am_prov_box").style.display=tipo==="entrada"?"":"none";
+  document.getElementById("am_cli_box").style.display=tipo==="salida"?"":"none";
   document.getElementById("modalAlmMov").style.display="flex";
 }
 
@@ -10940,7 +10940,7 @@ async function saveAlmMov(){
     moneda:document.getElementById("am_moneda").value||a.moneda,motivo,
     proveedor:tipo==="entrada"?(document.getElementById("am_proveedor").value.trim()||null):null,
     cliente_nombre:tipo==="salida"?(document.getElementById("am_cliente").value.trim()||null):null,
-    op_numero:tipo==="entrada"?(document.getElementById("am_op").value.trim()||null):(document.getElementById("am_op_sal").value.trim()||null),
+    op_numero:document.getElementById("am_op").value.trim()||null,
     stock_antes:stockAntes,stock_despues:stockDespues,
     usuario_id:CU?.id,
   };
@@ -10951,7 +10951,7 @@ async function saveAlmMov(){
   let transferMsg="";
   if(tipo==="salida"&&motivo===MOTIVO_TRANSFER){
     try{
-      const opNum=document.getElementById("am_op_sal").value.trim();
+      const opNum=document.getElementById("am_op").value.trim();
       const r=await transferirAOtroAlmacen("alm_mecaniza_productos",a,cant,opNum);
       transferMsg=` → ${r.destNombre}: stock ${r.stockDestino}${r.creado?" (producto creado)":""}`;
       clearCache("mercaderias");
