@@ -14,36 +14,37 @@
 /* ── PALETA "SLATE VIBRANTE" ─────────────────────────────────────────────
    Tonos slate más claros y acentos saturados (Tailwind-inspired) */
 :root{
-  /* Fondos (oscuro refinado — más profundidad) */
-  --bg-main:#0b1120;       /* más profundo para contraste */
-  --bg-card:#161e2e;       /* tarjeta con leve elevación */
-  --bg-card-2:#222d42;     /* hover */
-  --bg-input:#0d1424;      /* input */
-  --bg-sidebar:#0a0f1c;    /* sidebar más oscuro */
+  /* Fondos — slate oscuro NEUTRO/FRÍO (armoniza con el azul de marca) */
+  --bg-main:#0c0e13;
+  --bg-card:#191d27;       /* superficie sólida (dropdowns, modales) */
+  --bg-card-2:#232838;     /* hover */
+  --bg-input:#10131a;      /* input */
+  --bg-sidebar:#0e1016;    /* sidebar */
 
   /* Bordes */
-  --border:#283449;        /* sutil */
-  --border-soft:#1a2436;
-  --border-strong:#3a496180;
+  --border:#2a2f3a;        /* frío sutil */
+  --border-soft:#1c202a;
+  --border-strong:#3a4152;
 
   /* Texto */
-  --text-strong:#f1f5f9;   /* slate-100 */
-  --text:#cbd5e1;          /* slate-300 (más legible que el viejo c8cce0) */
-  --text-soft:#94a3b8;     /* slate-400 */
-  --text-faint:#64748b;    /* slate-500 */
+  --text-strong:#f1f4f9;
+  --text:#c5cbd6;
+  --text-soft:#8b93a3;
+  --text-faint:#626a78;
 
-  /* Acentos vivos */
-  --red:#ef4444;           /* red-500 (más saturado que var(--red)) */
-  --red-dark:#dc2626;      /* red-600 hover */
-  --red-bg:#7f1d1d33;      /* red-900 alpha */
-  --green:#22c55e;         /* green-500 */
-  --green-bg:#14532d33;
-  --blue:#3b82f6;          /* blue-500 */
+  /* Acentos — rojo GRANATE de la marca (ctseals.com #820a09) */
+  /* Acentos "tonos joya" vivos y armónicos (granate marca + esmeralda/ámbar/zafiro/amatista) */
+  --red:#e5433b;           /* granate-rojo vivo */
+  --red-dark:#820a09;      /* granate profundo de marca (hover/botones) */
+  --red-bg:#82090933;
+  --green:#1fd6a0;         /* esmeralda */
+  --green-bg:#0f5a4433;
+  --blue:#4f9cf2;          /* zafiro */
   --blue-bg:#1e3a8a33;
-  --amber:#f59e0b;         /* amber-500 */
+  --amber:#eea832;         /* ámbar dorado */
   --amber-bg:#78350f33;
-  --violet:#8b5cf6;        /* violet-500 */
-  --orange:#fb923c;        /* orange-400 */
+  --violet:#a377f0;        /* amatista */
+  --orange:#fb923c;
 }
 
 *{box-sizing:border-box;margin:0;padding:0}
@@ -248,27 +249,58 @@ input[type=number]{-moz-appearance:textfield;appearance:textfield}
 .cfg-sub{font-size:11px;color:var(--text-faint);margin-top:2px}
 
 /* RESPONSIVE MOBILE/TABLET */
+/* Barra superior móvil + menú hamburguesa (ocultos en escritorio) */
+.mobile-topbar{display:none;align-items:center;gap:12px;position:fixed;top:0;left:0;right:0;height:54px;padding:0 14px;background:var(--bg-sidebar);border-bottom:1px solid var(--border);z-index:100}
+.mobile-menu-btn{background:var(--bg-card);border:1px solid var(--border);color:var(--text-strong);width:40px;height:40px;border-radius:9px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:20px;flex-shrink:0;padding:0}
+.mobile-menu-btn:active{transform:scale(.94)}
+.mobile-topbar-logo{display:flex;align-items:center;gap:8px;font-weight:700;color:var(--text-strong);font-size:15px;letter-spacing:-.2px}
+.mobile-topbar-logo i{color:#3d8bee;font-size:18px}
+.mobile-backdrop{display:none}
+
 @media(max-width:900px){
-  .sidebar{width:64px}
-  .sidebar-logo h1, .sidebar-logo span{display:none}
-  .nav-item{justify-content:center;padding:9px}
-  .nav-item span:not(.nav-badge){display:none}
-  .nav-section{text-align:center;padding:8px 4px 4px}
-  .user-info-text, .sync-badge span{display:none}
+  /* Menú lateral → cajón deslizante; barra superior con botón hamburguesa */
+  .mobile-topbar{display:flex}
+  .sidebar{position:fixed;top:0;left:0;height:100vh;height:100dvh;width:250px;max-width:82vw;flex-direction:column;transform:translateX(-100%);transition:transform .25s cubic-bezier(.2,.8,.2,1);z-index:120;box-shadow:6px 0 40px rgba(0,0,0,.45);border-right:1px solid var(--border)}
+  .sidebar.open{transform:translateX(0)}
+  .mobile-backdrop{display:block;position:fixed;inset:0;background:rgba(0,0,0,.5);opacity:0;pointer-events:none;transition:opacity .25s;z-index:110}
+  .mobile-backdrop.show{opacity:1;pointer-events:auto}
+  .main{padding:56px 18px 22px}
 }
 @media(max-width:640px){
-  .sidebar{position:fixed;bottom:0;left:0;right:0;width:100%;height:auto;flex-direction:row;border-right:none;border-top:1px solid var(--border);z-index:50;background:var(--bg-sidebar)}
-  .sidebar-logo, .sidebar-user, .nav-section{display:none}
-  .sidebar-nav{display:flex;overflow-x:auto;padding:6px 4px;gap:2px;flex:1}
-  .nav-item{flex-shrink:0;flex-direction:column;gap:2px;padding:6px 10px;font-size:10px}
-  .nav-item i{font-size:18px}
-  .nav-item.active{box-shadow:none;border-bottom:2px solid var(--red);border-radius:6px 6px 0 0}
-  .main{padding:12px;padding-bottom:80px}
-  .modal{padding:16px;max-width:100%}
+  .main{padding:56px 12px 16px}
+  .page-title{font-size:16px;margin-bottom:14px}
+  .card{padding:12px}
   .form-row, .form-row-3{grid-template-columns:1fr}
+  .filters-grid{grid-template-columns:1fr 1fr;gap:8px}
+  .kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-bottom:12px}
   .kpi{padding:10px 12px}
   .kpi-val{font-size:18px}
+  /* Inputs a 16px: evita el zoom automático de iOS/Safari al enfocar un campo */
+  .form-input,select.form-input,textarea.form-input{font-size:16px;padding:10px 12px}
+  /* Tap targets más cómodos para el dedo */
+  .btn{padding:10px 14px;font-size:13px}
+  /* Modales a pantalla completa: aprovechan todo el ancho/alto del celular */
+  .modal-overlay{padding:0;align-items:stretch}
+  .modal{max-width:100%;width:100%;max-height:100vh;height:100vh;border-radius:0;border-left:none;border-right:none;padding:16px}
+  .modal-footer{flex-direction:column-reverse;gap:8px}
+  .modal-footer .btn{width:100%;justify-content:center}
 }
+/* Scroll horizontal fluido en TODAS las tablas (páginas y modales de historial) */
+.tbl-wrap{-webkit-overflow-scrolling:touch}
+#modalHistTubo .card,#modalHistorial .card{overflow-x:auto;-webkit-overflow-scrolling:touch}
+#modalHistorial table{min-width:820px}
+#modalHistTubo table{min-width:900px}
+/* Historiales más legibles: agrandar el texto de sus tablas (sobre los tamaños chicos inline) */
+#modalHistTubo tbody td,#modalHistorial tbody td{font-size:12.5px !important}
+#modalHistTubo thead th,#modalHistorial thead th{font-size:12px !important}
+#modalHistTubo tbody td span,#modalHistorial tbody td span{font-size:inherit}
+#modalHistTubo tbody td span[style*="border-radius"],#modalHistorial tbody td span[style*="border-radius"]{font-size:11px}
+/* Acordeón de "Compras del mes": ocultar el triángulo nativo y rotar el chevron al abrir */
+#dashModalBody details>summary::-webkit-details-marker{display:none}
+#dashModalBody details>summary .ti-chevron-right{display:inline-block;transition:transform .15s}
+#dashModalBody details[open]>summary .ti-chevron-right{transform:rotate(90deg)}
+#dashModalBody details>summary:hover{background:var(--bg-card)}
+body{overflow-x:hidden}
 /* ── TUBOS VISUALES (vista de Stock) ─────────────────────────────── */
 .tube-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:14px;padding:10px 4px}
 .tube-card{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:10px 8px;text-align:center;transition:transform .15s,box-shadow .15s}
@@ -304,7 +336,7 @@ html[data-theme="light"]{
   --text:#334155;
   --text-soft:#64748b;
   --text-faint:#94a3b8;
-  --red:#dc2626; --red-dark:#b91c1c; --red-bg:#fee2e2cc;
+  --red:#9a1210; --red-dark:#7a0d0b; --red-bg:#f6d8d7cc;
   --green:#16a34a; --green-bg:#dcfce7cc;
   --blue:#2563eb; --blue-bg:#dbeafecc;
   --amber:#d97706; --amber-bg:#fef3c7cc;
@@ -413,11 +445,12 @@ body{
   background-attachment:fixed;
 }
 html[data-theme="light"] body{
-  background-image:
-    radial-gradient(1100px 720px at 8% -10%, rgba(220,38,38,.06), transparent 58%),
-    radial-gradient(950px 680px at 108% -4%, rgba(37,99,235,.05), transparent 56%),
-    radial-gradient(900px 820px at 50% 124%, rgba(124,58,237,.04), transparent 60%);
-  background-attachment:fixed;
+  background:
+    radial-gradient(1100px 720px at 8% -10%, rgba(220,38,38,.05), transparent 58%),
+    radial-gradient(950px 680px at 108% -4%, rgba(37,99,235,.04), transparent 56%),
+    linear-gradient(rgba(238,242,247,.88),rgba(238,242,247,.92)),
+    url('https://images.unsplash.com/photo-1780034766267-cf76b8484212?fm=jpg&q=66&w=2400&auto=format&fit=crop') center/cover fixed,
+    var(--bg-main);
 }
 
 /* ── Cifras tabulares en todo dato numérico (alineación perfecta) ───── */
@@ -490,6 +523,72 @@ tbody tr:hover td{background:var(--bg-card-2)!important}
   .login-logo-icon,.sync-dot,.kpi.clickable:hover::after{animation:none}
   *{scroll-behavior:auto}
 }
+
+/* ═══════════════ FASE 1 — TEMA PREMIUM: fondo atmosférico + glass (oscuro) ═══════════════
+   Paleta granate de marca (arriba) + imagen del rubro de fondo + superficies glass.
+   NOTA: la imagen se carga de Unsplash; para producción conviene descargarla y servirla local. */
+html[data-theme="dark"] body{
+  background:
+    linear-gradient(rgba(9,11,15,.83),rgba(9,11,15,.89)),
+    url('https://images.unsplash.com/photo-1780034766267-cf76b8484212?fm=jpg&q=66&w=2400&auto=format&fit=crop') center/cover fixed,
+    var(--bg-main);
+}
+/* (sin tinte de color en el fondo — solo la imagen del rubro con capa oscura neutra) */
+/* Login con el mismo ambiente */
+html[data-theme="dark"] #loginScreen{
+  background:
+    linear-gradient(rgba(10,7,8,.85),rgba(10,7,8,.92)),
+    url('https://images.unsplash.com/photo-1780034766267-cf76b8484212?fm=jpg&q=64&w=2000&auto=format&fit=crop') center/cover fixed;
+}
+/* Login en tema claro: misma imagen con capa clara para mantener el texto legible */
+html[data-theme="light"] #loginScreen{
+  background:
+    linear-gradient(rgba(241,245,249,.85),rgba(241,245,249,.9)),
+    url('https://images.unsplash.com/photo-1780034766267-cf76b8484212?fm=jpg&q=64&w=2000&auto=format&fit=crop') center/cover fixed;
+}
+/* Superficies → paneles SÓLIDOS anclados (con sombra), no vidrio flotante */
+html[data-theme="dark"] .card,
+html[data-theme="dark"] .kpi{
+  background:rgba(25,29,39,.90);
+  border:1px solid rgba(255,255,255,.09);
+  box-shadow:0 6px 20px rgba(0,0,0,.32);
+}
+/* Los módulos se agrandan al pasar el cursor y resaltan con SU PROPIO color (no rojo) */
+.kpi{transition:transform .2s cubic-bezier(.2,.8,.2,1), box-shadow .2s ease, border-color .2s ease}
+html[data-theme="dark"] .kpi:hover,
+html[data-theme="dark"] .kpi.clickable:hover{
+  transform:translateY(-4px) scale(1.03);
+  border-color:transparent;
+  box-shadow:0 18px 40px rgba(0,0,0,.5), 0 0 0 1.5px var(--kpi-accent);
+  z-index:2;
+}
+@media(prefers-reduced-motion:reduce){ .kpi:hover,.kpi.clickable:hover{transform:none} }
+html[data-theme="dark"] .sidebar{
+  background:rgba(16,19,26,.92);
+  border-right:1px solid rgba(255,255,255,.08);
+}
+/* Los VALORES de KPI van en blanco; el color vive solo en la barra de acento superior */
+html[data-theme="dark"] .kpi-val{color:var(--text-strong)!important}
+/* Modales: superficie sólida cálida para máxima legibilidad de formularios */
+html[data-theme="dark"] .modal{background:#181c26;border:1px solid rgba(255,255,255,.09)}
+/* Cabecera de tabla opaca (para que el sticky tape el contenido al hacer scroll) */
+html[data-theme="dark"] thead th{background:#161a23}
+/* ═══════════ COLOR PRINCIPAL = AZUL ZAFIRO (el rojo queda SOLO para alertas) ═══════════ */
+:root{ --brand:#3d8bee; --brand-dark:#2f7fe0; }
+html[data-theme="light"]{ --brand:#2563c9; --brand-dark:#1e4fa8; }
+/* Logo, menú activo, títulos, foco, paginación y botón principal → azul de marca */
+.sidebar-logo .icon,.login-logo-icon{ background:linear-gradient(135deg,var(--brand),var(--brand-dark)); box-shadow:0 0 22px rgba(61,139,238,.45); }
+.nav-item.active{ background:linear-gradient(90deg,rgba(61,139,238,.18),rgba(61,139,238,.05)); color:#8ab8f6; box-shadow:inset 3px 0 0 var(--brand); }
+.nav-item.active i{ filter:drop-shadow(0 0 6px rgba(61,139,238,.5)); }
+.card-title::before{ background:linear-gradient(180deg,var(--brand),var(--brand-dark)); }
+.card-title i,.page-title i{ color:var(--brand); }
+.btn-red{ background:var(--brand-dark); box-shadow:0 3px 12px rgba(47,127,224,.35); }
+.btn-red:hover:not(:disabled){ background:var(--brand); box-shadow:0 6px 18px rgba(47,127,224,.48); }
+.login-btn{ background:linear-gradient(135deg,var(--brand),var(--brand-dark)); box-shadow:0 4px 14px rgba(47,127,224,.42); }
+.fi:focus,.form-input:focus,.login-input:focus{ border-color:var(--brand); box-shadow:0 0 0 3px rgba(61,139,238,.18); }
+.pag-btn.active{ background:var(--brand); border-color:var(--brand); }
+/* KPIs sin color propio resaltan en azul; las alertas (stock crítico) siguen rojas por su clase */
+.kpi{ --kpi-accent:var(--brand); }
 </style>
 <script>/* Aplica el tema guardado de inmediato (evita parpadeo) */(function(){try{var t=localStorage.getItem('ctTheme')||'dark';document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
 </head>
@@ -551,7 +650,12 @@ tbody tr:hover td{background:var(--bg-card-2)!important}
 
 <!-- APP -->
 <div class="layout" id="app" style="display:none">
-  <nav class="sidebar">
+  <header class="mobile-topbar">
+    <button class="mobile-menu-btn" onclick="toggleMobileMenu()" aria-label="Abrir menú"><i class="ti ti-menu-2"></i></button>
+    <div class="mobile-topbar-logo"><i class="ti ti-package"></i><span>CT Seals</span></div>
+  </header>
+  <div class="mobile-backdrop" id="mobileBackdrop" onclick="closeMobileMenu()"></div>
+  <nav class="sidebar" id="sidebar">
     <div class="sidebar-logo">
       <div class="icon"><i class="ti ti-package" style="color:#fff;font-size:16px"></i></div>
       <div><h1>CT Seals</h1><span>Inventario & Almacenes</span></div>
@@ -2114,7 +2218,7 @@ tbody tr:hover td{background:var(--bg-card-2)!important}
 
 <!-- MODAL: Historial de movimientos de un material (Materia Prima) -->
 <div class="modal-overlay" id="modalHistTubo" style="display:none" onclick="if(event.target===this)closeModalSafe('modalHistTubo')">
-  <div class="modal" style="max-width:900px">
+  <div class="modal" style="max-width:1180px">
     <div class="modal-title"><i class="ti ti-history" style="color:#5b9bd5"></i><span id="htTitle">Historial — Materia Prima</span></div>
     <div id="htInfo" style="background:var(--bg-card);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--text);margin-bottom:10px"></div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
@@ -2139,10 +2243,10 @@ tbody tr:hover td{background:var(--bg-card-2)!important}
     <div class="card" style="padding:0;max-height:380px;overflow-y:auto">
       <table>
         <thead><tr>
-          <th>Fecha</th><th>Tipo</th><th style="text-align:right">Tubos</th><th style="text-align:right">mm</th>
-          <th>OP</th><th>Detalle</th><th>Usuario</th><th>Acciones</th>
+          <th>Fecha</th><th>Tipo</th><th>Tubo</th><th style="text-align:right">Cant.</th><th style="text-align:right">mm</th>
+          <th style="text-align:right">Restante (mm)</th><th>OP</th><th>Cliente</th><th>Detalle</th><th>Usuario</th><th>Acciones</th>
         </tr></thead>
-        <tbody id="htTbody"><tr><td colspan="8" class="no-data"><div class="loading"><div class="spinner"></div>Cargando...</div></td></tr></tbody>
+        <tbody id="htTbody"><tr><td colspan="11" class="no-data"><div class="loading"><div class="spinner"></div>Cargando...</div></td></tr></tbody>
       </table>
     </div>
     <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('modalHistTubo')">Cerrar</button></div>
@@ -3109,36 +3213,32 @@ async function getClientesList(forceReload=false){
 //  3) materiales de tubos en stock
 // Permite elegir uno existente (sin errores de tipeo) o escribir uno nuevo.
 async function getMaterialesList(forceReload=false){
-  const TTL=30*60*1000; // 30 min
+  const TTL=5*60*1000; // 5 min (fresco: los materiales nuevos aparecen pronto)
   if(!forceReload){
     const cached=getCached("materiales_list",TTL);
     if(cached) return cached;
   }
-  const set=new Set();
-  // Descarta solo códigos cortos de familia de 1-2 letras (EL, PU, PL).
-  // Materiales de 3+ letras (NBR, POM, FPM...) sí se incluyen.
-  const add=v=>{
-    const m=normMaterial(v);
-    if(!m||m==="OTROS") return;
-    if(m.length<3) return;
-    set.add(m);
+  // FUENTE: los materiales que YO tengo (mis tubos de inventario), deduplicados por
+  // clave (ignora may/min, espacios y guiones) para NO mostrar variaciones del mismo
+  // nombre: "PU RED", "PU-RED" y "PU  RED" se colapsan en uno solo.
+  const porClave=new Map(); // clave → nombre a mostrar (la primera variante encontrada)
+  const add=raw=>{
+    const m=normMaterial(raw);
+    if(!m||m==="OTROS"||m.length<2) return;
+    const k=_matKey(m);
+    if(!porClave.has(k)) porClave.set(k,m);
   };
-  // ÚNICA fuente: el CATÁLOGO (datos oficiales/limpios). No se usa el texto libre
-  // escrito en consumos anteriores, porque ahí se acumulan errores de tipeo.
-  // Tampoco se usa el campo "familia" (son códigos cortos tipo EL/PU/PL).
   try{
     for(let from=0;;from+=1000){
-      const {data,error}=await sb.from("catalogo").select("descripcion").range(from,from+999);
+      const {data,error}=await sb.from("tubos").select("descripcion,tipo_material").range(from,from+999);
       if(error||!data?.length) break;
-      data.forEach(r=>add(parseMaterial(r.descripcion)));
+      data.forEach(t=>add(_tipoMaterial(t)));
       if(data.length<1000) break;
     }
   }catch(e){}
-  // Materiales con stock actual (también derivados del catálogo, fuente limpia)
-  try{
-    Object.keys(_consMatTuboCache?.byMaterial||{}).forEach(add);
-  }catch(e){}
-  const list=[...set].filter(Boolean).sort((a,b)=>a.localeCompare(b));
+  // Además, los materiales con stock vigente ya cargados (misma fuente, por si acaso)
+  try{ Object.keys(_consMatTuboCache?.byMaterial||{}).forEach(add); }catch(e){}
+  const list=[...porClave.values()].filter(Boolean).sort((a,b)=>a.localeCompare(b));
   setCached("materiales_list",list);
   return list;
 }
@@ -3473,6 +3573,19 @@ function goTo(page){
   if(page==="usuarios") loadUsuarios();
   if(page==="config") loadConfigPage();
   if(page==="carga"){renderCargasResumen("mercaderias");renderCargasResumen("alm_mecaniza_productos");renderCargasResumen("suministros_productos");}
+  closeMobileMenu(); // al entrar a un módulo, cerrar el cajón en móvil
+}
+
+// ── Menú lateral deslizante en móvil (cajón hamburguesa) ──
+function toggleMobileMenu(){
+  const sb=document.getElementById("sidebar");
+  const bd=document.getElementById("mobileBackdrop");
+  const abierto=sb?.classList.toggle("open");
+  bd?.classList.toggle("show",!!abierto);
+}
+function closeMobileMenu(){
+  document.getElementById("sidebar")?.classList.remove("open");
+  document.getElementById("mobileBackdrop")?.classList.remove("show");
 }
 
 async function loadConfig(){
@@ -4028,7 +4141,7 @@ async function confirmRenameMat(){
   setBtnLoading("btnConfirmRename",false);
   closeModal("modalRenameMat");
   toast(`✓ Renombrado en ${ok} medida(s)${err?` · ${err} con error`:""}`,ok>0?"ok":"err");
-  clearCache("tubos_custom");clearCache("tubos_mecaniza");_consMatTuboCache=null;
+  clearCache("tubos_custom");clearCache("tubos_mecaniza");clearCache("materiales_list");_consMatTuboCache=null;
   renderMaterialesMgr();
   if(document.getElementById("page-tubos")?.classList.contains("active")) loadTubos(true);
 }
@@ -4049,7 +4162,7 @@ async function reasignarTipo(ti){
     }
     showLoading(false);
     toast(`✓ Tipo reasignado a ${g.tuboIds.length} material(es)`,"ok");
-    clearCache("tubos_custom");clearCache("tubos_mecaniza");_consMatTuboCache=null;
+    clearCache("tubos_custom");clearCache("tubos_mecaniza");clearCache("materiales_list");_consMatTuboCache=null;
     cargarMaterialesMgr();
     if(document.getElementById("page-tubos")?.classList.contains("active")) loadTubos(true);
   }catch(err){showLoading(false);toast(errMsg(err),"err");}
@@ -4415,13 +4528,13 @@ async function loadDashboard(){
 
   // KPIs clickeables — todos cargan en paralelo
   document.getElementById("dashKpis").innerHTML=`
-    ${widgets.valorinv?`<div class="kpi clickable" id="kpiValorInv" onclick="openDashModal('valorinv')"><div class="kpi-label"><i class="ti ti-cash"></i> Valor del inventario</div><div class="kpi-val green" data-loading="…">…</div><div class="kpi-sub">stock × precio</div></div>`:""}
+    ${widgets.valorinv?`<div class="kpi clickable" id="kpiValorInv" onclick="openDashModal('valorinv')"><div class="kpi-label"><i class="ti ti-coins"></i> Valor del inventario</div><div class="kpi-val green" data-loading="…">…</div><div class="kpi-sub">stock × precio</div></div>`:""}
     ${widgets.comprasmes?`<div class="kpi clickable" id="kpiComprasMes" onclick="openDashModal('comprasmes')"><div class="kpi-label"><i class="ti ti-shopping-cart"></i> Compras del mes</div><div class="kpi-val blue" data-loading="…">…</div><div class="kpi-sub">entradas a almacenes</div></div>`:""}
-    ${widgets.tendencia?`<div class="kpi clickable" id="kpiConsCustom" onclick="goTo('consumos')"><div class="kpi-label"><i class="ti ti-clipboard-list" style="color:#5b9bd5"></i> Consumos — Custom</div><div class="kpi-val blue" data-loading="…">…</div><div class="kpi-sub">del mes · click para abrir</div></div>`:""}
-    ${widgets.rotcli?`<div class="kpi clickable" id="kpiRotCli" onclick="openDashModal('rotcli')"><div class="kpi-label"><i class="ti ti-users"></i> Top cliente</div><div class="kpi-val violet" data-loading="…">…</div><div class="kpi-sub">rotación + clientes</div></div>`:""}
+    ${widgets.tendencia?`<div class="kpi clickable" id="kpiConsCustom" onclick="openDashModal('consumos_custom')"><div class="kpi-label"><i class="ti ti-ruler-measure" style="color:#5b9bd5"></i> Consumos — Custom</div><div class="kpi-val blue" data-loading="…">…</div><div class="kpi-sub">del mes · click para abrir</div></div>`:""}
+    ${widgets.rotcli?`<div class="kpi clickable" id="kpiRotCli" onclick="openDashModal('rotcli')"><div class="kpi-label"><i class="ti ti-user-star"></i> Top cliente</div><div class="kpi-val violet" data-loading="…">…</div><div class="kpi-sub">rotación + clientes</div></div>`:""}
     ${widgets.opsmes?`<div class="kpi clickable" id="kpiOpsMes" onclick="openDashModal('opsmes')"><div class="kpi-label"><i class="ti ti-calendar"></i> OPs del mes</div><div class="kpi-val violet" data-loading="…">…</div><div class="kpi-sub">click para ver detalle</div></div>`:""}
-    ${widgets.stockbajo?`<div class="kpi clickable" id="kpiStockBajo" onclick="openDashModal('stockbajo')"><div class="kpi-label"><i class="ti ti-alert-triangle"></i> Stock crítico</div><div class="kpi-val red" data-loading="…">…</div><div class="kpi-sub">productos bajo mínimo</div></div>`:""}
-    ${widgets.consumos?`<div class="kpi clickable" id="kpiConsMec" onclick="goTo('consumos_mec')"><div class="kpi-label"><i class="ti ti-clipboard-list" style="color:#a78bfa"></i> Consumos — Mecaniza</div><div class="kpi-val violet" data-loading="…">…</div><div class="kpi-sub">del mes · click para abrir</div></div>`:""}
+    ${widgets.stockbajo?`<div class="kpi clickable" id="kpiStockBajo" onclick="openDashModal('stockbajo')"><div class="kpi-label"><i class="ti ti-alert-hexagon"></i> Stock crítico</div><div class="kpi-val red" data-loading="…">…</div><div class="kpi-sub">productos bajo mínimo</div></div>`:""}
+    ${widgets.consumos?`<div class="kpi clickable" id="kpiConsMec" onclick="openDashModal('consumos_mecaniza')"><div class="kpi-label"><i class="ti ti-ruler-measure" style="color:#a78bfa"></i> Consumos — Mecaniza</div><div class="kpi-val violet" data-loading="…">…</div><div class="kpi-sub">del mes · click para abrir</div></div>`:""}
     ${widgets.merma?`<div class="kpi clickable" id="kpiMermaDash" onclick="openDashModal('merma')"><div class="kpi-label"><i class="ti ti-trash-x"></i> Agotados</div><div class="kpi-val red" data-loading="…">…</div><div class="kpi-sub">mm descartados</div></div>`:""}
     ${widgets.eficiencia?`<div class="kpi clickable" id="kpiEficiencia" onclick="openDashModal('eficiencia')"><div class="kpi-label"><i class="ti ti-recycle"></i> Eficiencia</div><div class="kpi-val green" data-loading="…">…</div><div class="kpi-sub">mm recuperados</div></div>`:""}`;
 
@@ -4494,8 +4607,8 @@ async function buscarReporteConsumo(){
   const since=getDashRangeStart();
   const inclHist=cfg.dashboard_incl_historico==="true"||cfg.dashboard_incl_historico===true;
   let q=sb.from("consumos_ops").select("material,di,de,largo,enviado,devuelto,consumido,op,es_merma,fecha,cliente_nombre").limit(50000);
-  if(mat){const safe=mat.replace(/[%,]/g," ");q=q.ilike("material",`%${safe}%`);}
-  if(cli){const safe=cli.replace(/[%,]/g," ");q=q.ilike("cliente_nombre",`%${safe}%`);}
+  if(mat){const safe=mat.replace(/[%_]/g,"").trim().replace(/[\s,\-]+/g,"%");q=q.ilike("material",`%${safe}%`);}
+  if(cli){const safe=cli.replace(/[%_]/g,"").trim().replace(/[\s,]+/g,"%");q=q.ilike("cliente_nombre",`%${safe}%`);}
   if(!isNaN(di)) q=q.eq("di",di);
   if(!isNaN(de)) q=q.eq("de",de);
   if(!isNaN(largo)) q=q.eq("largo",largo);
@@ -4947,15 +5060,56 @@ async function dashDetalleValorInv(){
 async function dashDetalleComprasMes(){
   const ini=_sIni();
   const [m1,m2]=await Promise.all([
-    sb.from("mercaderia_movimientos").select("cantidad,precio_unitario,moneda,proveedor").eq("tipo","entrada").gte("fecha",ini).limit(50000),
-    sb.from("alm_mecaniza_movimientos").select("cantidad,precio_unitario,moneda,proveedor").eq("tipo","entrada").gte("fecha",ini).limit(50000),
+    sb.from("mercaderia_movimientos").select("cantidad,precio_unitario,moneda,proveedor,fecha,mercaderia_id").eq("tipo","entrada").gte("fecha",ini).limit(50000),
+    sb.from("alm_mecaniza_movimientos").select("cantidad,precio_unitario,moneda,proveedor,fecha,producto_id").eq("tipo","entrada").gte("fecha",ini).limit(50000),
   ]);
-  const all=[...(m1.data||[]),...(m2.data||[])];
-  if(!all.length) return `<div class="no-data" style="padding:20px">Sin compras registradas este mes.</div>`;
+  const rows=[
+    ...(m1.data||[]).map(r=>({...r,_alm:"Custom",_pid:r.mercaderia_id,_tbl:"merc"})),
+    ...(m2.data||[]).map(r=>({...r,_alm:"Mecaniza",_pid:r.producto_id,_tbl:"alm"})),
+  ];
+  if(!rows.length) return `<div class="no-data" style="padding:20px">Sin compras registradas este mes.</div>`;
+  // Nombres de producto (para el detalle de cada compra)
+  const mids=[...new Set((m1.data||[]).map(r=>r.mercaderia_id).filter(Boolean))];
+  const aids=[...new Set((m2.data||[]).map(r=>r.producto_id).filter(Boolean))];
+  const pmap={};
+  if(mids.length){const {data}=await sb.from("mercaderias").select("id,nombre").in("id",mids);(data||[]).forEach(p=>pmap["merc"+p.id]=p.nombre);}
+  if(aids.length){const {data}=await sb.from("alm_mecaniza_productos").select("id,nombre").in("id",aids);(data||[]).forEach(p=>pmap["alm"+p.id]=p.nombre);}
+  // Agrupar por proveedor, guardando cada compra individual
   const porProv={};let tot=0;
-  all.forEach(r=>{const v=_aPen(r.precio_unitario,r.moneda)*(Number(r.cantidad)||0);tot+=v;const p=(r.proveedor||"").trim()||"(sin prov.)";porProv[p]=(porProv[p]||0)+v;});
-  const items=Object.entries(porProv).map(([k,v])=>({label:k,val:v,display:"S/ "+Math.round(v).toLocaleString()})).sort((a,b)=>b.val-a.val);
-  return `<div style="font-size:12px;color:var(--text-soft);margin-bottom:10px">Total comprado este mes: <strong style="color:#5b9bd5">S/ ${Math.round(tot).toLocaleString()}</strong> · ${all.length} compra(s) · por proveedor</div>`+barChart(items,null,()=>"#5b9bd5");
+  rows.forEach(r=>{
+    const v=_aPen(r.precio_unitario,r.moneda)*(Number(r.cantidad)||0);tot+=v;
+    const p=(r.proveedor||"").trim()||"(sin prov.)";
+    (porProv[p]=porProv[p]||{total:0,items:[]});
+    porProv[p].total+=v;
+    porProv[p].items.push({fecha:r.fecha,prod:pmap[r._tbl+r._pid]||"—",alm:r._alm,monto:v});
+  });
+  const provs=Object.entries(porProv).sort((a,b)=>b[1].total-a[1].total);
+  const max=provs[0]?.[1].total||1;
+  return `<div style="font-size:12px;color:var(--text-soft);margin-bottom:10px">Total comprado este mes: <strong style="color:#5b9bd5">S/ ${Math.round(tot).toLocaleString()}</strong> · ${rows.length} compra(s) · <span style="color:var(--text-faint)">toca un proveedor para ver sus compras</span></div>
+    <div style="max-height:62vh;overflow-y:auto">
+      ${provs.map(([prov,d])=>{
+        const pct=Math.round((d.total/max)*100);
+        const items=d.items.slice().sort((a,b)=>String(b.fecha).localeCompare(String(a.fecha)));
+        return `<details style="border-bottom:1px solid var(--border-soft)">
+          <summary style="list-style:none;cursor:pointer;padding:9px 10px;display:flex;justify-content:space-between;align-items:center;gap:10px">
+            <span style="color:var(--text-strong);font-size:13px;font-weight:600"><i class="ti ti-chevron-right" style="font-size:12px;color:var(--text-faint)"></i> ${esc(prov)} <span style="color:var(--text-faint);font-size:10px;font-weight:400">${d.items.length} compra(s)</span></span>
+            <span style="color:#5b9bd5;font-weight:700;font-size:13px;white-space:nowrap">S/ ${Math.round(d.total).toLocaleString()}</span>
+          </summary>
+          <div style="padding:2px 10px 10px 22px">
+            <div style="background:var(--bg-input);height:5px;border-radius:3px;overflow:hidden;margin-bottom:8px"><div style="height:100%;background:#5b9bd5;width:${pct}%"></div></div>
+            <table style="width:100%;font-size:12px">
+              <thead><tr><th style="text-align:left">Fecha</th><th style="text-align:left">Producto</th><th>Almacén</th><th style="text-align:right">Monto</th></tr></thead>
+              <tbody>${items.map(it=>`<tr>
+                <td style="color:var(--text-soft);font-size:11px;white-space:nowrap">${esc(String(it.fecha||"").slice(0,10))}</td>
+                <td style="color:var(--text)">${esc(it.prod)}</td>
+                <td style="text-align:center"><span style="font-size:10px;color:${it.alm==='Custom'?'var(--blue)':'var(--violet)'}">${it.alm}</span></td>
+                <td style="text-align:right;color:var(--text-strong);white-space:nowrap">S/ ${Math.round(it.monto).toLocaleString()}</td>
+              </tr>`).join("")}</tbody>
+            </table>
+          </div>
+        </details>`;
+      }).join("")}
+    </div>`;
 }
 async function dashDetalleTendencia(){
   const since=new Date();since.setMonth(since.getMonth()-11);
@@ -4988,6 +5142,8 @@ async function openDashModal(tipo){
     opsmes:"OPs del período",
     stockbajo:"Productos con stock crítico",
     consumos:"Consumos por material",
+    consumos_custom:"Consumos por material — Custom",
+    consumos_mecaniza:"Consumos por material — Mecaniza",
     merma:"Agotados (tubos descartados)",
     eficiencia:"Eficiencia de uso de material",
     valorinv:"Valor del inventario",
@@ -5010,6 +5166,8 @@ async function openDashModal(tipo){
   if(tipo==="opsmes") body.innerHTML=await dashDetalleOps();
   else if(tipo==="stockbajo") body.innerHTML=await dashDetalleStockBajo();
   else if(tipo==="consumos") body.innerHTML=await dashDetalleConsumos();
+  else if(tipo==="consumos_custom") body.innerHTML=await dashDetalleConsumos("custom");
+  else if(tipo==="consumos_mecaniza") body.innerHTML=await dashDetalleConsumos("mecaniza");
   else if(tipo==="merma") body.innerHTML=await dashDetalleMerma();
   else if(tipo==="eficiencia") body.innerHTML=await dashDetalleEficiencia();
   else if(tipo==="valorinv") body.innerHTML=await dashDetalleValorInv();
@@ -5038,17 +5196,14 @@ async function dashDetalleOps(){
     if(c.fecha<porOp[c.op].fecha) porOp[c.op].fecha=c.fecha;
   });
   const lista=Object.values(porOp).sort((a,b)=>b.fecha.localeCompare(a.fecha));
-  return `<div style="margin-bottom:10px;font-size:11px;color:var(--text-soft)">${lista.length} OPs · ${lista.reduce((a,o)=>a+o.mm,0).toLocaleString()}mm consumidos total</div>
+  return `<div style="margin-bottom:10px;font-size:11px;color:var(--text-soft)">${lista.length} OPs en el período</div>
     <div class="tbl-wrap" style="max-height:60vh">
       <table>
-        <thead><tr><th>OP</th><th>Fecha</th><th>Cliente</th><th style="text-align:center">Líneas</th><th>Materiales</th><th style="text-align:right">mm</th></tr></thead>
+        <thead><tr><th>OP</th><th>Fecha</th><th>Cliente</th></tr></thead>
         <tbody>${lista.map(o=>`<tr>
           <td style="font-family:monospace;color:var(--text-strong)">${esc(o.op)}</td>
-          <td style="font-size:11px;color:var(--text-soft)">${esc(o.fecha)}</td>
-          <td style="font-size:11px;color:var(--text)">${esc(o.cliente)||"—"}</td>
-          <td style="text-align:center;color:var(--blue);font-weight:600">${o.lineas}${o.mermas?` <span style="color:var(--red)">·${o.mermas}M</span>`:""}</td>
-          <td style="font-size:11px;color:var(--text-soft)">${[...o.materiales].slice(0,3).map(esc).join(", ")}${o.materiales.size>3?` +${o.materiales.size-3}`:""}</td>
-          <td style="text-align:right;color:var(--amber);font-weight:600">${o.mm.toLocaleString()}</td>
+          <td style="font-size:12px;color:var(--text-soft)">${esc(o.fecha)}</td>
+          <td style="font-size:12px;color:var(--text)">${esc(o.cliente)||"—"}</td>
         </tr>`).join("")}</tbody>
       </table>
     </div>`;
@@ -5082,10 +5237,11 @@ async function dashDetalleStockBajo(){
   return html;
 }
 
-async function dashDetalleConsumos(){
+async function dashDetalleConsumos(sede){
   const since=getDashRangeStart();
   const inclHist=cfg.dashboard_incl_historico==="true"||cfg.dashboard_incl_historico===true;
   let q=sb.from("consumos_ops").select("material,consumido,enviado,devuelto,op").limit(50000);
+  if(sede) q=q.eq("sede",sede);
   if(since) q=q.gte("fecha",since);
   if(!inclHist) q=q.eq("es_historico",false);
   const {data}=await q;
@@ -6487,7 +6643,7 @@ async function trasladarTuboInstancia(instId,tuboCustomId){
     ]);
     showLoading(false);
     toast("✓ Tubo trasladado a Mecaniza","ok");
-    clearCache("tubos_custom");clearCache("tubos_mecaniza");_consMatTuboCache=null;
+    clearCache("tubos_custom");clearCache("tubos_mecaniza");clearCache("materiales_list");_consMatTuboCache=null;
     loadTubos(true);
   }catch(err){showLoading(false);toast(errMsg(err),"err");}
 }
@@ -6540,7 +6696,7 @@ async function trasladarInstanciasSeleccionadas(tuboCustomId){
     await sb.from("movimientos").insert(movRows);
     showLoading(false);
     toast(`✓ ${insts.length} tubo(s) trasladado(s) a Mecaniza`,"ok");
-    clearCache("tubos_custom");clearCache("tubos_mecaniza");_consMatTuboCache=null;
+    clearCache("tubos_custom");clearCache("tubos_mecaniza");clearCache("materiales_list");_consMatTuboCache=null;
     loadTubos(true);
   }catch(err){showLoading(false);toast(errMsg(err),"err");}
 }
@@ -6589,7 +6745,7 @@ async function saveInstancia(){
   await sb.from("movimientos").insert({tubo_id:t.id,tubo_instancia_id:instId,tipo:"ajuste",cantidad:0,altura_usada:usado,usuario_id:CU?.id,nota:`Ajuste manual: ${mmR}mm de ${altTotal}mm · ${estado}`});
   toast("✓ Tubo actualizado","ok");
   closeModal("modalInstancia");
-  clearCache("tubos_custom");clearCache("tubos_mecaniza");_consMatTuboCache=null;
+  clearCache("tubos_custom");clearCache("tubos_mecaniza");clearCache("materiales_list");_consMatTuboCache=null;
   loadTubos(true);
 }
 async function resetInstancia(instId){
@@ -6603,7 +6759,7 @@ async function resetInstancia(instId){
   if(!data||!data.length){toast("Tu rol no tiene permiso para editar tubos","err");return;}
   await sb.from("movimientos").insert({tubo_id:t.id,tubo_instancia_id:instId,tipo:"ajuste",cantidad:0,altura_usada:0,usuario_id:CU?.id,nota:"Reset a tubo nuevo"});
   toast("✓ Tubo reseteado a nuevo","ok");
-  clearCache("tubos_custom");clearCache("tubos_mecaniza");_consMatTuboCache=null;
+  clearCache("tubos_custom");clearCache("tubos_mecaniza");clearCache("materiales_list");_consMatTuboCache=null;
   loadTubos(true);
 }
 async function agotarInstancia(instId){
@@ -6618,7 +6774,7 @@ async function agotarInstancia(instId){
   const mmR=Math.max(0,(t.altura_total||0)-(inst.altura_usada||0));
   await sb.from("movimientos").insert({tubo_id:t.id,tubo_instancia_id:instId,tipo:"ajuste",cantidad:1,altura_usada:mmR,usuario_id:CU?.id,nota:`Agotado manual (${mmR}mm restantes)`});
   toast("✓ Tubo marcado como agotado","ok");
-  clearCache("tubos_custom");clearCache("tubos_mecaniza");_consMatTuboCache=null;
+  clearCache("tubos_custom");clearCache("tubos_mecaniza");clearCache("materiales_list");_consMatTuboCache=null;
   loadTubos(true);
 }
 // Marca/desmarca todas las casillas de tubos físicos
@@ -6653,7 +6809,7 @@ async function deleteInstanciasSeleccionadas(tuboId){
     }
     showLoading(false);
     toast(`✓ ${ids.length} tubo(s) eliminado(s)`,"ok");
-    clearCache("tubos_custom");clearCache("tubos_mecaniza");_consMatTuboCache=null;
+    clearCache("tubos_custom");clearCache("tubos_mecaniza");clearCache("materiales_list");_consMatTuboCache=null;
     if(tuboId) verDetalleTubo(tuboId); else loadTubos(true);
   }catch(err){showLoading(false);toast(errMsg(err),"err");}
 }
@@ -6673,7 +6829,7 @@ async function deleteInstancia(instId){
   showLoading(false);
   if(error){toast(errMsg(error),"err");return;}
   toast("✓ Tubo físico eliminado","ok");
-  clearCache("tubos_custom");clearCache("tubos_mecaniza");_consMatTuboCache=null;
+  clearCache("tubos_custom");clearCache("tubos_mecaniza");clearCache("materiales_list");_consMatTuboCache=null;
   loadTubos(true);
 }
 async function deleteTuboModelo(tuboId){
@@ -6695,7 +6851,7 @@ async function deleteTuboModelo(tuboId){
   if(error){toast(errMsg(error),"err");return;}
   toast("✓ Material eliminado","ok");
   _tubosState.detalleId=null;
-  clearCache("tubos_custom");clearCache("tubos_mecaniza");_consMatTuboCache=null;
+  clearCache("tubos_custom");clearCache("tubos_mecaniza");clearCache("materiales_list");_consMatTuboCache=null;
   loadTubos(true);
 }
 // Copia el MATERIAL (no los tubos físicos) a la otra sede, para compartir el código/medidas.
@@ -6720,7 +6876,7 @@ async function copiarMaterialAOtraSede(tuboId){
   showLoading(false);
   if(error){toast(errMsg(error),"err");return;}
   toast(`✓ Material copiado a ${otra==="mecaniza"?"Mecaniza":"Custom"} (sin stock)`,"ok");
-  clearCache("tubos_custom");clearCache("tubos_mecaniza");_consMatTuboCache=null;
+  clearCache("tubos_custom");clearCache("tubos_mecaniza");clearCache("materiales_list");_consMatTuboCache=null;
 }
 // Recalcula altura_usada/estado de cada instancia del modelo desde los consumos vigentes.
 // Corrige tubos "fantasma" con consumo que ya no existe (consumos eliminados).
@@ -6760,7 +6916,7 @@ async function recalcularTuboDesdeConsumos(tuboId){
     }
     showLoading(false);
     toast(cambios?`✓ Stock recalculado · ${cambios} tubo(s) corregido(s)`:"✓ Stock ya estaba correcto","ok");
-    clearCache("tubos_custom");clearCache("tubos_mecaniza");_consMatTuboCache=null;
+    clearCache("tubos_custom");clearCache("tubos_mecaniza");clearCache("materiales_list");_consMatTuboCache=null;
     loadTubos(true);
   }catch(err){showLoading(false);toast(errMsg(err),"err");}
 }
@@ -6791,7 +6947,7 @@ async function toggleSepararInstancia(instId){
   if(!data||!data.length){toast("Tu rol no tiene permiso para editar tubos","err");return;}
   await sb.from("movimientos").insert({tubo_id:t.id,tubo_instancia_id:instId,tipo:"ajuste",cantidad:0,usuario_id:CU?.id,nota:"Reserva liberada"});
   toast("✓ Reserva liberada","ok");
-  clearCache("tubos_custom");clearCache("tubos_mecaniza");_consMatTuboCache=null;
+  clearCache("tubos_custom");clearCache("tubos_mecaniza");clearCache("materiales_list");_consMatTuboCache=null;
   loadTubos(true);
 }
 // Confirma la separación con fecha límite + motivo desde el modal.
@@ -6811,7 +6967,7 @@ async function confirmSeparar(){
   await sb.from("movimientos").insert({tubo_id:t.id,tubo_instancia_id:instId,tipo:"ajuste",cantidad:0,usuario_id:CU?.id,nota:`Separado hasta ${fTxt}${motivo?` · ${motivo}`:""}`});
   closeModal("modalSeparar");
   toast("✓ Tubo separado","ok");
-  clearCache("tubos_custom");clearCache("tubos_mecaniza");_consMatTuboCache=null;
+  clearCache("tubos_custom");clearCache("tubos_mecaniza");clearCache("materiales_list");_consMatTuboCache=null;
   loadTubos(true);
 }
 
@@ -7474,7 +7630,7 @@ async function openHistTubo(tuboId){
   document.getElementById("htInfo").innerHTML=`<strong style="color:var(--text-strong)">${esc(_histTuboState.nombre)}</strong> <span style="color:var(--text-soft)">(${esc(_histTuboState.codigo)})</span>`;
   ["htDesde","htHasta"].forEach(id=>document.getElementById(id).value="");
   document.getElementById("htTipo").value="";
-  document.getElementById("htTbody").innerHTML=`<tr><td colspan="8" class="no-data"><div class="loading"><div class="spinner"></div>Cargando movimientos...</div></td></tr>`;
+  document.getElementById("htTbody").innerHTML=`<tr><td colspan="11" class="no-data"><div class="loading"><div class="spinner"></div>Cargando movimientos...</div></td></tr>`;
   document.getElementById("modalHistTubo").style.display="flex";
   showLoading(true);
   let all=[];
@@ -7488,11 +7644,35 @@ async function openHistTubo(tuboId){
   const uids=[...new Set(all.map(m=>m.usuario_id).filter(Boolean))];
   const umap={};
   if(uids.length){const {data:us}=await sb.from("perfiles").select("id,nombre,username").in("id",uids);(us||[]).forEach(u=>umap[u.id]=u.nombre||u.username);}
-  // Mapa id_instancia → T# (mismo orden que el detalle del material) para mostrar a qué tubo afectó
-  const {data:insts}=await sb.from("tubo_instancias").select("id").eq("tubo_id",tuboId).order("id");
-  (insts||[]).forEach((ins,i)=>_histTuboState.instOrder[ins.id]=i+1);
+  // Mapa id_instancia → T# (mismo orden que el detalle del material) + altura total efectiva por instancia
+  const {data:insts}=await sb.from("tubo_instancias").select("id,altura_total").eq("tubo_id",tuboId).order("id");
+  const instTotMap={};
+  (insts||[]).forEach((ins,i)=>{_histTuboState.instOrder[ins.id]=i+1;instTotMap[ins.id]=instTot(ins,t);});
+  // Cliente por OP: no está en movimientos → traerlo de consumos_ops (misma sede)
+  const ops=[...new Set(all.map(m=>m.op_numero).filter(Boolean))];
+  const opCliente={};
+  if(ops.length){
+    const {data:co}=await sb.from("consumos_ops").select("op,cliente_nombre").in("op",ops).eq("sede",_histTuboState.sede);
+    (co||[]).forEach(c=>{if(c.cliente_nombre&&!opCliente[c.op])opCliente[c.op]=c.cliente_nombre;});
+  }
+  // Restante en mm (antes→después) reconstruido por instancia. Exacto en consumos/mermas
+  // secuenciales; los ajustes/resets tienen semántica ambigua → esas filas quedan sin dato.
+  const byInst={};
+  all.forEach(m=>{if(m.tubo_instancia_id)(byInst[m.tubo_instancia_id]=byInst[m.tubo_instancia_id]||[]).push(m);});
+  Object.keys(byInst).forEach(iid=>{
+    const tot=instTotMap[iid];
+    if(tot==null) return;
+    const asc=byInst[iid].slice().sort((a,b)=>{const fa=String(a.fecha),fb=String(b.fecha);return fa<fb?-1:fa>fb?1:((a.id||0)-(b.id||0));});
+    let rem=tot;
+    asc.forEach(m=>{
+      if(m.tipo==="entrada"||m.tipo==="transferencia_in"){rem=tot;}
+      else if(m.tipo==="consumo"||m.tipo==="consumo_extra"||m.tipo==="merma"){
+        m._remAntes=rem;rem=Math.max(0,rem-(m.altura_usada||0));m._remDespues=rem;
+      }
+    });
+  });
   showLoading(false);
-  _histTuboState.data=all.map(m=>({...m,_usuario:umap[m.usuario_id]||null}));
+  _histTuboState.data=all.map(m=>({...m,_usuario:umap[m.usuario_id]||null,_cliente:m.op_numero?opCliente[m.op_numero]||null:null}));
   renderHistTubo();
 }
 function histTuboLimpiar(){["htDesde","htHasta"].forEach(id=>document.getElementById(id).value="");document.getElementById("htTipo").value="";renderHistTubo();}
@@ -7539,13 +7719,19 @@ function renderHistTubo(){
     const signo=esIn(m)?"+":((esOut(m)||m.tipo==="consumo"||m.tipo==="consumo_extra")?"-":"");
     const tn=m.tubo_instancia_id?_histTuboState.instOrder[m.tubo_instancia_id]:null;
     const opCell=m.op_numero?`<a href="#" onclick="event.preventDefault();verOpDesdeHist('${String(m.op_numero).replace(/'/g,"\\'")}','${sede}')" style="color:#5b9bd5;font-family:monospace;font-size:10px;text-decoration:underline">${esc(m.op_numero)}</a>`:'<span style="color:var(--text-faint)">—</span>';
-    const det=[tn?`<span style="color:#a78bfa;font-weight:600">T${tn}</span>`:"",esc(notaLimpia(m.nota))].filter(Boolean).join(" · ")||"—";
+    const tuboCell=tn?`<span style="color:#a78bfa;font-weight:600;font-size:11px">T${tn}</span>`:'<span style="color:var(--text-faint)">—</span>';
+    const restCell=(m._remAntes!=null&&m._remDespues!=null)?`<span style="color:var(--text-soft)">${Math.round(m._remAntes)}</span> → <strong style="color:var(--text)">${Math.round(m._remDespues)}</strong>`:'<span style="color:var(--text-faint)">—</span>';
+    const cliCell=m._cliente?`<span style="font-size:11px;color:var(--text)">${esc(m._cliente)}</span>`:'<span style="color:var(--text-faint)">—</span>';
+    const det=esc(notaLimpia(m.nota))||"—";
     return `<tr>
       <td style="font-size:11px;color:var(--text)">${new Date(m.fecha).toLocaleString("es-PE",{dateStyle:"short",timeStyle:"short"})}</td>
       <td><span style="background:${col}22;color:${col};font-size:10px;padding:2px 8px;border-radius:10px;font-weight:500">${tipoLabel[m.tipo]||esc(m.tipo)}</span></td>
+      <td>${tuboCell}</td>
       <td style="text-align:right;color:${col};font-weight:500">${m.cantidad?signo+m.cantidad:"—"}</td>
       <td style="text-align:right;color:var(--text)">${m.altura_usada!=null?m.altura_usada+"mm":"—"}</td>
+      <td style="text-align:right;font-size:10px;color:var(--text-soft)">${restCell}</td>
       <td>${opCell}</td>
+      <td>${cliCell}</td>
       <td style="font-size:11px;color:var(--text)">${det}</td>
       <td style="font-size:10px;color:var(--text-soft)">${verAutor?(esc(m._usuario)||"—"):"—"}</td>
       <td style="white-space:nowrap">
@@ -7553,7 +7739,7 @@ function renderHistTubo(){
         ${pElim?`<button class="btn btn-ghost" style="padding:3px 7px;font-size:10px;color:#e85a5a" onclick="closeModal('modalHistTubo');deleteMovimiento(${m.id},${m.tubo_instancia_id||"null"})" title="Eliminar movimiento"><i class="ti ti-trash"></i></button>`:""}
       </td>
     </tr>`;
-  }).join(""):`<tr><td colspan="8" class="no-data">Sin movimientos con esos filtros</td></tr>`;
+  }).join(""):`<tr><td colspan="11" class="no-data">Sin movimientos con esos filtros</td></tr>`;
 }
 
 // Historial de precios de compra del material (evolución en el tiempo).
@@ -7628,7 +7814,7 @@ async function deshacerIngreso(movId){
     await sb.from("movimientos").delete().eq("id",movId);
     showLoading(false);
     toast(`✓ Ingreso deshecho · ${borrables.length} tubo(s) eliminado(s)${usados>0?` · ${usados} conservado(s)`:""}`,"ok");
-    clearCache("tubos_custom");clearCache("tubos_mecaniza");_consMatTuboCache=null;
+    clearCache("tubos_custom");clearCache("tubos_mecaniza");clearCache("materiales_list");_consMatTuboCache=null;
     if(_detalleTubo) verDetalleTubo(_detalleTubo.id); else loadTubos(true);
   }catch(err){showLoading(false);toast(errMsg(err),"err");}
 }
@@ -7790,7 +7976,7 @@ async function deleteCatalogo(id){
       await sb.from("consumos_ops").update({tubo_id:null}).in("tubo_id",tubosLink);
       await sb.from("tubo_instancias").delete().in("tubo_id",tubosLink);
       await sb.from("tubos").delete().in("id",tubosLink);
-      clearCache("tubos_custom");clearCache("tubos_mecaniza");_consMatTuboCache=null;
+      clearCache("tubos_custom");clearCache("tubos_mecaniza");clearCache("materiales_list");_consMatTuboCache=null;
     }
     const {error}=await sb.from("catalogo").delete().eq("id",id);
     showLoading(false);
@@ -8464,8 +8650,10 @@ async function renderConsumos(){
   let query=sb.from("consumos_ops").select("*",{count:"exact"}).eq("sede",_consSede);
   if(rf){if(rf.ini)query=query.gte("fecha",rf.ini);if(rf.fin)query=query.lte("fecha",rf.fin);}
   if(op){const safe=op.replace(/[%,]/g," ");query=query.ilike("op",`%${safe}%`);}
-  if(mat){const safe=mat.replace(/[%,]/g," ");query=query.ilike("material",`%${safe}%`);}
-  if(cli){const safe=cli.replace(/[%,]/g," ");query=query.ilike("cliente_nombre",`%${safe}%`);}
+  // material y cliente: los separadores (espacios, comas, guiones) se vuelven comodines
+  // para que "APELLIDO, NOMBRE" o "PU RED" coincidan con "APELLIDO, NOMBRE" / "PU-RED".
+  if(mat){const safe=mat.replace(/[%_]/g,"").trim().replace(/[\s,\-]+/g,"%");query=query.ilike("material",`%${safe}%`);}
+  if(cli){const safe=cli.replace(/[%_]/g,"").trim().replace(/[\s,]+/g,"%");query=query.ilike("cliente_nombre",`%${safe}%`);}
   if(solo==="abiertos") query=query.is("devuelto",null).eq("es_merma",false);
   if(solo==="merma") query=query.eq("es_merma",true);
   if(solo==="historico") query=query.eq("es_historico",true);
@@ -9550,7 +9738,7 @@ async function saveConsumo(){
     toast(`✓ ${okCount} consumo${okCount>1?"s":""} guardado${okCount>1?"s":""}${errors.length?` · ${errors.length} con error`:""}`,"ok");
     if(_corr.length) toast(`Reconocido del catálogo: ${_corr.join(", ")}`,"ok");
     if(errors.length) console.warn("[Consumos] Errores:",errors);
-    clearCache("consumos");clearCache("tubos_custom");clearCache("tubos_mecaniza");_consMatTuboCache=null;loadConsumos(true);
+    clearCache("consumos");clearCache("tubos_custom");clearCache("tubos_mecaniza");clearCache("materiales_list");_consMatTuboCache=null;loadConsumos(true);
   }else{
     toast(`Error: ${errors[0]||"falló el guardado"}`,"err");
   }
@@ -9586,7 +9774,7 @@ async function deleteConsumo(consumoId){
   const {error}=await sb.from("consumos_ops").delete().eq("id",consumoId);
   if(error){toast(errMsg(error),"err");return;}
   toast("✓ Registro eliminado · stock restaurado","ok");
-  clearCache("consumos");clearCache("tubos_custom");clearCache("tubos_mecaniza");_consMatTuboCache=null;loadConsumos(true);
+  clearCache("consumos");clearCache("tubos_custom");clearCache("tubos_mecaniza");clearCache("materiales_list");_consMatTuboCache=null;loadConsumos(true);
 }
 
 // Restituye al stock los mm consumidos de un registro (si tenía instancia vinculada).
@@ -9643,7 +9831,7 @@ async function bulkDeleteConsumos(){
     if(error){toast(errMsg(error),"err");return;}
     toast(`✓ ${ids.length} registro(s) eliminado(s) · stock restaurado`,"ok");
     clearConsSel();
-    clearCache("consumos");clearCache("tubos_custom");clearCache("tubos_mecaniza");_consMatTuboCache=null;loadConsumos(true);
+    clearCache("consumos");clearCache("tubos_custom");clearCache("tubos_mecaniza");clearCache("materiales_list");_consMatTuboCache=null;loadConsumos(true);
   }catch(err){showLoading(false);toast(errMsg(err),"err");}
 }
 async function bulkReabrirConsumos(){
@@ -9664,7 +9852,7 @@ async function bulkReabrirConsumos(){
     showLoading(false);
     toast(`✓ ${n} registro(s) reabierto(s) · stock restaurado`,"ok");
     clearConsSel();
-    clearCache("consumos");clearCache("tubos_custom");clearCache("tubos_mecaniza");_consMatTuboCache=null;loadConsumos(true);
+    clearCache("consumos");clearCache("tubos_custom");clearCache("tubos_mecaniza");clearCache("materiales_list");_consMatTuboCache=null;loadConsumos(true);
   }catch(err){showLoading(false);toast(errMsg(err),"err");}
 }
 
@@ -9706,7 +9894,7 @@ async function confirmMerma(){
   setBtnLoading("btnConfirmMerma",false);
   closeModal("modalMerma");
   toast("✓ Descarte registrado. Tubo eliminado del stock.","ok");
-  clearCache("consumos");clearCache("tubos_custom");clearCache("tubos_mecaniza");_consMatTuboCache=null;loadConsumos(true);
+  clearCache("consumos");clearCache("tubos_custom");clearCache("tubos_mecaniza");clearCache("materiales_list");_consMatTuboCache=null;loadConsumos(true);
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -10201,7 +10389,7 @@ async function finalizarOp(){
   }
   closeModal("modalCierre");
   toast(pendRest>0?`OP ${_cierreState.op} guardada · ${okAuto} cerrada(s) · ${pendRest} pendiente(s)`:`✓ OP ${_cierreState.op} cerrada completa${okAuto?` (${okAuto} línea${okAuto>1?"s":""} autoguardada${okAuto>1?"s":""})`:""}`,"ok");
-  clearCache("consumos");clearCache("tubos_custom");clearCache("tubos_mecaniza");_consMatTuboCache=null;loadConsumos(true);
+  clearCache("consumos");clearCache("tubos_custom");clearCache("tubos_mecaniza");clearCache("materiales_list");_consMatTuboCache=null;loadConsumos(true);
 }
 
 // helper para botones inline sin id (setBtnLoading requiere id)
@@ -10289,7 +10477,7 @@ async function importConsumosExcel(e){
       prog.innerHTML=`<div class="progress-info done"><span>✓ ${ok} registros históricos${err2?` · ${err2} con errores`:""}</span><span>100%</span></div><div class="progress-bar"><div class="progress-bar-fill" style="width:100%;background:#4caf8c"></div></div>${firstErr?`<div style="color:#e85a5a;font-size:11px;margin-top:4px">${firstErr}</div>`:""}`;
       toast(`✓ ${ok} consumos históricos cargados`,ok>0?"ok":"err");
       e.target.value="";
-      clearCache("consumos");clearCache("tubos_custom");clearCache("tubos_mecaniza");_consMatTuboCache=null;loadConsumos(true);
+      clearCache("consumos");clearCache("tubos_custom");clearCache("tubos_mecaniza");clearCache("materiales_list");_consMatTuboCache=null;loadConsumos(true);
     }catch(err){console.error(err);toast(errMsg(err),"err");prog.style.display="none";}
     showLoading(false);
     _suspendRealtimeRender=false;
