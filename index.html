@@ -300,6 +300,10 @@ input[type=number]{-moz-appearance:textfield;appearance:textfield}
 #dashModalBody details>summary .ti-chevron-right{display:inline-block;transition:transform .15s}
 #dashModalBody details[open]>summary .ti-chevron-right{transform:rotate(90deg)}
 #dashModalBody details>summary:hover{background:var(--bg-card)}
+/* Chips de multi-selección para los filtros de reportes */
+.rf-chip{display:inline-flex;align-items:center;padding:6px 13px;border:1px solid var(--border);border-radius:20px;font-size:12px;color:var(--text-soft);cursor:pointer;user-select:none;transition:all .12s}
+.rf-chip:hover{border-color:var(--blue)}
+.rf-chip.on{background:var(--blue);color:#fff;border-color:var(--blue);font-weight:600}
 body{overflow-x:hidden}
 /* ── TUBOS VISUALES (vista de Stock) ─────────────────────────────── */
 .tube-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:14px;padding:10px 4px}
@@ -676,6 +680,13 @@ html[data-theme="light"]{ --brand:#2563c9; --brand-dark:#1e4fa8; }
   </nav>
 
   <main class="main">
+
+    <!-- REPORTES (hub) -->
+    <div class="page" id="page-reportes">
+      <div class="page-title"><i class="ti ti-file-analytics" style="color:var(--blue)"></i>Reportes</div>
+      <div style="font-size:12px;color:var(--text-soft);margin:-8px 0 16px">Todos tus reportes en un solo lugar. Toca una tarjeta para generarlo.</div>
+      <div id="reportesHub"></div>
+    </div>
 
     <!-- DASHBOARD -->
     <div class="page" id="page-dashboard">
@@ -2149,6 +2160,19 @@ html[data-theme="light"]{ --brand:#2563c9; --brand-dark:#1e4fa8; }
   </div>
 </div>
 
+<!-- MODAL: Filtros de reporte (reutilizable — pide rango/opciones antes de generar) -->
+<div class="modal-overlay" id="modalRepFiltros" style="display:none" onclick="if(event.target===this)closeModalSafe('modalRepFiltros')">
+  <div class="modal" style="max-width:640px">
+    <div class="modal-title"><i class="ti ti-filter" style="color:var(--blue)"></i><span id="repFiltTitulo">Filtros del reporte</span></div>
+    <div style="font-size:11px;color:var(--text-soft);margin-bottom:14px">Elige el rango y los filtros; luego se genera. Deja las fechas <strong>vacías</strong> para incluir TODO.</div>
+    <div id="repFiltCampos"></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modalRepFiltros')">Cancelar</button>
+      <button class="btn btn-red" onclick="_repFiltGenerar()"><i class="ti ti-file-analytics"></i>Generar reporte</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL: Hoja de conteo de inventario físico (Materia Prima) -->
 <div class="modal-overlay" id="modalConteo" style="display:none" onclick="if(event.target===this)closeModalSafe('modalConteo')">
   <div class="modal" style="max-width:480px">
@@ -2930,6 +2954,7 @@ function getEffectivePerms(user){
 function userHasNav(page,user){
   user=user||CU;
   if(!user) return false;
+  if(user.rol==="admin") return true; // el rol admin siempre ve todo (regla del sistema)
   const rolPerms=PERMISOS[user.rol]||PERMISOS.vendedor;
   const navBase=new Set(rolPerms.nav||[]);
   // Overrides de nav: nav_<page> = true/false
@@ -2985,6 +3010,7 @@ const PAGINAS_DISPONIBLES=[
   {key:"suministros",label:"Almacén — Suministros"},
   {key:"consumos",label:"Consumos — Custom"},
   {key:"consumos_mec",label:"Consumos — Mecaniza"},
+  {key:"reportes",label:"Reportes"},
   {key:"clientes",label:"Clientes"},
   {key:"carga",label:"Cargar Excel"},
   {key:"usuarios",label:"Usuarios"},
@@ -2996,9 +3022,9 @@ const PAGINAS_DISPONIBLES=[
 // que puede ser sobrescrito desde Configuración (admin) vía cfg.roles_permisos.
 const PERMISOS_BASE={
   admin:    {nav:["dashboard","mp_custom","mp_mecaniza","mercaderias","alm_mecaniza","suministros","consumos","consumos_mec","clientes","carga","usuarios","config"],editarCat:true,editarTubos:true,editarClientes:true,editarMerc:true,editarAlmMec:true,editarSum:true,editarConsumos:true,verPrecios:true,canConsumir:true,verMovimientos:true,exportar:true,importar:true},
-  gerente:  {nav:["dashboard","mp_custom","mp_mecaniza","mercaderias","alm_mecaniza","suministros","consumos","clientes","config"],editarCat:false,editarTubos:false,editarClientes:false,editarMerc:false,editarAlmMec:false,editarSum:false,editarConsumos:false,verPrecios:true,canConsumir:false,verMovimientos:true,exportar:true,importar:false},
-  supervisor:{nav:["dashboard","mp_custom","mp_mecaniza","mercaderias","alm_mecaniza","suministros","consumos","clientes","config"],editarCat:true,editarTubos:true,editarClientes:true,editarMerc:true,editarAlmMec:true,editarSum:true,editarConsumos:true,verPrecios:true,canConsumir:true,verMovimientos:true,exportar:true,importar:true},
-  almacen:  {nav:["dashboard","mp_custom","mp_mecaniza","mercaderias","alm_mecaniza","suministros","consumos","carga","config"],editarCat:true,editarTubos:true,editarClientes:false,editarMerc:true,editarAlmMec:true,editarSum:true,editarConsumos:true,verPrecios:true,canConsumir:true,verMovimientos:true,exportar:true,importar:true},
+  gerente:  {nav:["dashboard","mp_custom","mp_mecaniza","mercaderias","alm_mecaniza","suministros","consumos","reportes","clientes","config"],editarCat:false,editarTubos:false,editarClientes:false,editarMerc:false,editarAlmMec:false,editarSum:false,editarConsumos:false,verPrecios:true,canConsumir:false,verMovimientos:true,exportar:true,importar:false},
+  supervisor:{nav:["dashboard","mp_custom","mp_mecaniza","mercaderias","alm_mecaniza","suministros","consumos","reportes","clientes","config"],editarCat:true,editarTubos:true,editarClientes:true,editarMerc:true,editarAlmMec:true,editarSum:true,editarConsumos:true,verPrecios:true,canConsumir:true,verMovimientos:true,exportar:true,importar:true},
+  almacen:  {nav:["dashboard","mp_custom","mp_mecaniza","mercaderias","alm_mecaniza","suministros","consumos","reportes","carga","config"],editarCat:true,editarTubos:true,editarClientes:false,editarMerc:true,editarAlmMec:true,editarSum:true,editarConsumos:true,verPrecios:true,canConsumir:true,verMovimientos:true,exportar:true,importar:true},
   produccion:{nav:["dashboard","mp_custom","mp_mecaniza","mercaderias","alm_mecaniza","suministros","consumos","config"],editarCat:false,editarTubos:false,editarClientes:false,editarMerc:false,editarAlmMec:false,editarSum:false,editarConsumos:true,verPrecios:false,canConsumir:true,verMovimientos:true,exportar:false,importar:false},
   vendedor: {nav:["dashboard","mp_custom","mp_mecaniza","mercaderias","alm_mecaniza","consumos","clientes","config"],editarCat:false,editarTubos:false,editarClientes:true,editarMerc:false,editarAlmMec:false,editarSum:false,editarConsumos:false,verPrecios:true,canConsumir:false,verMovimientos:false,exportar:false,importar:false},
 };
@@ -3141,6 +3167,7 @@ const NAV_ITEMS={
   suministros:  {icon:"ti-tools",label:"Almacén — Suministros",sec:"Almacenes"},
   consumos:     {icon:"ti-clipboard-list",label:"Consumos — Custom",sec:"Operación"},
   consumos_mec: {icon:"ti-clipboard-list",label:"Consumos — Mecaniza",sec:"Operación"},
+  reportes:     {icon:"ti-file-analytics",label:"Reportes",sec:"Operación"},
   clientes:     {icon:"ti-users",label:"Clientes",sec:"Principal"},
   carga:        {icon:"ti-upload",label:"Cargar Excel",sec:"Datos"},
   usuarios:     {icon:"ti-user-cog",label:"Usuarios",sec:"Administración"},
@@ -3573,6 +3600,7 @@ function goTo(page){
   if(page==="usuarios") loadUsuarios();
   if(page==="config") loadConfigPage();
   if(page==="carga"){renderCargasResumen("mercaderias");renderCargasResumen("alm_mecaniza_productos");renderCargasResumen("suministros_productos");}
+  if(page==="reportes") renderReportes();
   closeMobileMenu(); // al entrar a un módulo, cerrar el cajón en móvil
 }
 
@@ -3587,6 +3615,297 @@ function closeMobileMenu(){
   document.getElementById("sidebar")?.classList.remove("open");
   document.getElementById("mobileBackdrop")?.classList.remove("show");
 }
+
+// ── Módulo REPORTES: centro que agrupa todos los reportes del sistema ──
+// Reusa las funciones/modales existentes. Cada tarjeta solo se muestra si el
+// rol tiene el permiso correspondiente (verPrecios / verMovimientos).
+function renderReportes(){
+  const p=getEffectivePerms();
+  const card=(titulo,desc,onclick,opts={})=>{
+    const col=opts.col||"var(--blue)", icon=opts.icon||"ti-file-text";
+    return `<div class="card" style="margin:0;padding:14px;cursor:pointer;display:flex;flex-direction:column;gap:6px" onclick="${onclick}">
+      <div style="display:flex;align-items:center;gap:8px"><i class="ti ${icon}" style="color:${col};font-size:18px"></i><span style="font-size:14px;font-weight:600;color:var(--text-strong)">${titulo}</span>${opts.badge?`<span style="font-size:9px;color:var(--green);background:rgba(31,214,160,.15);border-radius:20px;padding:1px 7px">${opts.badge}</span>`:""}</div>
+      <div style="font-size:12px;color:var(--text-soft);line-height:1.4;flex:1">${desc}</div>
+      <div style="font-size:12px;color:${col};font-weight:600">Generar <i class="ti ti-arrow-right"></i></div>
+    </div>`;
+  };
+  const sect=(icon,titulo,cards)=>{const c=cards.filter(Boolean);return c.length?`<div style="display:flex;align-items:center;gap:7px;font-size:12px;font-weight:600;color:var(--text-soft);text-transform:uppercase;letter-spacing:.5px;margin:2px 0 10px"><i class="ti ${icon}"></i>${titulo}</div><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;margin-bottom:20px">${c.join("")}</div>`:"";};
+  let html=`<div style="font-size:11px;color:var(--text-faint);background:var(--bg-card);border-radius:8px;padding:8px 12px;margin-bottom:16px"><i class="ti ti-info-circle"></i> Cada reporte se abre en pantalla y desde ahí puedes <strong>Imprimir/PDF</strong> o descargar en <strong>Excel</strong>.</div>`;
+  html+=sect("ti-clipboard-list","Consumos",[
+    card("Consumo por material","Resumen por material: OPs, enviado, devuelto y consumido. Elige sede y rango.","abrirRepConsumos()",{icon:"ti-ruler-measure"}),
+    card("Consumos (detalle)","Cada línea de consumo con OP, cliente, sede y medidas.","abrirRepConsumosDetalle()",{icon:"ti-list-details",col:"var(--violet)"}),
+    card("OPs del período","Órdenes con OP, fecha y cliente.","abrirRepOps()",{icon:"ti-calendar",col:"var(--violet)"}),
+    card("Ranking de materiales","Materiales ordenados por mm consumidos.","abrirRepRanking()",{icon:"ti-chart-bar"}),
+  ]);
+  html+=sect("ti-trash-x","Mermas y eficiencia",[
+    card("Informe de mermas","Descartes por sede + dinero perdido por tubo.","openDashModal('merma')",{icon:"ti-report-money",col:"var(--red)",badge:"nuevo"}),
+    card("Eficiencia de uso","Enviado vs consumido y % de aprovechamiento por material.","abrirRepEficiencia()",{icon:"ti-recycle",col:"var(--green)"}),
+  ]);
+  html+=sect("ti-cylinder","Materia Prima (tubos)",[
+    p.verMovimientos?card("Movimientos — MP Custom","Entradas, consumos y ajustes de los tubos Custom.","repMovMP('custom')",{icon:"ti-arrows-exchange"}):"",
+    p.verMovimientos?card("Movimientos — MP Mecaniza","Movimientos de los tubos de la sede Mecaniza.","repMovMP('mecaniza')",{icon:"ti-arrows-exchange",col:"var(--violet)"}):"",
+    p.verMovimientos?card("Rotación de materiales","Alta / media / baja rotación por consumo.","openExportMovs()",{icon:"ti-arrows-shuffle"}):"",
+    card("Stock sin movimiento","Materiales parados (stock muerto) en un período.","openStockMuerto()",{icon:"ti-clock-pause",col:"var(--amber)"}),
+    p.exportar?card("Conteo físico — Materia Prima","Hoja imprimible para inventariar los tubos.","openConteoFisico()",{icon:"ti-clipboard-check"}):"",
+  ]);
+  if(p.verPrecios) html+=sect("ti-cash","Precios y compras",[
+    card("Análisis de precios — Custom","Ganancia/pérdida: venta vs precio registrado.","openAnalisisPrecios('merc')",{icon:"ti-chart-dots"}),
+    card("Análisis de precios — Mecaniza","Ganancia/pérdida en el almacén Mecaniza.","openAnalisisPrecios('alm')",{icon:"ti-chart-dots",col:"var(--violet)"}),
+    card("Compras","Compras por proveedor y monto. Elige almacén y rango.","abrirRepCompras()",{icon:"ti-shopping-cart"}),
+  ]);
+  html+=sect("ti-box","Inventario y almacenes",[
+    p.verPrecios?card("Valor del inventario","Stock × precio. Elige uno o varios almacenes.","abrirRepValorInv()",{icon:"ti-coins",col:"var(--green)"}):"",
+    card("Stock crítico","Productos por debajo del mínimo. Elige almacenes.","abrirRepStockBajo()",{icon:"ti-alert-hexagon",col:"var(--red)"}),
+    p.verMovimientos?card("Movimientos — Almacén Custom","Entradas y salidas del almacén Custom.","openRepMov('merc')",{icon:"ti-arrows-exchange"}):"",
+    p.verMovimientos?card("Movimientos — Almacén Mecaniza","Entradas y salidas del almacén Mecaniza.","openRepMov('alm')",{icon:"ti-arrows-exchange",col:"var(--violet)"}):"",
+    p.verMovimientos?card("Movimientos — Suministros","Entradas y salidas de Suministros.","openRepMov('sum')",{icon:"ti-arrows-exchange",col:"var(--amber)"}):"",
+    card("Rotación de productos — Custom","Rotación de los productos del almacén Custom.","openRotProd('merc')",{icon:"ti-arrows-shuffle"}),
+    card("Rotación de productos — Mecaniza","Rotación de los productos del almacén Mecaniza.","openRotProd('alm')",{icon:"ti-arrows-shuffle",col:"var(--violet)"}),
+    card("Rotación de productos — Suministros","Rotación de los productos de Suministros.","openRotProd('sum')",{icon:"ti-arrows-shuffle",col:"var(--amber)"}),
+    p.exportar?card("Conteo físico — Almacén Custom","Hoja imprimible para inventariar Custom.","openConteoAlm('merc')",{icon:"ti-clipboard-check"}):"",
+    p.exportar?card("Conteo físico — Almacén Mecaniza","Hoja imprimible para inventariar Mecaniza.","openConteoAlm('alm')",{icon:"ti-clipboard-check",col:"var(--violet)"}):"",
+    p.exportar?card("Conteo físico — Suministros","Hoja imprimible para inventariar Suministros.","openConteoAlm('sum')",{icon:"ti-clipboard-check",col:"var(--amber)"}):"",
+  ]);
+  html+=sect("ti-users","Clientes",[
+    card("Rotación y top clientes","Clientes con más consumo. Elige sede y rango.","abrirRepRotCli()",{icon:"ti-user-star",col:"var(--violet)"}),
+  ]);
+  document.getElementById("reportesHub").innerHTML=html||`<div class="no-data" style="padding:30px">No tienes reportes disponibles con tu rol.</div>`;
+}
+
+// ── Visor de reportes REUTILIZABLE: muestra la tabla en pantalla + Imprimir/PDF + Excel ──
+// aoa = [[encabezados...],[fila...],...]. Reusa abrirReporteHTML para el PDF y XLSX para Excel.
+let _reporteActual=null;
+function rangoTxt(){return "Rango: "+({"1mo":"último mes","3mo":"últimos 3 meses","6mo":"últimos 6 meses","12mo":"último año","all":"todo el histórico"})[cfg.dashboard_range||"3mo"];}
+function repCargando(on){
+  const ex=document.getElementById("repCargando");
+  if(on){ if(!ex) document.body.insertAdjacentHTML("beforeend",`<div id="repCargando" class="modal-overlay" style="z-index:400"><div class="modal" style="max-width:240px;text-align:center"><div class="loading"><div class="spinner"></div>Generando reporte...</div></div></div>`); }
+  else ex?.remove();
+}
+function verReporte(titulo,subtitulo,aoa,resumenHtml,filename){
+  _reporteActual={titulo,subtitulo,aoa,resumenHtml,filename:filename||titulo};
+  const headers=(aoa&&aoa[0])||[];
+  const filas=(aoa||[]).slice(1);
+  const derecha=headers.map((h,i)=>filas.some(r=>typeof r[i]==="number"));
+  const thead=headers.map((h,i)=>`<th style="text-align:${derecha[i]?"right":"left"};white-space:nowrap">${esc(String(h))}</th>`).join("");
+  const tbody=filas.length?filas.map(r=>`<tr>${headers.map((_,i)=>`<td style="text-align:${derecha[i]?"right":"left"};white-space:nowrap">${esc(String(r[i]??""))}</td>`).join("")}</tr>`).join(""):`<tr><td colspan="${headers.length||1}" class="no-data">Sin datos</td></tr>`;
+  document.getElementById("reporteOverlay")?.remove();
+  const html=`<div id="reporteOverlay" class="modal-overlay" onclick="if(event.target===this)document.getElementById('reporteOverlay').remove()">
+    <div class="modal" style="max-width:940px;max-height:90vh">
+      <div class="modal-title"><i class="ti ti-file-analytics" style="color:var(--blue)"></i>${esc(titulo)}</div>
+      <div style="font-size:12px;color:var(--text-soft);margin-bottom:8px">${subtitulo?esc(subtitulo)+" · ":""}${filas.length} fila(s)</div>
+      ${resumenHtml||""}
+      <div class="tbl-wrap" style="max-height:56vh;margin-bottom:12px"><table><thead><tr>${thead}</tr></thead><tbody>${tbody}</tbody></table></div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" onclick="document.getElementById('reporteOverlay').remove()">Cerrar</button>
+        <button class="btn btn-ghost" onclick="_reporteAExcel()"><i class="ti ti-file-spreadsheet"></i>Excel</button>
+        <button class="btn btn-blue" onclick="_reporteAPDF()"><i class="ti ti-printer"></i>Imprimir / PDF</button>
+      </div>
+    </div></div>`;
+  document.body.insertAdjacentHTML("beforeend",html);
+}
+function _reporteAPDF(){ if(_reporteActual) abrirReporteHTML(_reporteActual.titulo,_reporteActual.subtitulo,_reporteActual.aoa,_reporteActual.resumenHtml); }
+function _reporteAExcel(){
+  if(!_reporteActual)return;
+  if(typeof XLSX==="undefined"){toast("La librería de Excel no está disponible","err");return;}
+  const ws=XLSX.utils.aoa_to_sheet(_reporteActual.aoa);
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,"Reporte");
+  XLSX.writeFile(wb,`${String(_reporteActual.filename).replace(/[^\w\-]+/g,"_")}_${new Date().toISOString().slice(0,10)}.xlsx`);
+}
+const _inclHistDash=()=>cfg.dashboard_incl_historico===true||cfg.dashboard_incl_historico==="true";
+
+// ── Diálogo de filtros REUTILIZABLE: pide fechas + opciones (multi-selección) y recién genera ──
+let _repFiltCfg=null;
+function pedirFiltros(cfgF){
+  _repFiltCfg=cfgF;
+  document.getElementById("repFiltTitulo").textContent=cfgF.titulo||"Filtros del reporte";
+  let h="";
+  if(cfgF.fechas!==false){
+    h+=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+      <div><label class="form-label">Desde</label><input class="form-input" id="rf_desde" type="date" value="${cfgF.desdeDef||""}"></div>
+      <div><label class="form-label">Hasta</label><input class="form-input" id="rf_hasta" type="date" value="${cfgF.hastaDef||""}"></div>
+    </div>`;
+  }
+  (cfgF.grupos||[]).forEach(g=>{
+    h+=`<div style="margin-bottom:14px"><label class="form-label">${esc(g.label)} <span style="color:var(--text-faint);font-weight:400">(elige uno o varios)</span></label>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:5px" data-rfgroup="${g.key}">
+      ${g.opciones.map(o=>`<label class="rf-chip${o.on?" on":""}"><input type="checkbox" value="${escAttr(o.value)}" ${o.on?"checked":""} style="display:none"><span>${esc(o.label)}</span></label>`).join("")}
+      </div></div>`;
+  });
+  if(cfgF.material){
+    h+=`<div style="margin-bottom:14px"><label class="form-label">Material (opcional)</label><input class="form-input" id="rf_material" list="consMaterialesList" placeholder="Todos los materiales" autocomplete="off"></div>`;
+    getMaterialesList().then(ms=>{const dl=document.getElementById("consMaterialesList");if(dl&&!dl.children.length)dl.innerHTML=ms.map(m=>`<option value="${escAttr(m)}"></option>`).join("");});
+  }
+  if(cfgF.incluirHist){
+    h+=`<label style="display:flex;align-items:center;gap:8px;margin-bottom:6px;cursor:pointer;font-size:12px;color:var(--text)"><input type="checkbox" id="rf_hist" ${cfgF.incluirHistDef?"checked":""}> Incluir registros históricos (importados del Excel)</label>`;
+  }
+  document.getElementById("repFiltCampos").innerHTML=h;
+  document.querySelectorAll("#repFiltCampos .rf-chip").forEach(l=>{l.addEventListener("click",e=>{e.preventDefault();const cb=l.querySelector("input");cb.checked=!cb.checked;l.classList.toggle("on",cb.checked);});});
+  document.getElementById("modalRepFiltros").style.display="flex";
+}
+function _repFiltGenerar(){
+  if(!_repFiltCfg)return;
+  const f={desde:document.getElementById("rf_desde")?.value||"",hasta:document.getElementById("rf_hasta")?.value||"",incluirHist:!!document.getElementById("rf_hist")?.checked,material:document.getElementById("rf_material")?.value.trim()||""};
+  (_repFiltCfg.grupos||[]).forEach(g=>{f[g.key]=[...document.querySelectorAll(`#repFiltCampos [data-rfgroup="${g.key}"] input:checked`)].map(cb=>cb.value);});
+  closeModal("modalRepFiltros");
+  _repFiltCfg.onGenerar(f);
+}
+// Subtítulo legible del rango/filtros elegidos
+function _subF(f){
+  const p=(f.desde||f.hasta)?`${f.desde||"inicio"} → ${f.hasta||"hoy"}`:"Todo el histórico";
+  const extra=[];
+  if(f.material)extra.push(`material: ${f.material}`);
+  if(f.incluirHist)extra.push("incluye históricos");
+  return p+(extra.length?" · "+extra.join(" · "):"");
+}
+const SEDE_OPTS=[{value:"custom",label:"Custom",on:true},{value:"mecaniza",label:"Mecaniza",on:true}];
+const ALM_OPTS=[{value:"merc",label:"Merc. Custom",on:true},{value:"alm",label:"Merc. Mecaniza",on:true},{value:"sum",label:"Suministros",on:true},{value:"mp",label:"Materia Prima",on:true}];
+
+// Lanzadores (abren el diálogo de filtros; al Generar llaman al generador correspondiente)
+function abrirRepConsumos(){ pedirFiltros({titulo:"Consumo por material",incluirHist:true,incluirHistDef:true,material:true,grupos:[{key:"sedes",label:"Sede",opciones:SEDE_OPTS}],onGenerar:repConsumos}); }
+function abrirRepConsumosDetalle(){ pedirFiltros({titulo:"Consumos (detalle)",incluirHist:true,incluirHistDef:true,material:true,grupos:[{key:"sedes",label:"Sede",opciones:SEDE_OPTS}],onGenerar:repConsumosDetalle}); }
+function abrirRepOps(){ pedirFiltros({titulo:"OPs del período",incluirHist:true,incluirHistDef:true,grupos:[{key:"sedes",label:"Sede",opciones:SEDE_OPTS}],onGenerar:repOps}); }
+function abrirRepRanking(){ pedirFiltros({titulo:"Ranking de materiales",incluirHist:true,incluirHistDef:true,material:true,grupos:[{key:"sedes",label:"Sede",opciones:SEDE_OPTS}],onGenerar:repRanking}); }
+function abrirRepEficiencia(){ pedirFiltros({titulo:"Eficiencia de uso",incluirHist:true,incluirHistDef:true,material:true,grupos:[{key:"sedes",label:"Sede",opciones:SEDE_OPTS}],onGenerar:repEficiencia}); }
+function abrirRepRotCli(){ pedirFiltros({titulo:"Rotación y top clientes",incluirHist:true,incluirHistDef:true,grupos:[{key:"sedes",label:"Sede",opciones:SEDE_OPTS}],onGenerar:repRotCli}); }
+function abrirRepCompras(){ const d=new Date(),ini=new Date(d.getFullYear(),d.getMonth(),1).toISOString().slice(0,10); pedirFiltros({titulo:"Compras",desdeDef:ini,grupos:[{key:"sedes",label:"Almacén",opciones:[{value:"custom",label:"Merc. Custom",on:true},{value:"mecaniza",label:"Merc. Mecaniza",on:true}]}],onGenerar:repCompras}); }
+function abrirRepValorInv(){ pedirFiltros({titulo:"Valor del inventario",fechas:false,grupos:[{key:"alms",label:"Almacén",opciones:ALM_OPTS}],onGenerar:repValorInv}); }
+function abrirRepStockBajo(){ pedirFiltros({titulo:"Stock crítico",fechas:false,grupos:[{key:"alms",label:"Almacén",opciones:ALM_OPTS}],onGenerar:repStockBajo}); }
+
+// Aplica el filtro de fechas/históricos/material/sede a una consulta de consumos_ops
+function _qCons(f,cols){
+  let q=sb.from("consumos_ops").select(cols).limit(50000);
+  if(f.desde)q=q.gte("fecha",f.desde); if(f.hasta)q=q.lte("fecha",f.hasta);
+  if(f.sedes&&f.sedes.length&&f.sedes.length<SEDE_OPTS.length)q=q.in("sede",f.sedes);
+  if(!f.incluirHist)q=q.eq("es_historico",false);
+  if(f.material){const s=f.material.replace(/[%_]/g,"").trim().replace(/[\s,\-]+/g,"%");q=q.ilike("material",`%${s}%`);}
+  return q;
+}
+async function _fetchCons(f,cols){
+  let all=[];
+  for(let from=0;;from+=1000){const {data,error}=await _qCons(f,cols).order("fecha",{ascending:false}).range(from,from+999);if(error||!data?.length)break;all=all.concat(data);if(data.length<1000)break;}
+  return all;
+}
+
+async function repOps(f){
+  repCargando(true);
+  const data=await _fetchCons(f,"op,fecha,cliente_nombre");
+  const porOp={};
+  data.forEach(c=>{if(!c.op)return;const o=porOp[c.op]=porOp[c.op]||{op:c.op,fecha:c.fecha,cliente:c.cliente_nombre};if(String(c.fecha)<String(o.fecha))o.fecha=c.fecha;if(!o.cliente&&c.cliente_nombre)o.cliente=c.cliente_nombre;});
+  const lista=Object.values(porOp).sort((a,b)=>String(b.fecha).localeCompare(String(a.fecha)));
+  const aoa=[["OP","Fecha","Cliente"],...lista.map(o=>[o.op,o.fecha,o.cliente||"—"])];
+  repCargando(false); verReporte("OPs del período",_subF(f),aoa,null,"OPs_periodo");
+}
+async function repConsumos(f){
+  repCargando(true);
+  const data=await _fetchCons(f,"material,consumido,enviado,devuelto,op");
+  const norm=s=>String(s||"").trim().toUpperCase().replace(/\s+/g," ");
+  const g={};
+  data.forEach(c=>{const k=norm(c.material);if(!k)return;const x=g[k]=g[k]||{material:c.material,consumido:0,enviado:0,devuelto:0,ops:new Set(),lineas:0};x.consumido+=c.consumido||0;x.enviado+=c.enviado||0;x.devuelto+=c.devuelto||0;x.ops.add(c.op);x.lineas++;});
+  const lista=Object.values(g).sort((a,b)=>b.consumido-a.consumido);
+  const aoa=[["Material","OPs","Líneas","Enviado (mm)","Devuelto (mm)","Consumido (mm)"],...lista.map(m=>[m.material,m.ops.size,m.lineas,Math.round(m.enviado),Math.round(m.devuelto),Math.round(m.consumido)])];
+  repCargando(false); verReporte("Consumo por material",_subF(f),aoa,null,"Consumo_material");
+}
+async function repConsumosDetalle(f){
+  repCargando(true);
+  const data=await _fetchCons(f,"fecha,op,cliente_nombre,material,di,de,largo,enviado,devuelto,es_merma,sede");
+  const aoa=[["Fecha","OP","Cliente","Material","Sede","DI","DE","Largo","Enviado","Devuelto","Consumido","Merma"]];
+  data.forEach(c=>aoa.push([String(c.fecha||"").slice(0,10),c.op||"",c.cliente_nombre||"",c.material||"",c.sede||"",c.di??"",c.de??"",c.largo??"",c.enviado??"",c.devuelto??"",(c.enviado||0)-(c.devuelto||0),c.es_merma?"Sí":""]));
+  repCargando(false); verReporte("Consumos (detalle)",_subF(f),aoa,null,"Consumos_detalle");
+}
+async function repRanking(f){
+  repCargando(true);
+  const data=await _fetchCons(f,"material,consumido,op");
+  const agg={};
+  data.forEach(c=>{const m=(c.material||"—").trim();const x=agg[m]=agg[m]||{mm:0,lineas:0,ops:new Set()};x.mm+=c.consumido||0;x.lineas++;if(c.op)x.ops.add(c.op);});
+  const lista=Object.entries(agg).sort((a,b)=>b[1].mm-a[1].mm);
+  const aoa=[["#","Material","mm consumidos","Líneas","OPs"],...lista.map(([m,v],i)=>[i+1,m,Math.round(v.mm),v.lineas,v.ops.size])];
+  repCargando(false); verReporte("Ranking de materiales",_subF(f),aoa,null,"Ranking_materiales");
+}
+async function repEficiencia(f){
+  repCargando(true);
+  const data=await _fetchCons(f,"material,enviado,devuelto,consumido");
+  const norm=s=>String(s||"").trim().toUpperCase().replace(/\s+/g," ");
+  const g={};
+  data.forEach(c=>{const k=norm(c.material);if(!k)return;const x=g[k]=g[k]||{material:c.material,env:0,dev:0,cons:0};x.env+=c.enviado||0;x.dev+=c.devuelto||0;x.cons+=c.consumido||0;});
+  const lista=Object.values(g).sort((a,b)=>b.env-a.env);
+  const aoa=[["Material","Enviado (mm)","Devuelto (mm)","Consumido (mm)","Eficiencia %"],...lista.map(m=>[m.material,Math.round(m.env),Math.round(m.dev),Math.round(m.cons),m.env>0?Math.round(m.cons/m.env*100):0])];
+  repCargando(false); verReporte("Eficiencia de uso de material",_subF(f),aoa,null,"Eficiencia_material");
+}
+async function repRotCli(f){
+  repCargando(true);
+  const data=await _fetchCons(f,"cliente_nombre,consumido");
+  const porCli={};data.forEach(c=>{const cl=(c.cliente_nombre||"").trim();if(cl)porCli[cl]=(porCli[cl]||0)+(Number(c.consumido)||0);});
+  const lista=Object.entries(porCli).sort((a,b)=>b[1]-a[1]);
+  const aoa=[["#","Cliente","mm consumidos"],...lista.map(([c,v],i)=>[i+1,c,Math.round(v)])];
+  repCargando(false); verReporte("Rotación y top clientes",_subF(f),aoa,null,"Top_clientes");
+}
+async function repCompras(f){
+  repCargando(true);
+  const sedes=(f.sedes&&f.sedes.length)?f.sedes:["custom","mecaniza"];
+  const tareas=[];
+  if(sedes.includes("custom")) tareas.push(sb.from("mercaderia_movimientos").select("cantidad,precio_unitario,moneda,proveedor,fecha,mercaderia_id").eq("tipo","entrada").gte("fecha",f.desde||"1900-01-01").lte("fecha",f.hasta||"2999-12-31").limit(50000).then(r=>({r,alm:"Custom"})));
+  if(sedes.includes("mecaniza")) tareas.push(sb.from("alm_mecaniza_movimientos").select("cantidad,precio_unitario,moneda,proveedor,fecha,producto_id").eq("tipo","entrada").gte("fecha",f.desde||"1900-01-01").lte("fecha",f.hasta||"2999-12-31").limit(50000).then(r=>({r,alm:"Mecaniza"})));
+  const res=await Promise.all(tareas);
+  const mids=new Set(),aids=new Set();
+  res.forEach(({r,alm})=>(r.data||[]).forEach(x=>{if(alm==="Custom")mids.add(x.mercaderia_id);else aids.add(x.producto_id);}));
+  const pmap={};
+  if(mids.size){const {data}=await sb.from("mercaderias").select("id,nombre").in("id",[...mids].filter(Boolean));(data||[]).forEach(p=>pmap["merc"+p.id]=p.nombre);}
+  if(aids.size){const {data}=await sb.from("alm_mecaniza_productos").select("id,nombre").in("id",[...aids].filter(Boolean));(data||[]).forEach(p=>pmap["alm"+p.id]=p.nombre);}
+  const rows=[];
+  res.forEach(({r,alm})=>(r.data||[]).forEach(x=>rows.push({...x,alm,prod:alm==="Custom"?(pmap["merc"+x.mercaderia_id]||"—"):(pmap["alm"+x.producto_id]||"—")})));
+  rows.sort((a,b)=>String(b.fecha).localeCompare(String(a.fecha)));
+  let tot=0;
+  const aoa=[["Fecha","Proveedor","Producto","Almacén","Cantidad","Monto (S/)"]];
+  rows.forEach(r=>{const v=_aPen(r.precio_unitario,r.moneda)*(Number(r.cantidad)||0);tot+=v;aoa.push([String(r.fecha||"").slice(0,10),r.proveedor||"(sin prov.)",r.prod,r.alm,r.cantidad,Math.round(v*100)/100]);});
+  const resumen=`<div style="font-size:13px;margin-bottom:8px">Total comprado: <b style="color:#5b9bd5">S/ ${Math.round(tot).toLocaleString()}</b> · ${rows.length} compra(s)</div>`;
+  repCargando(false); verReporte("Compras",_subF(f),aoa,resumen,"Compras");
+}
+async function repValorInv(f){
+  repCargando(true);
+  const a=(f.alms&&f.alms.length)?f.alms:["merc","alm","sum","mp"];
+  const tareas={
+    merc:a.includes("merc")?sb.from("mercaderias").select("nombre,stock_actual,precio_unitario,moneda").eq("activo",true).limit(5000):null,
+    alm:a.includes("alm")?sb.from("alm_mecaniza_productos").select("nombre,stock_actual,precio_unitario,moneda").eq("activo",true).limit(5000):null,
+    sum:a.includes("sum")?sb.from("suministros_productos").select("nombre,stock_actual,precio_unitario,moneda").eq("activo",true).limit(5000):null,
+    tubos:a.includes("mp")?sb.from("tubos").select("id,descripcion,precio,moneda").limit(20000):null,
+    inst:a.includes("mp")?sb.from("tubo_instancias").select("tubo_id").eq("estado","disponible").limit(99999):null,
+  };
+  const [merc,alm,sum,tubos,inst]=await Promise.all([tareas.merc,tareas.alm,tareas.sum,tareas.tubos,tareas.inst].map(p=>p||Promise.resolve({data:[]})));
+  const items=[];
+  (merc.data||[]).forEach(p=>{const v=_aPen(p.precio_unitario,p.moneda)*(Number(p.stock_actual)||0);if(v>0)items.push([p.nombre,"Almacén Custom",Math.round(v*100)/100]);});
+  (alm.data||[]).forEach(p=>{const v=_aPen(p.precio_unitario,p.moneda)*(Number(p.stock_actual)||0);if(v>0)items.push([p.nombre,"Almacén Mecaniza",Math.round(v*100)/100]);});
+  (sum.data||[]).forEach(p=>{const v=_aPen(p.precio_unitario,p.moneda)*(Number(p.stock_actual)||0);if(v>0)items.push([p.nombre,"Suministros",Math.round(v*100)/100]);});
+  const disp={};(inst.data||[]).forEach(i=>disp[i.tubo_id]=(disp[i.tubo_id]||0)+1);
+  (tubos.data||[]).forEach(t=>{const v=_aPen(t.precio,t.moneda)*(disp[t.id]||0);if(v>0)items.push([t.descripcion,"Materia Prima",Math.round(v*100)/100]);});
+  items.sort((a,b)=>b[2]-a[2]);
+  const tot=items.reduce((a,i)=>a+i[2],0);
+  const aoa=[["Producto","Almacén","Valor (S/)"],...items];
+  const resumen=`<div style="font-size:13px;margin-bottom:8px">Valor total: <b style="color:#1e8449">S/ ${Math.round(tot).toLocaleString()}</b></div>`;
+  repCargando(false); verReporte("Valor del inventario","Stock × precio",aoa,resumen,"Valor_inventario");
+}
+async function repStockBajo(f){
+  repCargando(true);
+  const a=(f.alms&&f.alms.length)?f.alms:["merc","alm","sum","mp"];
+  const thrMerc=parseFloat(cfg.stock_min_merc)||0,thrAlm=parseFloat(cfg.stock_min_alm)||0,thrSum=parseFloat(cfg.stock_min_sum)||0;
+  const tareas={
+    merc:a.includes("merc")?sb.from("mercaderias").select("nombre,codigo,stock_actual,stock_minimo,unidad").eq("activo",true).limit(5000):null,
+    alm:a.includes("alm")?sb.from("alm_mecaniza_productos").select("nombre,codigo,stock_actual,stock_minimo,unidad").eq("activo",true).limit(5000):null,
+    sum:a.includes("sum")?sb.from("suministros_productos").select("nombre,codigo,stock_actual,stock_minimo,unidad").eq("activo",true).limit(5000):null,
+    tubos:a.includes("mp")?sb.from("tubos").select("id,descripcion,sede,stock_minimo").limit(20000):null,
+    inst:a.includes("mp")?sb.from("tubo_instancias").select("tubo_id,estado").limit(99999):null,
+  };
+  const [merc,alm,sum,tubos,inst]=await Promise.all([tareas.merc,tareas.alm,tareas.sum,tareas.tubos,tareas.inst].map(p=>p||Promise.resolve({data:[]})));
+  const disp={};(inst.data||[]).forEach(i=>{if(i.estado==="disponible")disp[i.tubo_id]=(disp[i.tubo_id]||0)+1;});
+  const aoa=[["Producto","Almacén","Actual","Mínimo"]];
+  (tubos.data||[]).filter(t=>(t.stock_minimo||0)>0&&(disp[t.id]||0)<(t.stock_minimo||0)).forEach(t=>aoa.push([t.descripcion,`MP ${t.sede}`,disp[t.id]||0,t.stock_minimo]));
+  (merc.data||[]).filter(m=>{const min=Math.max(m.stock_minimo||0,thrMerc);return min>0&&m.stock_actual<min;}).forEach(m=>aoa.push([`${m.nombre} (${m.codigo||""})`,"Almacén Custom",`${m.stock_actual} ${m.unidad||""}`,Math.max(m.stock_minimo||0,thrMerc)]));
+  (alm.data||[]).filter(x=>{const min=Math.max(x.stock_minimo||0,thrAlm);return min>0&&x.stock_actual<min;}).forEach(x=>aoa.push([`${x.nombre} (${x.codigo||""})`,"Almacén Mecaniza",`${x.stock_actual} ${x.unidad||""}`,Math.max(x.stock_minimo||0,thrAlm)]));
+  (sum.data||[]).filter(x=>{const min=Math.max(x.stock_minimo||0,thrSum);return min>0&&x.stock_actual<min;}).forEach(x=>aoa.push([`${x.nombre} (${x.codigo||""})`,"Suministros",`${x.stock_actual} ${x.unidad||""}`,Math.max(x.stock_minimo||0,thrSum)]));
+  repCargando(false); verReporte("Stock crítico","Productos bajo el mínimo",aoa,null,"Stock_critico");
+}
+// Movimientos de Materia Prima desde el hub: fija la sede y abre el modal existente.
+function repMovMP(sede){ _tubosState.sede=sede; openRepMovTubos(); }
 
 async function loadConfig(){
   const {data}=await sb.from("configuracion").select("*");
@@ -4751,7 +5070,7 @@ async function calcMerma(){
   const since=getDashRangeStart();
   // "Agotados": descartes reales de tubos (movimientos tipo 'merma' = sobrante descartado / tubo
   // agotado por merma) en el período. Se compara contra lo consumido para sacar el % desperdiciado.
-  let q=sb.from("movimientos").select("tipo,altura_usada,fecha").in("tipo",["merma","consumo"]).limit(50000);
+  let q=sb.from("movimientos").select("tipo,altura_usada,fecha,tubo_id,tubo_instancia_id").in("tipo",["merma","consumo"]).limit(50000);
   if(since) q=q.gte("fecha",since);
   const {data}=await q;
   const rows=data||[];
@@ -4762,9 +5081,21 @@ async function calcMerma(){
   const base=mmDesc+mmCons;
   const pct=base>0?(mmDesc/base*100).toFixed(1):0;
   const thr=parseFloat(cfg.merma_alerta_pct)||5;
+  // Dinero perdido en descartes = (precio en soles / largo) × mm, por cada merma con precio de tubo.
+  let dinero=0;
+  try{
+    const ids=[...new Set(desc.map(m=>m.tubo_id).filter(Boolean))];
+    const tmap={};
+    if(ids.length){for(let i=0;i<ids.length;i+=300){const {data:ts}=await sb.from("tubos").select("id,precio,moneda,altura_total").in("id",ids.slice(i,i+300));(ts||[]).forEach(t=>tmap[t.id]=t);}}
+    const iids=[...new Set(desc.map(m=>m.tubo_instancia_id).filter(Boolean))];
+    const imap={};
+    if(iids.length){for(let i=0;i<iids.length;i+=300){const {data:is}=await sb.from("tubo_instancias").select("id,altura_total").in("id",iids.slice(i,i+300));(is||[]).forEach(x=>imap[x.id]=x.altura_total);}}
+    desc.forEach(m=>{const t=tmap[m.tubo_id];if(!t||t.precio==null||t.precio==="")return;const largo=instTot({altura_total:imap[m.tubo_instancia_id]},t);if(largo>0)dinero+=(_aPen(t.precio,t.moneda)/largo)*(Number(m.altura_usada)||0);});
+  }catch(e){}
   const el=document.querySelector("#kpiMermaDash .kpi-val");
   if(el){el.textContent=`${Math.round(mmDesc).toLocaleString()}mm`;el.style.color=pct>=thr?"var(--red)":"var(--green)";}
-  document.querySelector("#kpiMermaDash .kpi-sub").textContent=`${nDesc} descarte${nDesc!==1?"s":""} · ${pct}% del material`;
+  const dineroTxt=dinero>0?` · S/ ${Math.round(dinero).toLocaleString()} perdido`:"";
+  document.querySelector("#kpiMermaDash .kpi-sub").textContent=`${nDesc} descarte${nDesc!==1?"s":""} · ${pct}% del material${dineroTxt}`;
 }
 
 async function calcEficiencia(){
@@ -5280,29 +5611,74 @@ async function dashDetalleConsumos(sede){
     </div>`;
 }
 
+let _mermaReport=null;
 async function dashDetalleMerma(){
   const since=getDashRangeStart();
   // Descartes reales: movimientos de tubos tipo 'merma' (sobrante descartado / tubo agotado).
-  let q=sb.from("movimientos").select("fecha,op_numero,altura_usada,motivo,nota,tubo_id").eq("tipo","merma").limit(5000);
+  let q=sb.from("movimientos").select("fecha,op_numero,altura_usada,motivo,nota,tubo_id,tubo_instancia_id").eq("tipo","merma").limit(5000);
   if(since) q=q.gte("fecha",since);
   const {data}=await q.order("fecha",{ascending:false});
-  if(!data?.length) return `<div style="text-align:center;padding:30px;color:var(--green)"><i class="ti ti-circle-check" style="font-size:32px"></i><div style="margin-top:10px">Sin descartes en el período ✓</div></div>`;
-  // Descripción de cada tubo descartado
+  if(!data?.length){_mermaReport=null;return `<div style="text-align:center;padding:30px;color:var(--green)"><i class="ti ti-circle-check" style="font-size:32px"></i><div style="margin-top:10px">Sin descartes en el período ✓</div></div>`;}
+  // Datos del tubo (descripción, sede, precio, largo nominal) e instancia (largo real de nacionales).
   const ids=[...new Set(data.map(m=>m.tubo_id).filter(Boolean))];
   const tmap={};
-  if(ids.length){const {data:ts}=await sb.from("tubos").select("id,descripcion").in("id",ids);(ts||[]).forEach(t=>tmap[t.id]=t.descripcion);}
-  const totalMm=data.reduce((a,m)=>a+(Number(m.altura_usada)||0),0);
-  return `<div style="margin-bottom:10px;font-size:11px;color:var(--text-soft)">${data.length} descarte${data.length!==1?"s":""} · ${Math.round(totalMm).toLocaleString()}mm descartados</div>
-    <div class="tbl-wrap" style="max-height:60vh"><table>
-      <thead><tr><th>Fecha</th><th>OP</th><th>Tubo</th><th>Motivo</th><th style="text-align:right">mm</th></tr></thead>
-      <tbody>${data.map(m=>`<tr>
-        <td style="font-size:11px;color:var(--text-soft)">${esc(new Date(m.fecha).toLocaleDateString("es-PE"))}</td>
-        <td style="font-family:monospace;color:var(--text-strong)">${esc(m.op_numero)||"—"}</td>
-        <td style="color:var(--text)">${esc(tmap[m.tubo_id]||"—")}</td>
-        <td style="font-size:11px;color:var(--red)">${esc(m.motivo||m.nota)||"—"}</td>
-        <td style="text-align:right;color:var(--red);font-weight:600">${Math.round(Number(m.altura_usada)||0).toLocaleString()}</td>
-      </tr>`).join("")}</tbody>
-    </table></div>`;
+  if(ids.length){for(let i=0;i<ids.length;i+=300){const {data:ts}=await sb.from("tubos").select("id,descripcion,sede,precio,moneda,altura_total").in("id",ids.slice(i,i+300));(ts||[]).forEach(t=>tmap[t.id]=t);}}
+  const iids=[...new Set(data.map(m=>m.tubo_instancia_id).filter(Boolean))];
+  const imap={};
+  if(iids.length){for(let i=0;i<iids.length;i+=300){const {data:is}=await sb.from("tubo_instancias").select("id,altura_total").in("id",iids.slice(i,i+300));(is||[]).forEach(x=>imap[x.id]=x.altura_total);}}
+  // Costo por descarte = (precio en soles / largo) × mm. Largo: el de la instancia (nacionales de
+  // largo variable) o, si no, el del tubo. Sin precio o sin largo → costo desconocido ("—").
+  const fila=data.map(m=>{
+    const t=tmap[m.tubo_id]||{};
+    const mm=Number(m.altura_usada)||0;
+    const largo=instTot({altura_total:imap[m.tubo_instancia_id]},t);
+    const precioPen=(t.precio!=null&&t.precio!=="")?_aPen(t.precio,t.moneda):null;
+    const costo=(precioPen!=null&&largo>0)?(precioPen/largo)*mm:null;
+    return {fecha:m.fecha,op:m.op_numero,tubo:t.descripcion||"—",motivo:m.motivo||m.nota||"—",mm,costo,sede:(t.sede==="mecaniza"?"mecaniza":"custom")};
+  });
+  const G={custom:{label:"Custom",icon:"ti-building-factory-2",col:"#5b9bd5",rows:[],mm:0,costo:0,sinP:0},mecaniza:{label:"Mecaniza",icon:"ti-building-warehouse",col:"#f5a623",rows:[],mm:0,costo:0,sinP:0}};
+  fila.forEach(r=>{const g=G[r.sede];g.rows.push(r);g.mm+=r.mm;if(r.costo!=null)g.costo+=r.costo;else g.sinP++;});
+  const totMm=fila.reduce((a,r)=>a+r.mm,0);
+  const totCosto=fila.reduce((a,r)=>a+(r.costo||0),0);
+  const totSinP=fila.filter(r=>r.costo==null).length;
+  _mermaReport={fila,totMm,totCosto,totSinP};
+  const S=n=>"S/ "+(Math.round(n*100)/100).toLocaleString("es-PE",{minimumFractionDigits:2,maximumFractionDigits:2});
+  const secc=key=>{
+    const g=G[key];if(!g.rows.length) return "";
+    return `<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:8px 12px;margin:12px 0 6px">
+        <span style="font-size:13px;font-weight:600;color:${g.col}"><i class="ti ${g.icon}"></i> ${g.label}</span>
+        <span style="font-size:12px;color:var(--text-soft)">${g.rows.length} descarte(s) · ${Math.round(g.mm).toLocaleString()} mm · <strong style="color:var(--red)">${S(g.costo)}</strong>${g.sinP?` · <span style="color:var(--text-faint)">${g.sinP} sin precio</span>`:""}</span>
+      </div>
+      <div class="tbl-wrap" style="max-height:none;margin-bottom:6px"><table>
+        <thead><tr><th>Fecha</th><th>OP</th><th>Tubo</th><th>Motivo</th><th style="text-align:right">mm</th><th style="text-align:right">Costo</th></tr></thead>
+        <tbody>${g.rows.map(r=>`<tr>
+          <td style="font-size:11px;color:var(--text-soft)">${esc(new Date(r.fecha).toLocaleDateString("es-PE"))}</td>
+          <td style="font-family:monospace;color:var(--text-strong)">${esc(r.op)||"—"}</td>
+          <td style="color:var(--text)">${esc(r.tubo)}</td>
+          <td style="font-size:11px;color:var(--red)">${esc(r.motivo)}</td>
+          <td style="text-align:right;color:var(--red);font-weight:600">${Math.round(r.mm).toLocaleString()}</td>
+          <td style="text-align:right;font-weight:600;color:${r.costo!=null?'var(--red)':'var(--text-faint)'}">${r.costo!=null?S(r.costo):"— sin precio"}</td>
+        </tr>`).join("")}</tbody>
+      </table></div>`;
+  };
+  return `<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:6px">
+      <div style="font-size:12px;color:var(--text-soft)">${fila.length} descarte(s) · ${Math.round(totMm).toLocaleString()} mm · <strong style="color:var(--red)">${S(totCosto)} perdido</strong>${totSinP?` · ${totSinP} sin precio`:""}</div>
+      <button class="btn btn-blue" style="padding:5px 10px;font-size:11px" onclick="exportMermaReport()"><i class="ti ti-printer"></i>Exportar</button>
+    </div>
+    ${totCosto===0?`<div style="font-size:11px;color:var(--text-faint);background:var(--bg-card);border-radius:6px;padding:7px 10px;margin-bottom:4px"><i class="ti ti-info-circle"></i> Aún no hay precios de tubo cargados, por eso el dinero perdido sale en S/ 0.00. Cuando cargues los precios, el costo se calcula solo: (precio ÷ largo) × mm.</div>`:""}
+    ${secc("custom")}${secc("mecaniza")}`;
+}
+function exportMermaReport(){
+  if(!_mermaReport||!_mermaReport.fila?.length){toast("No hay mermas para exportar","err");return;}
+  const r2=n=>Math.round(n*100)/100;
+  const aoa=[["Sede","Fecha","OP","Tubo","Motivo","mm descartados","Costo (S/)"]];
+  ["custom","mecaniza"].forEach(sede=>{
+    _mermaReport.fila.filter(r=>r.sede===sede).forEach(r=>{
+      aoa.push([sede==="custom"?"Custom":"Mecaniza",new Date(r.fecha).toLocaleDateString("es-PE"),r.op||"",r.tubo,r.motivo,Math.round(r.mm),r.costo!=null?r2(r.costo):"sin precio"]);
+    });
+  });
+  const resumen=`<div style="font-size:13px;margin-bottom:8px">Total descartado: <b>${Math.round(_mermaReport.totMm).toLocaleString()} mm</b> · Dinero perdido estimado: <b style="color:#b00">S/ ${r2(_mermaReport.totCosto).toLocaleString("es-PE",{minimumFractionDigits:2})}</b>${_mermaReport.totSinP?` · ${_mermaReport.totSinP} tubo(s) sin precio`:""}</div>`;
+  abrirReporteHTML("Informe de mermas",`${_mermaReport.fila.length} descarte(s)`,aoa,resumen);
 }
 
 async function dashDetalleEficiencia(){
