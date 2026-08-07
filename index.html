@@ -1557,9 +1557,9 @@ html[data-theme="light"]{ --brand:#2563c9; --brand-dark:#1e4fa8; }
 
 <!-- MODAL: Editar OP completa (todas sus líneas) -->
 <div class="modal-overlay" id="modalEditOp" style="display:none" onclick="if(event.target===this)closeModalSafe('modalEditOp')">
-  <div class="modal" style="max-width:920px">
+  <div class="modal" style="max-width:1120px">
     <div class="modal-title"><i class="ti ti-edit" style="color:#5b9bd5"></i><span id="eopTitle">Editar OP</span></div>
-    <div style="font-size:11px;color:var(--text-soft);margin-bottom:10px">Edita todas las líneas de la OP a la vez. En las líneas <strong>cerradas</strong> no se puede cambiar el ENVIADO (reábrelas primero desde "Cerrar OP" si necesitas corregir el descuento).</div>
+    <div style="font-size:11px;color:var(--text-soft);margin-bottom:10px">Edita todas las líneas de la OP a la vez. En las líneas <strong>cerradas</strong> no se puede cambiar el ENVIADO — usa el botón <strong>Reabrir</strong> de la línea para devolver el descuento y poder corregirlo.</div>
     <div style="display:grid;grid-template-columns:150px 160px minmax(0,1fr);gap:10px;margin-bottom:10px">
       <div class="form-group"><label class="form-label">Fecha</label><input class="form-input" id="eop_fecha" type="date"></div>
       <div class="form-group"><label class="form-label">N° OP</label><input class="form-input" id="eop_op"></div>
@@ -1567,7 +1567,7 @@ html[data-theme="light"]{ --brand:#2563c9; --brand-dark:#1e4fa8; }
     </div>
     <div class="tbl-wrap" style="max-height:none;border:.5px solid var(--border);border-radius:8px;margin-bottom:10px">
       <table style="font-size:12px;table-layout:fixed">
-        <colgroup><col style="width:auto"><col style="width:60px"><col style="width:60px"><col style="width:64px"><col style="width:74px"><col style="width:auto"><col style="width:80px"></colgroup>
+        <colgroup><col style="width:auto"><col style="width:60px"><col style="width:60px"><col style="width:64px"><col style="width:74px"><col style="width:auto"><col style="width:150px"></colgroup>
         <thead><tr>
           <th>Material</th><th style="text-align:right">DI</th><th style="text-align:right">DE</th><th style="text-align:right">Largo</th><th style="text-align:right">Enviado</th><th>Observaciones</th><th style="text-align:center">Estado</th>
         </tr></thead>
@@ -1658,13 +1658,13 @@ html[data-theme="light"]{ --brand:#2563c9; --brand-dark:#1e4fa8; }
 
 <!-- MODAL: CERRAR OP (descuento diferido, línea por línea) -->
 <div class="modal-overlay" id="modalCierre" style="display:none" onclick="if(event.target===this)closeModalSafe('modalCierre')">
-  <div class="modal" style="max-width:940px">
+  <div class="modal" style="max-width:1000px">
     <div class="modal-title"><i class="ti ti-circle-check" style="color:#4caf8c"></i><span id="cierreTitle">Cerrar OP</span></div>
     <div style="background:#0f1e2e;border:.5px solid #1a4a7a;color:#5b9bd5;font-size:11px;padding:8px 12px;border-radius:8px;margin-bottom:12px">
       <i class="ti ti-info-circle"></i> Ingresa el <strong>DEVUELTO</strong> de cada línea y elige el tubo del que se descuenta. <strong>Cada línea se guarda por separado</strong> — puedes cerrar 3 de 4 hoy y el resto luego. La OP queda abierta hasta que la finalices.
     </div>
     <div id="cierreHead" style="font-size:12px;color:var(--text);margin-bottom:10px"></div>
-    <div id="cierreLineas" style="display:flex;flex-direction:column;gap:10px"></div>
+    <div id="cierreLineas" style="display:flex;flex-direction:column;gap:14px"></div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modalCierre')">Cerrar ventana</button>
       <button class="btn btn-amber" id="btnReabrirOp" style="display:none" onclick="reabrirOpCompleta()" title="Devolver mm al stock y dejar todas las líneas pendientes"><i class="ti ti-rotate"></i>Reabrir OP</button>
@@ -1714,7 +1714,7 @@ html[data-theme="light"]{ --brand:#2563c9; --brand-dark:#1e4fa8; }
 
 <!-- MODAL: Rotación de materiales (sin / poco / bastante movimiento) -->
 <div class="modal-overlay" id="modalExportMovs" style="display:none" onclick="if(event.target===this)closeModal('modalExportMovs')">
-  <div class="modal" style="max-width:680px">
+  <div class="modal" style="max-width:900px">
     <div class="modal-title"><i class="ti ti-arrows-shuffle" style="color:#5b9bd5"></i>Rotación de materiales</div>
     <div style="font-size:11px;color:var(--text-soft);margin-bottom:10px">Clasifica los materiales por cuánto se consumieron en el período. La clasificación es <strong>automática por ranking</strong>: el tercio que más se movió = <strong>alta rotación</strong>, el del medio = <strong>media</strong>, el que menos = <strong>baja</strong>; sin consumo = <strong>sin rotación</strong>. El consumo se muestra en <strong>mm</strong> y su equivalente en <strong>tubos</strong> (mm ÷ largo del tubo).</div>
     <div class="form-row">
@@ -2175,7 +2175,7 @@ html[data-theme="light"]{ --brand:#2563c9; --brand-dark:#1e4fa8; }
 
 <!-- MODAL: Hoja de conteo de inventario físico (Materia Prima) -->
 <div class="modal-overlay" id="modalConteo" style="display:none" onclick="if(event.target===this)closeModalSafe('modalConteo')">
-  <div class="modal" style="max-width:480px">
+  <div class="modal" style="max-width:560px">
     <div class="modal-title"><i class="ti ti-clipboard-check" style="color:#5b9bd5"></i>Hoja de conteo físico</div>
     <div style="font-size:11px;color:var(--text-soft);margin-bottom:10px">Genera una hoja A4 para imprimir y anotar a mano tu inventario. Incluye <strong>solo materiales con stock</strong> (tubos enteros + retazos).</div>
     <div class="form-group"><label class="form-label">Tipo de material</label><select class="form-input" id="cf_tipo"><option value="">Todos</option></select></div>
@@ -2188,7 +2188,7 @@ html[data-theme="light"]{ --brand:#2563c9; --brand-dark:#1e4fa8; }
 
 <!-- MODAL: Hoja de conteo físico de almacenes (Custom / Mecaniza / Suministros) -->
 <div class="modal-overlay" id="modalConteoAlm" style="display:none" onclick="if(event.target===this)closeModalSafe('modalConteoAlm')">
-  <div class="modal" style="max-width:480px">
+  <div class="modal" style="max-width:560px">
     <div class="modal-title"><i class="ti ti-clipboard-check" style="color:#5b9bd5"></i><span id="modalConteoAlmTitle">Hoja de conteo físico</span></div>
     <div style="font-size:11px;color:var(--text-soft);margin-bottom:10px">Genera una hoja A4 para imprimir y anotar a mano. Se agrupa por <strong>categoría</strong> e incluye el stock del sistema y una columna en blanco para el conteo físico.</div>
     <div class="form-group">
@@ -2206,7 +2206,7 @@ html[data-theme="light"]{ --brand:#2563c9; --brand-dark:#1e4fa8; }
 
 <!-- MODAL: Rotación de productos (Custom / Mecaniza / Suministros) -->
 <div class="modal-overlay" id="modalRotProd" style="display:none" onclick="if(event.target===this)closeModal('modalRotProd')">
-  <div class="modal" style="max-width:680px">
+  <div class="modal" style="max-width:900px">
     <div class="modal-title"><i class="ti ti-arrows-shuffle" style="color:#5b9bd5"></i><span id="modalRotProdTitle">Rotación de productos</span></div>
     <div style="font-size:11px;color:var(--text-soft);margin-bottom:10px">Clasifica los productos por cuántas unidades <strong>salieron</strong> en el período. La clasificación es <strong>automática por ranking</strong>: el tercio que más se movió = <strong>alta rotación</strong>, el del medio = <strong>media</strong>, el que menos = <strong>baja</strong>; sin salidas = <strong>sin rotación</strong>.</div>
     <div class="form-row">
@@ -2279,9 +2279,9 @@ html[data-theme="light"]{ --brand:#2563c9; --brand-dark:#1e4fa8; }
 
 <!-- MODAL: Reporte de movimientos de Materia Prima (con balance de compras) -->
 <div class="modal-overlay" id="modalRepMovTubos" style="display:none" onclick="if(event.target===this)closeModalSafe('modalRepMovTubos')">
-  <div class="modal" style="max-width:520px">
+  <div class="modal" style="max-width:720px">
     <div class="modal-title"><i class="ti ti-report" style="color:#5b9bd5"></i><span id="rmtTitle">Reporte de movimientos — Materia Prima</span></div>
-    <div style="font-size:11px;color:var(--text-soft);margin-bottom:10px">Lista los movimientos del período. Para las <strong>entradas</strong> muestra el precio y el total, con el <strong>total gastado</strong> (balance de compras) — útil para el material nacional.</div>
+    <div style="font-size:11px;color:var(--text-soft);margin-bottom:10px">Lista los movimientos del período. Para las <strong>entradas</strong> muestra el precio y el total (balance de compras). Puedes filtrar por tipo de material, <strong>un material puntual</strong> y el <strong>subtipo de entrada</strong>.</div>
     <div class="form-row">
       <div class="form-group"><label class="form-label">Desde</label><input class="form-input" id="rmt_desde" type="date"></div>
       <div class="form-group"><label class="form-label">Hasta</label><input class="form-input" id="rmt_hasta" type="date"></div>
@@ -2301,6 +2301,18 @@ html[data-theme="light"]{ --brand:#2563c9; --brand-dark:#1e4fa8; }
         <select class="form-input" id="rmt_mat"><option value="">Todos</option></select>
       </div>
     </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Material puntual (opcional)</label>
+        <input class="form-input" id="rmt_material" list="rmt_matList" placeholder="Todos los materiales" autocomplete="off"><datalist id="rmt_matList"></datalist></div>
+      <div class="form-group"><label class="form-label">Subtipo de entrada</label>
+        <select class="form-input" id="rmt_subtipo">
+          <option value="">Todos</option>
+          <option value="nacional">Nacional</option>
+          <option value="importado">Importado</option>
+          <option value="inicial">Inventario inicial</option>
+        </select>
+      </div>
+    </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modalRepMovTubos')">Cancelar</button>
       <button class="btn btn-red" id="btnGenRepMovTubos" onclick="generarRepMovTubos()"><i class="ti ti-printer"></i>Generar reporte</button>
@@ -2310,9 +2322,9 @@ html[data-theme="light"]{ --brand:#2563c9; --brand-dark:#1e4fa8; }
 
 <!-- MODAL: Reporte de movimientos de almacén (por categoría) -->
 <div class="modal-overlay" id="modalRepMov" style="display:none" onclick="if(event.target===this)closeModalSafe('modalRepMov')">
-  <div class="modal" style="max-width:520px">
+  <div class="modal" style="max-width:760px">
     <div class="modal-title"><i class="ti ti-report" style="color:#5b9bd5"></i><span id="rmTitle">Reporte de movimientos</span></div>
-    <div style="font-size:11px;color:var(--text-soft);margin-bottom:10px">Genera un reporte de entradas/salidas del almacén. Puedes filtrar por categoría, tipo y período.</div>
+    <div style="font-size:11px;color:var(--text-soft);margin-bottom:10px">Genera un reporte de entradas/salidas del almacén. Puedes filtrar por período, categoría, tipo, <strong>un producto puntual</strong> y <strong>motivo</strong>.</div>
     <input type="hidden" id="rm_alm">
     <div class="form-row">
       <div class="form-group"><label class="form-label">Desde</label><input class="form-input" id="rm_desde" type="date"></div>
@@ -2324,6 +2336,10 @@ html[data-theme="light"]{ --brand:#2563c9; --brand-dark:#1e4fa8; }
         <select class="form-input" id="rm_tipo"><option value="">Todos</option><option value="entrada">Entradas</option><option value="salida">Salidas</option></select>
       </div>
     </div>
+    <div class="form-group"><label class="form-label">Producto (opcional) <span style="color:var(--text-faint);font-weight:400">— déjalo vacío para todos</span></label>
+      <input class="form-input" id="rm_prod" list="rm_prodList" placeholder="Todos los productos" autocomplete="off"><datalist id="rm_prodList"></datalist></div>
+    <div class="form-group"><label class="form-label">Motivo <span style="color:var(--text-faint);font-weight:400">— elige uno o varios (vacío = todos)</span></label>
+      <div id="rm_motivos" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:5px"></div></div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modalRepMov')">Cancelar</button>
       <button class="btn btn-red" id="btnGenRepMov" onclick="generarRepMov()"><i class="ti ti-printer"></i>Generar reporte</button>
@@ -2333,7 +2349,7 @@ html[data-theme="light"]{ --brand:#2563c9; --brand-dark:#1e4fa8; }
 
 <!-- MODAL: Análisis de precios de venta (ganancia/pérdida vs precio registrado) -->
 <div class="modal-overlay" id="modalAnalPrecios" style="display:none" onclick="if(event.target===this)closeModalSafe('modalAnalPrecios')">
-  <div class="modal" style="max-width:600px">
+  <div class="modal" style="max-width:720px">
     <div class="modal-title"><i class="ti ti-chart-dots" style="color:#22c55e"></i><span id="apTitle">Análisis de precios</span></div>
     <div style="font-size:11px;color:var(--text-soft);margin-bottom:12px">Compara el precio de cada <strong>venta (salida)</strong> contra el precio registrado del producto. Detecta ventas por debajo (pérdida) o por encima (ganancia). Solo considera salidas con precio.</div>
     <input type="hidden" id="ap_alm">
@@ -3634,19 +3650,20 @@ function renderReportes(){
   html+=sect("ti-clipboard-list","Consumos",[
     card("Consumo por material","Resumen por material: OPs, enviado, devuelto y consumido. Elige sede y rango.","abrirRepConsumos()",{icon:"ti-ruler-measure"}),
     card("Consumos (detalle)","Cada línea de consumo con OP, cliente, sede y medidas.","abrirRepConsumosDetalle()",{icon:"ti-list-details",col:"var(--violet)"}),
-    card("OPs del período","Órdenes con OP, fecha y cliente.","abrirRepOps()",{icon:"ti-calendar",col:"var(--violet)"}),
-    card("Ranking de materiales","Materiales ordenados por mm consumidos.","abrirRepRanking()",{icon:"ti-chart-bar"}),
+    card("OPs del período","Órdenes con OP, fecha, cliente y sede.","abrirRepOps()",{icon:"ti-calendar",col:"var(--violet)"}),
   ]);
-  html+=sect("ti-trash-x","Mermas y eficiencia",[
+  html+=sect("ti-trash-x","Mermas",[
     card("Informe de mermas","Descartes por sede + dinero perdido por tubo.","openDashModal('merma')",{icon:"ti-report-money",col:"var(--red)",badge:"nuevo"}),
-    card("Eficiencia de uso","Enviado vs consumido y % de aprovechamiento por material.","abrirRepEficiencia()",{icon:"ti-recycle",col:"var(--green)"}),
   ]);
   html+=sect("ti-cylinder","Materia Prima (tubos)",[
     p.verMovimientos?card("Movimientos — MP Custom","Entradas, consumos y ajustes de los tubos Custom.","repMovMP('custom')",{icon:"ti-arrows-exchange"}):"",
     p.verMovimientos?card("Movimientos — MP Mecaniza","Movimientos de los tubos de la sede Mecaniza.","repMovMP('mecaniza')",{icon:"ti-arrows-exchange",col:"var(--violet)"}):"",
-    p.verMovimientos?card("Rotación de materiales","Alta / media / baja rotación por consumo.","openExportMovs()",{icon:"ti-arrows-shuffle"}):"",
-    card("Stock sin movimiento","Materiales parados (stock muerto) en un período.","openStockMuerto()",{icon:"ti-clock-pause",col:"var(--amber)"}),
-    p.exportar?card("Conteo físico — Materia Prima","Hoja imprimible para inventariar los tubos.","openConteoFisico()",{icon:"ti-clipboard-check"}):"",
+    p.verMovimientos?card("Rotación de materiales — Custom","Alta / media / baja rotación por consumo (Custom).","abrirRotMat('custom')",{icon:"ti-arrows-shuffle"}):"",
+    p.verMovimientos?card("Rotación de materiales — Mecaniza","Rotación por consumo de la sede Mecaniza.","abrirRotMat('mecaniza')",{icon:"ti-arrows-shuffle",col:"var(--violet)"}):"",
+    card("Stock sin movimiento — Custom","Materiales Custom parados (stock muerto) en un período.","abrirStockMuertoMP('custom')",{icon:"ti-clock-pause",col:"var(--amber)"}),
+    card("Stock sin movimiento — Mecaniza","Materiales Mecaniza parados (stock muerto) en un período.","abrirStockMuertoMP('mecaniza')",{icon:"ti-clock-pause",col:"var(--amber)"}),
+    p.exportar?card("Conteo físico — MP Custom","Hoja imprimible para inventariar los tubos Custom.","abrirConteoMP('custom')",{icon:"ti-clipboard-check"}):"",
+    p.exportar?card("Conteo físico — MP Mecaniza","Hoja imprimible para inventariar los tubos Mecaniza.","abrirConteoMP('mecaniza')",{icon:"ti-clipboard-check",col:"var(--violet)"}):"",
   ]);
   if(p.verPrecios) html+=sect("ti-cash","Precios y compras",[
     card("Análisis de precios — Custom","Ganancia/pérdida: venta vs precio registrado.","openAnalisisPrecios('merc')",{icon:"ti-chart-dots"}),
@@ -3659,12 +3676,13 @@ function renderReportes(){
     p.verMovimientos?card("Movimientos — Almacén Custom","Entradas y salidas del almacén Custom.","openRepMov('merc')",{icon:"ti-arrows-exchange"}):"",
     p.verMovimientos?card("Movimientos — Almacén Mecaniza","Entradas y salidas del almacén Mecaniza.","openRepMov('alm')",{icon:"ti-arrows-exchange",col:"var(--violet)"}):"",
     p.verMovimientos?card("Movimientos — Suministros","Entradas y salidas de Suministros.","openRepMov('sum')",{icon:"ti-arrows-exchange",col:"var(--amber)"}):"",
-    card("Rotación de productos — Custom","Rotación de los productos del almacén Custom.","openRotProd('merc')",{icon:"ti-arrows-shuffle"}),
-    card("Rotación de productos — Mecaniza","Rotación de los productos del almacén Mecaniza.","openRotProd('alm')",{icon:"ti-arrows-shuffle",col:"var(--violet)"}),
-    card("Rotación de productos — Suministros","Rotación de los productos de Suministros.","openRotProd('sum')",{icon:"ti-arrows-shuffle",col:"var(--amber)"}),
-    p.exportar?card("Conteo físico — Almacén Custom","Hoja imprimible para inventariar Custom.","openConteoAlm('merc')",{icon:"ti-clipboard-check"}):"",
-    p.exportar?card("Conteo físico — Almacén Mecaniza","Hoja imprimible para inventariar Mecaniza.","openConteoAlm('alm')",{icon:"ti-clipboard-check",col:"var(--violet)"}):"",
-    p.exportar?card("Conteo físico — Suministros","Hoja imprimible para inventariar Suministros.","openConteoAlm('sum')",{icon:"ti-clipboard-check",col:"var(--amber)"}):"",
+    card("Rotación de productos — Custom","Rotación de los productos del almacén Custom.","abrirRotProdHub('merc')",{icon:"ti-arrows-shuffle"}),
+    card("Rotación de productos — Mecaniza","Rotación de los productos del almacén Mecaniza.","abrirRotProdHub('alm')",{icon:"ti-arrows-shuffle",col:"var(--violet)"}),
+    card("Rotación de productos — Suministros","Rotación de los productos de Suministros.","abrirRotProdHub('sum')",{icon:"ti-arrows-shuffle",col:"var(--amber)"}),
+    card("Stock sin movimiento — Almacenes","Productos de almacén parados (sin movimiento) en un período.","abrirStockMuertoAlm()",{icon:"ti-clock-pause",col:"var(--amber)"}),
+    p.exportar?card("Conteo físico — Almacén Custom","Hoja imprimible para inventariar Custom.","abrirConteoAlmHub('merc')",{icon:"ti-clipboard-check"}):"",
+    p.exportar?card("Conteo físico — Almacén Mecaniza","Hoja imprimible para inventariar Mecaniza.","abrirConteoAlmHub('alm')",{icon:"ti-clipboard-check",col:"var(--violet)"}):"",
+    p.exportar?card("Conteo físico — Suministros","Hoja imprimible para inventariar Suministros.","abrirConteoAlmHub('sum')",{icon:"ti-clipboard-check",col:"var(--amber)"}):"",
   ]);
   html+=sect("ti-users","Clientes",[
     card("Rotación y top clientes","Clientes con más consumo. Elige sede y rango.","abrirRepRotCli()",{icon:"ti-user-star",col:"var(--violet)"}),
@@ -3690,7 +3708,7 @@ function verReporte(titulo,subtitulo,aoa,resumenHtml,filename){
   const tbody=filas.length?filas.map(r=>`<tr>${headers.map((_,i)=>`<td style="text-align:${derecha[i]?"right":"left"};white-space:nowrap">${esc(String(r[i]??""))}</td>`).join("")}</tr>`).join(""):`<tr><td colspan="${headers.length||1}" class="no-data">Sin datos</td></tr>`;
   document.getElementById("reporteOverlay")?.remove();
   const html=`<div id="reporteOverlay" class="modal-overlay" onclick="if(event.target===this)document.getElementById('reporteOverlay').remove()">
-    <div class="modal" style="max-width:940px;max-height:90vh">
+    <div class="modal" style="max-width:1150px;max-height:90vh">
       <div class="modal-title"><i class="ti ti-file-analytics" style="color:var(--blue)"></i>${esc(titulo)}</div>
       <div style="font-size:12px;color:var(--text-soft);margin-bottom:8px">${subtitulo?esc(subtitulo)+" · ":""}${filas.length} fila(s)</div>
       ${resumenHtml||""}
@@ -3787,30 +3805,52 @@ async function _fetchCons(f,cols){
   return all;
 }
 
+// Fecha en formato DD/MM/AAAA (sin corrimientos de zona horaria). Vacío → "".
+function fmtFecha(f){const s=String(f||"").slice(0,10);const p=s.split("-");return (p.length===3&&p[0]&&p[1]&&p[2])?`${p[2]}/${p[1]}/${p[0]}`:s;}
+const _sedeLbl=s=>s==="mecaniza"?"Mecaniza":"Custom";
+
 async function repOps(f){
   repCargando(true);
-  const data=await _fetchCons(f,"op,fecha,cliente_nombre");
+  const data=await _fetchCons(f,"op,fecha,cliente_nombre,sede");
   const porOp={};
-  data.forEach(c=>{if(!c.op)return;const o=porOp[c.op]=porOp[c.op]||{op:c.op,fecha:c.fecha,cliente:c.cliente_nombre};if(String(c.fecha)<String(o.fecha))o.fecha=c.fecha;if(!o.cliente&&c.cliente_nombre)o.cliente=c.cliente_nombre;});
+  data.forEach(c=>{if(!c.op)return;const o=porOp[c.op]=porOp[c.op]||{op:c.op,fecha:c.fecha,cliente:c.cliente_nombre,sede:c.sede};if(String(c.fecha)<String(o.fecha))o.fecha=c.fecha;if(!o.cliente&&c.cliente_nombre)o.cliente=c.cliente_nombre;});
   const lista=Object.values(porOp).sort((a,b)=>String(b.fecha).localeCompare(String(a.fecha)));
-  const aoa=[["OP","Fecha","Cliente"],...lista.map(o=>[o.op,o.fecha,o.cliente||"—"])];
+  const aoa=[["OP","Fecha","Cliente","Sede"],...lista.map(o=>[o.op,fmtFecha(o.fecha),o.cliente||"—",_sedeLbl(o.sede)])];
   repCargando(false); verReporte("OPs del período",_subF(f),aoa,null,"OPs_periodo");
 }
 async function repConsumos(f){
   repCargando(true);
-  const data=await _fetchCons(f,"material,consumido,enviado,devuelto,op");
+  const data=await _fetchCons(f,"material,consumido,enviado,devuelto,op,tubo_id,tubo_instancia_id");
+  // Precios de tubo + largos de instancia → gasto = (precio en soles / largo) × mm consumidos
+  const tids=[...new Set(data.map(c=>c.tubo_id).filter(Boolean))];
+  const iids=[...new Set(data.map(c=>c.tubo_instancia_id).filter(Boolean))];
+  const tmap={},imap={};
+  for(let i=0;i<tids.length;i+=300){const {data:ts}=await sb.from("tubos").select("id,precio,moneda,altura_total").in("id",tids.slice(i,i+300));(ts||[]).forEach(t=>tmap[t.id]=t);}
+  for(let i=0;i<iids.length;i+=300){const {data:is}=await sb.from("tubo_instancias").select("id,altura_total").in("id",iids.slice(i,i+300));(is||[]).forEach(x=>imap[x.id]=x.altura_total);}
   const norm=s=>String(s||"").trim().toUpperCase().replace(/\s+/g," ");
   const g={};
-  data.forEach(c=>{const k=norm(c.material);if(!k)return;const x=g[k]=g[k]||{material:c.material,consumido:0,enviado:0,devuelto:0,ops:new Set(),lineas:0};x.consumido+=c.consumido||0;x.enviado+=c.enviado||0;x.devuelto+=c.devuelto||0;x.ops.add(c.op);x.lineas++;});
+  data.forEach(c=>{const k=norm(c.material);if(!k)return;const x=g[k]=g[k]||{material:c.material,consumido:0,enviado:0,devuelto:0,gasto:0,ops:new Set(),lineas:0};
+    const cons=c.consumido||0; x.consumido+=cons; x.enviado+=c.enviado||0; x.devuelto+=c.devuelto||0; x.ops.add(c.op); x.lineas++;
+    const t=tmap[c.tubo_id];
+    if(t&&t.precio!=null&&t.precio!==""){const largo=instTot({altura_total:imap[c.tubo_instancia_id]},t);if(largo>0)x.gasto+=(_aPen(t.precio,t.moneda)/largo)*cons;}
+  });
   const lista=Object.values(g).sort((a,b)=>b.consumido-a.consumido);
-  const aoa=[["Material","OPs","Líneas","Enviado (mm)","Devuelto (mm)","Consumido (mm)"],...lista.map(m=>[m.material,m.ops.size,m.lineas,Math.round(m.enviado),Math.round(m.devuelto),Math.round(m.consumido)])];
+  const aoa=[["Material","OPs","Líneas","Enviado (mm)","Devuelto (mm)","Consumido (mm)","Gasto (S/)"],...lista.map(m=>[m.material,m.ops.size,m.lineas,Math.round(m.enviado),Math.round(m.devuelto),Math.round(m.consumido),Math.round(m.gasto*100)/100])];
   repCargando(false); verReporte("Consumo por material",_subF(f),aoa,null,"Consumo_material");
 }
 async function repConsumosDetalle(f){
   repCargando(true);
-  const data=await _fetchCons(f,"fecha,op,cliente_nombre,material,di,de,largo,enviado,devuelto,es_merma,sede");
-  const aoa=[["Fecha","OP","Cliente","Material","Sede","DI","DE","Largo","Enviado","Devuelto","Consumido","Merma"]];
-  data.forEach(c=>aoa.push([String(c.fecha||"").slice(0,10),c.op||"",c.cliente_nombre||"",c.material||"",c.sede||"",c.di??"",c.de??"",c.largo??"",c.enviado??"",c.devuelto??"",(c.enviado||0)-(c.devuelto||0),c.es_merma?"Sí":""]));
+  const data=await _fetchCons(f,"fecha,op,cliente_nombre,material,di,de,largo,enviado,devuelto,es_merma,sede,tubo_instancia_id");
+  // mm descartados (merma) por OP+instancia, desde los movimientos tipo merma
+  const ops=[...new Set(data.map(c=>c.op).filter(Boolean))];
+  const mmap={};
+  for(let i=0;i<ops.length;i+=200){const {data:mv}=await sb.from("movimientos").select("op_numero,tubo_instancia_id,altura_usada").eq("tipo","merma").in("op_numero",ops.slice(i,i+200));(mv||[]).forEach(m=>{const k=`${m.op_numero}|${m.tubo_instancia_id}`;mmap[k]=(mmap[k]||0)+(Number(m.altura_usada)||0);});}
+  const aoa=[["Fecha","OP","Cliente","Material","Sede","DI","DE","Largo","Enviado","Devuelto","Consumido","Merma (mm)"]];
+  data.forEach(c=>{
+    const mm=mmap[`${c.op}|${c.tubo_instancia_id}`];
+    const mermaCell=(mm||c.es_merma)?(mm?Math.round(mm):0):"—";
+    aoa.push([fmtFecha(c.fecha),c.op||"",c.cliente_nombre||"",c.material||"",_sedeLbl(c.sede),c.di??"",c.de??"",c.largo??"",c.enviado??"",c.devuelto??"",(c.enviado||0)-(c.devuelto||0),mermaCell]);
+  });
   repCargando(false); verReporte("Consumos (detalle)",_subF(f),aoa,null,"Consumos_detalle");
 }
 async function repRanking(f){
@@ -3857,7 +3897,7 @@ async function repCompras(f){
   rows.sort((a,b)=>String(b.fecha).localeCompare(String(a.fecha)));
   let tot=0;
   const aoa=[["Fecha","Proveedor","Producto","Almacén","Cantidad","Monto (S/)"]];
-  rows.forEach(r=>{const v=_aPen(r.precio_unitario,r.moneda)*(Number(r.cantidad)||0);tot+=v;aoa.push([String(r.fecha||"").slice(0,10),r.proveedor||"(sin prov.)",r.prod,r.alm,r.cantidad,Math.round(v*100)/100]);});
+  rows.forEach(r=>{const v=_aPen(r.precio_unitario,r.moneda)*(Number(r.cantidad)||0);tot+=v;aoa.push([fmtFecha(r.fecha),r.proveedor||"(sin prov.)",r.prod,r.alm,r.cantidad,Math.round(v*100)/100]);});
   const resumen=`<div style="font-size:13px;margin-bottom:8px">Total comprado: <b style="color:#5b9bd5">S/ ${Math.round(tot).toLocaleString()}</b> · ${rows.length} compra(s)</div>`;
   repCargando(false); verReporte("Compras",_subF(f),aoa,resumen,"Compras");
 }
@@ -3904,8 +3944,43 @@ async function repStockBajo(f){
   (sum.data||[]).filter(x=>{const min=Math.max(x.stock_minimo||0,thrSum);return min>0&&x.stock_actual<min;}).forEach(x=>aoa.push([`${x.nombre} (${x.codigo||""})`,"Suministros",`${x.stock_actual} ${x.unidad||""}`,Math.max(x.stock_minimo||0,thrSum)]));
   repCargando(false); verReporte("Stock crítico","Productos bajo el mínimo",aoa,null,"Stock_critico");
 }
-// Movimientos de Materia Prima desde el hub: fija la sede y abre el modal existente.
-function repMovMP(sede){ _tubosState.sede=sede; openRepMovTubos(); }
+// Lanzadores del hub que CARGAN el caché correcto antes de abrir el reporte.
+// (Sin esto salen vacíos, porque leen la lista de tubos/productos de la página.)
+async function _hubMP(sede){ _tubosState.sede=sede; try{await loadTubos(true);}catch(e){console.warn("[hub MP]",e);} }
+async function repMovMP(sede){ repCargando(true); await _hubMP(sede); repCargando(false); openRepMovTubos(); }
+async function abrirRotMat(sede){ repCargando(true); await _hubMP(sede); repCargando(false); openExportMovs(); }
+async function abrirStockMuertoMP(sede){ repCargando(true); await _hubMP(sede); repCargando(false); openStockMuerto(); }
+async function abrirConteoMP(sede){ repCargando(true); await _hubMP(sede); repCargando(false); openConteoFisico(); }
+async function _hubAlm(almT){ try{await _almT(almT).reload();}catch(e){console.warn("[hub alm]",e);} }
+async function abrirRotProdHub(almT){ repCargando(true); await _hubAlm(almT); repCargando(false); openRotProd(almT); }
+async function abrirConteoAlmHub(almT){ repCargando(true); await _hubAlm(almT); repCargando(false); openConteoAlm(almT); }
+// Chips de multi-selección reutilizables (para filtros dentro de modales viejos).
+function _chipsHTML(opts){return (opts||[]).map(o=>`<label class="rf-chip"><input type="checkbox" value="${escAttr(o)}" style="display:none"><span>${esc(o)}</span></label>`).join("");}
+function _chipsWire(id){document.querySelectorAll(`#${id} .rf-chip`).forEach(l=>{l.onclick=e=>{e.preventDefault();const cb=l.querySelector("input");cb.checked=!cb.checked;l.classList.toggle("on",cb.checked);};});}
+function _chipsGet(id){return [...document.querySelectorAll(`#${id} .rf-chip input:checked`)].map(i=>i.value);}
+
+// NUEVO: Stock sin movimiento para los almacenes (antes solo existía en Materia Prima).
+function abrirStockMuertoAlm(){
+  const d=new Date();d.setMonth(d.getMonth()-3);const ini=d.toISOString().slice(0,10);
+  pedirFiltros({titulo:"Stock sin movimiento (almacenes)",desdeDef:ini,grupos:[{key:"alms",label:"Almacén",opciones:[{value:"merc",label:"Custom",on:true},{value:"alm",label:"Mecaniza",on:true},{value:"sum",label:"Suministros",on:true}]}],onGenerar:repStockMuertoAlm});
+}
+async function repStockMuertoAlm(f){
+  repCargando(true);
+  const cutoff=f.desde||new Date(Date.now()-90*864e5).toISOString().slice(0,10);
+  const a=(f.alms&&f.alms.length)?f.alms:["merc","alm","sum"];
+  const defs={merc:{prod:"mercaderias",mov:"mercaderia_movimientos",fk:"mercaderia_id",lbl:"Custom"},alm:{prod:"alm_mecaniza_productos",mov:"alm_mecaniza_movimientos",fk:"producto_id",lbl:"Mecaniza"},sum:{prod:"suministros_productos",mov:"suministros_movimientos",fk:"producto_id",lbl:"Suministros"}};
+  const aoa=[["Producto","Código","Almacén","Stock","Unidad"]];
+  for(const key of a){
+    const d=defs[key]; if(!d) continue;
+    const moved=new Set();
+    for(let from=0;;from+=1000){const {data}=await sb.from(d.mov).select(d.fk).gte("fecha",cutoff).range(from,from+999);if(!data?.length)break;data.forEach(m=>moved.add(String(m[d.fk])));if(data.length<1000)break;}
+    let prods=[];
+    for(let from=0;;from+=1000){const {data}=await sb.from(d.prod).select("id,nombre,codigo,stock_actual,unidad,activo").range(from,from+999);if(!data?.length)break;prods=prods.concat(data);if(data.length<1000)break;}
+    prods.filter(p=>p.activo!==false&&(Number(p.stock_actual)||0)>0&&!moved.has(String(p.id))).sort((x,y)=>(x.nombre||"").localeCompare(y.nombre||"")).forEach(p=>aoa.push([p.nombre||"",p.codigo||"",d.lbl,Number(p.stock_actual)||0,p.unidad||""]));
+  }
+  repCargando(false);
+  verReporte("Stock sin movimiento (almacenes)",`Sin movimiento desde ${fmtFecha(cutoff)}`,aoa,null,"Stock_sin_movimiento_almacenes");
+}
 
 async function loadConfig(){
   const {data}=await sb.from("configuracion").select("*");
@@ -5431,7 +5506,7 @@ async function dashDetalleComprasMes(){
             <table style="width:100%;font-size:12px">
               <thead><tr><th style="text-align:left">Fecha</th><th style="text-align:left">Producto</th><th>Almacén</th><th style="text-align:right">Monto</th></tr></thead>
               <tbody>${items.map(it=>`<tr>
-                <td style="color:var(--text-soft);font-size:11px;white-space:nowrap">${esc(String(it.fecha||"").slice(0,10))}</td>
+                <td style="color:var(--text-soft);font-size:11px;white-space:nowrap">${esc(fmtFecha(it.fecha))}</td>
                 <td style="color:var(--text)">${esc(it.prod)}</td>
                 <td style="text-align:center"><span style="font-size:10px;color:${it.alm==='Custom'?'var(--blue)':'var(--violet)'}">${it.alm}</span></td>
                 <td style="text-align:right;color:var(--text-strong);white-space:nowrap">S/ ${Math.round(it.monto).toLocaleString()}</td>
@@ -5533,7 +5608,7 @@ async function dashDetalleOps(){
         <thead><tr><th>OP</th><th>Fecha</th><th>Cliente</th></tr></thead>
         <tbody>${lista.map(o=>`<tr>
           <td style="font-family:monospace;color:var(--text-strong)">${esc(o.op)}</td>
-          <td style="font-size:12px;color:var(--text-soft)">${esc(o.fecha)}</td>
+          <td style="font-size:12px;color:var(--text-soft)">${esc(fmtFecha(o.fecha))}</td>
           <td style="font-size:12px;color:var(--text)">${esc(o.cliente)||"—"}</td>
         </tr>`).join("")}</tbody>
       </table>
@@ -5652,7 +5727,7 @@ async function dashDetalleMerma(){
       <div class="tbl-wrap" style="max-height:none;margin-bottom:6px"><table>
         <thead><tr><th>Fecha</th><th>OP</th><th>Tubo</th><th>Motivo</th><th style="text-align:right">mm</th><th style="text-align:right">Costo</th></tr></thead>
         <tbody>${g.rows.map(r=>`<tr>
-          <td style="font-size:11px;color:var(--text-soft)">${esc(new Date(r.fecha).toLocaleDateString("es-PE"))}</td>
+          <td style="font-size:11px;color:var(--text-soft)">${esc(fmtFecha(r.fecha))}</td>
           <td style="font-family:monospace;color:var(--text-strong)">${esc(r.op)||"—"}</td>
           <td style="color:var(--text)">${esc(r.tubo)}</td>
           <td style="font-size:11px;color:var(--red)">${esc(r.motivo)}</td>
@@ -5674,7 +5749,7 @@ function exportMermaReport(){
   const aoa=[["Sede","Fecha","OP","Tubo","Motivo","mm descartados","Costo (S/)"]];
   ["custom","mecaniza"].forEach(sede=>{
     _mermaReport.fila.filter(r=>r.sede===sede).forEach(r=>{
-      aoa.push([sede==="custom"?"Custom":"Mecaniza",new Date(r.fecha).toLocaleDateString("es-PE"),r.op||"",r.tubo,r.motivo,Math.round(r.mm),r.costo!=null?r2(r.costo):"sin precio"]);
+      aoa.push([sede==="custom"?"Custom":"Mecaniza",fmtFecha(r.fecha),r.op||"",r.tubo,r.motivo,Math.round(r.mm),r.costo!=null?r2(r.costo):"sin precio"]);
     });
   });
   const resumen=`<div style="font-size:13px;margin-bottom:8px">Total descartado: <b>${Math.round(_mermaReport.totMm).toLocaleString()} mm</b> · Dinero perdido estimado: <b style="color:#b00">S/ ${r2(_mermaReport.totCosto).toLocaleString("es-PE",{minimumFractionDigits:2})}</b>${_mermaReport.totSinP?` · ${_mermaReport.totSinP} tubo(s) sin precio`:""}</div>`;
@@ -6188,7 +6263,7 @@ function verHistorialPrecios(){
   const entradas=(_histState.data||[]).filter(m=>m.tipo==="entrada"&&m.precio_unitario!=null);
   if(!entradas.length){toast("Este producto no tiene precios registrados en sus entradas","err");return;}
   const ord=[...entradas].sort((a,b)=>new Date(a.fecha)-new Date(b.fecha)); // por fecha (evolución)
-  const fmtFecha=f=>new Date(f).toLocaleDateString("es-PE");
+  ;
   // Filas: evolución en el tiempo
   const aoa=[["Fecha","Proveedor","Cantidad","Precio unitario","Moneda","Cotización"]];
   ord.forEach(m=>aoa.push([fmtFecha(m.fecha),m.proveedor||"—",m.cantidad,m.precio_unitario,m.moneda||"",m.op_numero||"—"]));
@@ -6227,21 +6302,34 @@ function verHistorialPrecios(){
 }
 
 // Reporte general de movimientos de un almacén, filtrable por categoría / tipo / fechas (Fase 4)
-function openRepMov(almT){
+async function openRepMov(almT){
   const _d=_almT(almT);
   document.getElementById("rm_alm").value=almT;
   document.getElementById("rmTitle").textContent=`Reporte de movimientos — ${_d.nombre}`;
   document.getElementById("rm_desde").value="";document.getElementById("rm_hasta").value="";document.getElementById("rm_tipo").value="";
+  document.getElementById("rm_prod").value="";
   const sel=document.getElementById("rm_cat");
   const cats=almT==="sum"?getCategoriasSum():getCategoriasMerc();
   if(sel) sel.innerHTML=`<option value="">Todas</option>`+cats.map(c=>`<option value="${escAttr(c.code)}">${escAttr(c.label)}</option>`).join("");
+  // Motivos (multi-selección) según el almacén
+  const mot=almT==="sum"?MOTIVOS_SUM:MOTIVOS_ALMACEN;
+  const motSet=[...new Set([...(mot.entrada||[]),...(mot.salida||[])])];
+  const mc=document.getElementById("rm_motivos"); if(mc){mc.innerHTML=_chipsHTML(motSet);_chipsWire("rm_motivos");}
   document.getElementById("modalRepMov").style.display="flex";
+  // Datalist de productos (para buscar uno puntual)
+  try{
+    const {data:prods}=await sb.from(_d.prod).select("nombre,codigo").limit(20000);
+    const dl=document.getElementById("rm_prodList");
+    if(dl) dl.innerHTML=(prods||[]).map(p=>`<option value="${escAttr((p.codigo?p.codigo+" — ":"")+(p.nombre||""))}"></option>`).join("");
+  }catch(e){}
 }
 async function generarRepMov(){
   const almT=document.getElementById("rm_alm").value;
   const _d=_almT(almT);
   const desde=document.getElementById("rm_desde").value, hasta=document.getElementById("rm_hasta").value;
   const cat=document.getElementById("rm_cat").value, tipo=document.getElementById("rm_tipo").value;
+  const prodTxt=(document.getElementById("rm_prod").value||"").trim().toLowerCase().replace(/\s*—\s*/g," ");
+  const motivos=_chipsGet("rm_motivos");
   const movTable=_d.mov;
   const prodTable=_d.prod;
   const fk=_d.fk;
@@ -6272,7 +6360,13 @@ async function generarRepMov(){
     const uids=[...new Set(movs.map(m=>m.usuario_id).filter(Boolean))];
     const umap={};
     if(uids.length){const {data:us}=await sb.from("perfiles").select("id,nombre,username").in("id",uids);(us||[]).forEach(u=>umap[u.id]=u.nombre||u.username);}
-    const filtered=movs.filter(m=>{const p=prodMap[m[fk]];if(cat&&(!p||p.categoria!==cat))return false;return true;});
+    const filtered=movs.filter(m=>{
+      const p=prodMap[m[fk]];
+      if(cat&&(!p||p.categoria!==cat))return false;
+      if(motivos.length&&!motivos.includes(m.motivo))return false;
+      if(prodTxt){const hay=`${p?.nombre||""} ${p?.codigo||""}`.toLowerCase();if(!prodTxt.split(/\s+/).every(w=>hay.includes(w)))return false;}
+      return true;
+    });
     if(!filtered.length){setBtnLoading("btnGenRepMov",false);toast("Sin movimientos con esos filtros","err");return;}
     const aoa=[["Fecha","Código","Producto","Categoría","Tipo","Cantidad","Precio","Moneda","Proveedor/Cliente","Cotización","Motivo","Usuario"]];
     let tEnt=0,tSal=0,gastadoPen=0;
@@ -6284,7 +6378,7 @@ async function generarRepMov(){
     });
     const nombreAlm=_d.nombre;
     const resumen=`<div style="display:flex;gap:14px;margin-bottom:14px;font-size:13px;flex-wrap:wrap"><span style="color:#1e8449">Entradas: <b>+${tEnt}</b></span><span style="color:#b9770e">Salidas: <b>-${tSal}</b></span><span>Movimientos: <b>${filtered.length}</b></span><span style="color:#1e8449">Total comprado: <b>${fmtDispMonto(gastadoPen)}</b></span></div>`;
-    const sub=`${nombreAlm}${cat?` · ${_d.catLabel(cat)}`:""}${(desde||hasta)?` · ${desde||"inicio"} → ${hasta||"hoy"}`:""}`;
+    const sub=`${nombreAlm}${cat?` · ${_d.catLabel(cat)}`:""}${document.getElementById("rm_prod").value?` · ${document.getElementById("rm_prod").value}`:""}${motivos.length?` · Motivo: ${motivos.join(", ")}`:""}${(desde||hasta)?` · ${fmtFecha(desde)||"inicio"} → ${fmtFecha(hasta)||"hoy"}`:""}`;
     setBtnLoading("btnGenRepMov",false);
     closeModal("modalRepMov");
     abrirReporteHTML(`Movimientos — ${nombreAlm}`, sub, aoa, resumen);
@@ -6340,7 +6434,7 @@ async function generarAnalisisPrecios(){
     }
     const r2=x=>Math.round(x*100)/100;
     const money=n=>`S/ ${r2(n).toLocaleString("es-PE",{minimumFractionDigits:2,maximumFractionDigits:2})}`;
-    const fmtFecha=f=>new Date(f).toLocaleDateString("es-PE");
+    ;
     let nVentas=0,totalVendido=0,ganancia=0,perdida=0,sinRef=0,sinPrecio=0;
     const porCli={},porProd={};
     const detalle=[["Fecha","Código","Producto","Cliente","Cantidad","Precio venta (S/)","Precio sistema (S/)","Dif. unit. (S/)","Impacto (S/)"]];
@@ -7934,15 +8028,23 @@ function openRepMovTubos(){
   document.getElementById("rmtTitle").textContent=`Reporte de movimientos — Materia Prima ${sede==="custom"?"Custom":"Mecaniza"}`;
   ["rmt_desde","rmt_hasta"].forEach(id=>document.getElementById(id).value="");
   document.getElementById("rmt_tipo").value="";
+  document.getElementById("rmt_material").value="";
+  document.getElementById("rmt_subtipo").value="";
   const tipos=[...new Set((_tubosCache.tubos||[]).map(t=>_tipoMaterial(t)).filter(Boolean))].sort();
   const sel=document.getElementById("rmt_mat");
   if(sel) sel.innerHTML=`<option value="">Todos</option>`+tipos.map(t=>`<option value="${escAttr(t)}">${escAttr(t)}</option>`).join("");
+  // Datalist de materiales puntuales (descripción de cada tubo de la sede)
+  const mats=[...new Set((_tubosCache.tubos||[]).filter(t=>(t.sede||"custom")===sede).map(t=>t.descripcion).filter(Boolean))].sort();
+  const dl=document.getElementById("rmt_matList");
+  if(dl) dl.innerHTML=mats.map(m=>`<option value="${escAttr(m)}"></option>`).join("");
   document.getElementById("modalRepMovTubos").style.display="flex";
 }
 async function generarRepMovTubos(){
   const sede=_tubosState.sede||"custom";
   const desde=document.getElementById("rmt_desde").value, hasta=document.getElementById("rmt_hasta").value;
   const tipo=document.getElementById("rmt_tipo").value, matSel=document.getElementById("rmt_mat").value;
+  const matPunt=(document.getElementById("rmt_material").value||"").trim().toLowerCase();
+  const subtipo=document.getElementById("rmt_subtipo").value;
   setBtnLoading("btnGenRepMovTubos",true,"Generando...");
   try{
     // Mapa de tubos de ESTA sede: id → {desc,cod,tipoMat}
@@ -7967,6 +8069,14 @@ async function generarRepMovTubos(){
       const t=tuboMap[m.tubo_id];
       if(!t) return false;
       if(matSel && t.tipoMat!==matSel) return false;
+      if(matPunt && !(t.desc||"").toLowerCase().includes(matPunt)) return false;
+      if(subtipo){
+        if(m.tipo!=="entrada") return false;
+        const nota=m.nota||"";
+        if(subtipo==="nacional" && !/nacional/i.test(nota)) return false;
+        if(subtipo==="importado" && !/importad/i.test(nota)) return false;
+        if(subtipo==="inicial" && !/inventario inicial/i.test(nota)) return false;
+      }
       return true;
     });
     if(!filtered.length){setBtnLoading("btnGenRepMovTubos",false);toast("Sin movimientos con esos filtros","err");return;}
@@ -8132,7 +8242,7 @@ function verHistorialPreciosTubo(){
   if(!entradas.length){toast("Este material no tiene precios registrados en sus entradas","err");return;}
   const altMat=(_tubosCache.tubos||[]).find(x=>x.id===_histTuboState.tuboId)?.altura_total;
   const ord=[...entradas].sort((a,b)=>new Date(a.fecha)-new Date(b.fecha));
-  const fmtFecha=f=>new Date(f).toLocaleDateString("es-PE");
+  ;
   const aoa=[["Fecha","Tubos","Medida (mm)","Precio unitario","Moneda","Total"]];
   ord.forEach(m=>{
     const total=(m.precio_unitario!=null&&m.cantidad)?Math.round(m.precio_unitario*m.cantidad*100)/100:"";
@@ -9157,7 +9267,7 @@ async function renderConsumos(){
     const selectable=(puedeEditarCons||puedeEliminarCons)&&!histo;
     return `<tr style="${rowStyle}">
       <td style="text-align:center">${selectable?`<input type="checkbox" class="cons-chk" value="${c.id}" ${_consSel.has(c.id)?"checked":""} onclick="toggleConsSel(${c.id},this.checked)">`:""}</td>
-      <td style="font-size:11px;color:var(--text)">${esc(c.fecha)}</td>
+      <td style="font-size:11px;color:var(--text)">${esc(fmtFecha(c.fecha))}</td>
       <td style="font-family:monospace;color:var(--text-strong)">${esc(c.op)}</td>
       <td style="color:var(--text);font-size:11px">${esc(c.cliente_nombre)||'<span style="color:var(--text-faint)">—</span>'}</td>
       <td style="color:var(--text)">${esc(c.material)}${histo?' <span style="font-size:9px;color:var(--text-soft)">(hist)</span>':''}</td>
@@ -9440,9 +9550,40 @@ async function editarOpCompleta(op){
       <td style="padding:3px 4px"><input class="form-input eo-largo" type="number" min="0" value="${l.largo??""}" style="height:30px;font-size:12px;padding:4px 6px;text-align:right"></td>
       <td style="padding:3px 4px"><input class="form-input eo-env" type="number" min="0" value="${l.enviado??""}" ${dis} title="${cerrada?"Línea cerrada: reábrela para cambiar el enviado":""}" style="height:30px;font-size:12px;padding:4px 6px;text-align:right${cerrada?";opacity:.55":""}"></td>
       <td style="padding:3px 5px"><input class="form-input eo-obs" value="${escAttr(l.observaciones||"")}" style="height:30px;font-size:12px;padding:4px 7px"></td>
-      <td style="text-align:center;font-size:10px">${badge}</td>
+      <td style="text-align:center;font-size:10px;white-space:nowrap">${badge}${(cerrada&&!l.es_merma)?`<button class="btn btn-ghost" style="padding:1px 6px;font-size:10px;color:#f5a623;margin-left:4px" onclick="reabrirLineaEditOp(${l.id},this)" title="Reabrir esta línea: devuelve los mm consumidos al stock y deja el ENVIADO editable"><i class="ti ti-rotate"></i>Reabrir</button>`:""}</td>
     </tr>`;
   }).join("");
+}
+// Reabre UNA línea desde el editor de OP: devuelve al stock los mm consumidos, registra un
+// ajuste en el historial del tubo y deja la línea pendiente (ENVIADO editable de nuevo).
+async function reabrirLineaEditOp(lineId,btn){
+  if(!userCanCRUD("editar","Consumos")){toast("Sin permiso para editar","err");return;}
+  if(!confirm("¿Reabrir esta línea?\n\nLos mm consumidos vuelven al tubo (stock) y el ENVIADO queda editable otra vez.")) return;
+  const op=document.getElementById("eop_op_orig")?.value||document.getElementById("eop_op")?.value;
+  setBtnLoading2(btn,true,"Reabriendo...");
+  try{
+    const {data:L}=await sb.from("consumos_ops").select("*").eq("id",lineId).maybeSingle();
+    if(!L){setBtnLoading2(btn,false);toast("Línea no encontrada","err");return;}
+    if(L.devuelto==null){setBtnLoading2(btn,false);toast("Esta línea ya está pendiente","info");return;}
+    const consumido=(L.enviado||0)-(L.devuelto||0);
+    if(L.tubo_instancia_id&&consumido>0){
+      const {data:inst}=await sb.from("tubo_instancias").select("*").eq("id",L.tubo_instancia_id).maybeSingle();
+      const {data:tubo}=await sb.from("tubos").select("altura_total").eq("id",L.tubo_id).maybeSingle();
+      if(inst&&tubo){
+        const nuevoUsado=Math.max(0,(inst.altura_usada||0)-consumido);
+        const altTot=instTot(inst,tubo);
+        // No resucitar un tubo separado/agotado a mano
+        const nuevoEstado=inst.estado==="separado"?"separado":(nuevoUsado>=altTot?"agotado":"disponible");
+        await sb.from("tubo_instancias").update({altura_usada:nuevoUsado,estado:nuevoEstado}).eq("id",L.tubo_instancia_id);
+        await sb.from("movimientos").insert({tubo_id:L.tubo_id,tubo_instancia_id:L.tubo_instancia_id,tipo:"ajuste",altura_usada:consumido,op_numero:L.op,usuario_id:CU?.id,nota:`Reabrir línea OP ${L.op}: +${consumido}mm`});
+      }
+    }
+    await sb.from("consumos_ops").update({devuelto:null}).eq("id",lineId);
+    await loadConsMatTuboCache(true);
+    clearCache("consumos");clearCache("tubos_custom");clearCache("tubos_mecaniza");
+    toast("✓ Línea reabierta · stock restaurado","ok");
+    editarOpCompleta(op); // refrescar el editor: la línea queda pendiente y editable
+  }catch(err){setBtnLoading2(btn,false);toast(errMsg(err),"err");}
 }
 // Agrega una fila NUEVA (sin id) al editor de OP, para registrar material adicional.
 function eopAddRow(){
@@ -10359,7 +10500,9 @@ function renderCierre(){
     const id=c.dataset.lineid; if(!id) return;
     const tubo=c.querySelector(".ck-tubo")?.value||"";
     const dev=c.querySelector(".ck-dev")?.value||"";
-    if(tubo||dev) _prevEdits[id]={tubo,dev};
+    const alt=c.querySelector(".ck-altreal")?.value||"";
+    const altOpen=c.querySelector(".ck-altpanel")?.style.display!=="none";
+    if(tubo||dev||alt||altOpen) _prevEdits[id]={tubo,dev,alt,altOpen};
   });
   cont.innerHTML=lineas.map((l,i)=>{
     const cerrada=l.devuelto!=null||l.es_merma;
@@ -10394,25 +10537,38 @@ function renderCierre(){
     const opts=matches.length
       ? `<option value="">— Elige tubo (${matches.length} disponible${matches.length>1?"s":""}) —</option>`+matches.map(m=>`<option value="${m.tuboId}:${m.instId}"${l.tubo_instancia_id===m.instId?" selected":""}>${esc(m.descripcion)} · T${m.instIdx} · ${m.mmRest}mm restantes</option>`).join("")
       : `<option value="">— Sin tubos de ${esc(l.material||"ese material")} con DI ${l.di} · DE ${l.de} · L ${l.largo} —</option>`;
-    return `<div class="card cierre-card" data-lineid="${l.id}" data-enviado="${l.enviado||0}" style="padding:10px 12px;margin:0;background:var(--bg-card);border:.5px solid var(--border)">
-      <div style="font-size:10px;color:var(--text-soft);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px">
-        Línea ${i+1} — <strong style="color:var(--text)">${esc(l.material)}</strong> · DI ${l.di??"?"} · DE ${l.de??"?"} · L ${l.largo??"?"} · Enviado ${l.enviado??0}mm
-      </div>
-      <div class="form-row" style="margin-bottom:6px">
-        <div class="form-group" style="margin:0;flex:2">
-          <label class="form-label">Tubo del que se descuenta <span class="req">*</span></label>
-          <select class="form-input ck-tubo" ${matches.length?"":"disabled"} onchange="_cierreCalc(this)">${opts}</select>
-        </div>
-        <div class="form-group" style="margin:0;flex:1">
-          <label class="form-label">DEVUELTO (mm) <span class="req">*</span></label>
-          <input class="form-input ck-dev" type="number" min="0" placeholder="0" oninput="_cierreCalc(this)">
-        </div>
-      </div>
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
-        <div class="ck-info" style="font-size:11px;color:var(--text-faint)"></div>
-        <div style="display:flex;gap:6px">
-          <button class="btn btn-amber ck-merma-btn" style="display:none;padding:5px 10px;font-size:11px;box-shadow:0 0 0 1px #f5a623" onclick="mermarCierreLinea(${l.id},this)" title="El tubo quedaría bajo el mínimo aprovechable — descártalo (queda agotado)"><i class="ti ti-trash-x"></i>Descartar tubo</button>
-          <button class="btn btn-green" style="padding:5px 12px;font-size:11px" onclick="guardarCierreLinea(${l.id},this)"><i class="ti ti-device-floppy"></i>Guardar línea</button>
+    return `<div class="card cierre-card" data-lineid="${l.id}" data-enviado="${l.enviado||0}" data-largo="${l.largo??""}" style="padding:14px 16px;margin:0;background:var(--bg-card);border:.5px solid var(--border)">
+      <div style="display:flex;align-items:flex-start;gap:12px">
+        <button class="btn btn-ghost ck-altbtn" onclick="_cierreToggleAlt(this)" title="Altura real de tubo nuevo — mídelo si difiere del nominal" style="height:36px;width:40px;padding:0;flex-shrink:0;margin-top:22px;color:#5b9bd5;border:1px solid var(--border)"><i class="ti ti-ruler-2"></i></button>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:10px;color:var(--text-soft);text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px">
+            Línea ${i+1} — <strong style="color:var(--text)">${esc(l.material)}</strong> · DI ${l.di??"?"} · DE ${l.de??"?"} · L ${l.largo??"?"} · Enviado ${l.enviado??0}mm
+          </div>
+          <div class="form-row" style="margin-bottom:8px;gap:12px">
+            <div class="form-group" style="margin:0;flex:2">
+              <label class="form-label">Tubo del que se descuenta <span class="req">*</span></label>
+              <select class="form-input ck-tubo" ${matches.length?"":"disabled"} onchange="_cierreCalc(this)">${opts}</select>
+            </div>
+            <div class="form-group" style="margin:0;flex:1">
+              <label class="form-label">DEVUELTO (mm) <span class="req">*</span></label>
+              <input class="form-input ck-dev" type="number" min="0" placeholder="0" oninput="_cierreCalc(this)">
+            </div>
+          </div>
+          <div class="ck-altpanel" style="display:none;margin-bottom:10px;border:1px solid #2c5e7a;background:#0f1e2e;border-radius:8px;padding:11px 13px">
+            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+              <label class="form-label" style="margin:0;color:#5b9bd5">Altura real de tubo nuevo (mm)</label>
+              <input class="form-input ck-altreal" type="number" step="0.1" min="1" placeholder="ej. 163" style="max-width:130px">
+              <span class="ck-altnom" style="font-size:11px;color:var(--text-soft)"></span>
+            </div>
+            <div style="font-size:11px;color:var(--text-faint);margin-top:6px">Corrige el largo de ESTE tubo y lo deja anotado en su historial. Solo si difiere del nominal.</div>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+            <div class="ck-info" style="font-size:11px;color:var(--text-faint)"></div>
+            <div style="display:flex;gap:6px">
+              <button class="btn btn-amber ck-merma-btn" style="display:none;padding:6px 12px;font-size:11px;box-shadow:0 0 0 1px #f5a623" onclick="mermarCierreLinea(${l.id},this)" title="El tubo quedaría bajo el mínimo aprovechable — descártalo (queda agotado)"><i class="ti ti-trash-x"></i>Descartar tubo</button>
+              <button class="btn btn-green" style="padding:6px 14px;font-size:11px" onclick="guardarCierreLinea(${l.id},this)"><i class="ti ti-device-floppy"></i>Guardar línea</button>
+            </div>
+          </div>
         </div>
       </div>
     </div>`;
@@ -10425,6 +10581,9 @@ function renderCierre(){
     if(selT&&v.tubo&&[...selT.options].some(o=>o.value===v.tubo)) selT.value=v.tubo;
     const inpD=c.querySelector(".ck-dev");
     if(inpD&&v.dev) inpD.value=v.dev;
+    if(v.altOpen){const b=c.querySelector(".ck-altbtn");if(b)_cierreToggleAlt(b);}
+    const inpA=c.querySelector(".ck-altreal");
+    if(inpA&&v.alt) inpA.value=v.alt;
     if(selT) _cierreCalc(selT);
   });
 }
@@ -10555,6 +10714,28 @@ function _cierreCalc(inp){
   }
 }
 
+// Abre/cierra el panel de "Altura real de tubo nuevo" de una línea del cierre.
+// Al abrir, precarga el largo actual del tubo elegido (o el nominal de la línea).
+function _cierreToggleAlt(btn){
+  const card=btn.closest(".cierre-card");
+  const panel=card.querySelector(".ck-altpanel");
+  if(!panel) return;
+  const abrir=panel.style.display==="none";
+  panel.style.display=abrir?"block":"none";
+  btn.style.background=abrir?"rgba(91,155,213,.15)":"";
+  btn.style.borderColor=abrir?"#5b9bd5":"";
+  if(abrir){
+    const inp=card.querySelector(".ck-altreal");
+    const nomSpan=card.querySelector(".ck-altnom");
+    const found=_cierreFindTuboInst(card.querySelector(".ck-tubo").value);
+    let actual=null, nominal=null;
+    if(found){ actual=instTot(found.inst,found.tubo); nominal=found.tubo.altura_total||actual; }
+    else { actual=parseFloat(card.dataset.largo)||null; nominal=actual; }
+    if(inp && !inp.value && actual!=null) inp.value=Math.round(actual*10)/10;
+    if(nomSpan) nomSpan.textContent=nominal!=null?`nominal: ${Math.round(nominal)}mm`:"(elige el tubo primero)";
+  }
+}
+
 async function guardarCierreLinea(lineId,btn,skipRender=false){
   const card=btn.closest(".cierre-card");
   const env=parseFloat(card.dataset.enviado)||0;
@@ -10576,8 +10757,25 @@ async function guardarCierreLinea(lineId,btn,skipRender=false){
   const {data:tubo}=await sb.from("tubos").select("altura_total,descripcion,familia,subfamilia,altura_min_aprovechable").eq("id",tuboId).maybeSingle();
   const {data:inst}=await sb.from("tubo_instancias").select("*").eq("id",instId).maybeSingle();
   if(!tubo||!inst){setBtnLoading2(btn,false);if(!skipRender)toast("Tubo/instancia no encontrado","err");return false;}
-  const altTot=instTot(inst,tubo);
+  let altTot=instTot(inst,tubo);
   const usado=inst.altura_usada||0;
+  // --- Resguardos: corrección de "Altura real de tubo nuevo" (opcional) ---
+  const _altPanel=card.querySelector(".ck-altpanel");
+  let _nuevaAltura=null;
+  if(_altPanel && _altPanel.style.display!=="none"){
+    const v=parseFloat(card.querySelector(".ck-altreal")?.value);
+    const nominal=tubo.altura_total||altTot;
+    if(!isNaN(v) && Math.abs(v-altTot)>0.001){
+      if(v<=0){setBtnLoading2(btn,false);if(!skipRender)toast("La altura real debe ser mayor a 0","err");return false;}
+      if(v<usado){setBtnLoading2(btn,false);if(!skipRender)toast(`La altura real (${v}mm) no puede ser menor a lo ya consumido en este tubo (${usado}mm)`,"err");return false;}
+      const dif=Math.abs(v-nominal);
+      if((dif>20 || (nominal>0 && dif/nominal>0.15)) && !skipRender && !confirm(`La altura real (${v}mm) difiere bastante del nominal (${Math.round(nominal)}mm). ¿Es correcta?`)){setBtnLoading2(btn,false);return false;}
+      if(usado>0 && !skipRender && !confirm(`Este tubo ya tiene ${usado}mm consumidos (no está "nuevo").\n¿Corregir igual su largo a ${v}mm?`)){setBtnLoading2(btn,false);return false;}
+      if(!skipRender && !confirm(`Corregir el largo de este tubo: ${Math.round(altTot)} → ${v}mm.\nSe recalcula su restante y queda anotado en el historial. ¿Continuar?`)){setBtnLoading2(btn,false);return false;}
+      _nuevaAltura=v;
+      altTot=v; // usar el largo corregido en los cálculos de abajo
+    }
+  }
   const nuevoUsado=Math.max(0,usado+consumido);
   if(nuevoUsado>altTot){setBtnLoading2(btn,false);toast(`Solo hay ${(altTot-usado).toFixed(0)}mm disponibles en ese tubo`,"err");return;}
   // Regla configurable: si lo que queda cae bajo la altura mínima aprovechable, marcar agotado
@@ -10589,6 +10787,14 @@ async function guardarCierreLinea(lineId,btn,skipRender=false){
   // sigue disponible aunque quede bajo el mínimo; solo se marca "merma sugerida").
   if(ruleBool("mp_auto_agotado",false)&&nuevoEstado==="disponible"&&nuevoUsado>0&&mmRest<altMin) nuevoEstado="agotado";
 
+  // 0) Corregir el largo real de ESTA instancia (si el usuario lo activó) — antes de descontar.
+  if(_nuevaAltura!=null){
+    const _antesAlt=instTot(inst,tubo);
+    const {error:eA}=await sb.from("tubo_instancias").update({altura_total:_nuevaAltura}).eq("id",instId);
+    if(eA){setBtnLoading2(btn,false);if(!skipRender)toast("Error al corregir altura: "+eA.message,"err");return false;}
+    await sb.from("movimientos").insert({tubo_id:tuboId, tubo_instancia_id:instId, tipo:"ajuste", cantidad:0, usuario_id:CU?.id, nota:`Altura real medida: ${Math.round(_antesAlt)} → ${_nuevaAltura}mm (cierre OP ${_cierreState.op})`});
+    inst.altura_total=_nuevaAltura;
+  }
   // 1) Descontar instancia
   if(consumido>0){
     const {data:upd,error:eU}=await sb.from("tubo_instancias").update({altura_usada:nuevoUsado,estado:nuevoEstado}).eq("id",instId).select();
