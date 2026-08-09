@@ -1069,6 +1069,17 @@ html[data-theme="light"]{ --brand:#2563c9; --brand-dark:#1e4fa8; }
       <div class="page-title"><i class="ti ti-upload" style="color:var(--red)"></i>Cargar Excel</div>
 
       <div class="card">
+        <div class="card-title"><i class="ti ti-currency-dollar"></i>Precios de Materia Prima (carga masiva)</div>
+        <div style="font-size:11px;color:var(--text-soft);margin-bottom:10px">1) Descarga la plantilla con tus materiales. 2) Llena la columna <strong>Precio</strong>. 3) Súbela: se actualizan los precios de <strong>ambas sedes</strong> (Custom y Mecaniza) de golpe. Vuelve a subirla cuando cambien los costos.</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn btn-blue" onclick="descargarPlantillaPreciosMP()"><i class="ti ti-download"></i>Descargar plantilla</button>
+          <button class="btn btn-red" onclick="document.getElementById('preciosMPInput').click()"><i class="ti ti-upload"></i>Cargar precios llenos</button>
+          <input type="file" id="preciosMPInput" style="display:none" accept=".xlsx,.xls" onchange="cargarPreciosMP(event)">
+        </div>
+        <div id="preciosMPProgress" style="display:none;margin-top:10px"></div>
+      </div>
+
+      <div class="card">
         <div class="card-title"><i class="ti ti-file-spreadsheet"></i>Catálogo de materiales (CODIFICACION MP)</div>
         <div style="font-size:11px;color:var(--text-soft);margin-bottom:10px">Carga el archivo maestro de códigos. Columnas: COD, DESCRIPCION, FAMILIA, etc.</div>
         <div class="upload-zone" onclick="document.getElementById('catInput').click()">
@@ -1168,6 +1179,16 @@ html[data-theme="light"]{ --brand:#2563c9; --brand-dark:#1e4fa8; }
       <div class="page-title"><i class="ti ti-settings" style="color:var(--red)"></i>Configuración</div>
       <div class="card">
         <div class="card-title"><i class="ti ti-currency-dollar"></i>Tipo de cambio</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:.5px solid var(--border)">
+          <div>
+            <div style="font-size:13px;color:var(--text);font-weight:500">Automático (del día)</div>
+            <div id="tcAutoInfo" style="font-size:11px;color:var(--text-faint)">Jala el tipo de cambio del día solo.</div>
+          </div>
+          <div style="display:flex;gap:10px;align-items:center">
+            <button class="btn btn-ghost" style="padding:5px 9px" onclick="actualizarTcAuto()" title="Actualizar ahora"><i class="ti ti-refresh"></i></button>
+            <div class="toggle" id="tcAutoToggle" onclick="toggleTcAuto()"></div>
+          </div>
+        </div>
         <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0">
           <div>
             <div style="font-size:13px;color:var(--text);font-weight:500">EUR → S/</div>
@@ -1879,7 +1900,7 @@ html[data-theme="light"]{ --brand:#2563c9; --brand-dark:#1e4fa8; }
         <label class="form-label">Motivo <span class="req">*</span></label>
         <select class="form-input" id="mm_motivo" onchange="toggleMotivoOtro('mm')"></select>
       </div>
-      <div class="form-group"><label class="form-label">Cotización / N° OP</label><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px"><input class="form-input" id="mm_op" placeholder="Cotización"><input class="form-input" id="mm_opnum" placeholder="N° OP (opcional)"></div></div>
+      <div class="form-group"><label class="form-label">Cotización / N° OP</label><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px"><input class="form-input" id="mm_op" placeholder="Cotización" inputmode="numeric" maxlength="7" oninput="this.value=this.value.replace(/\D/g,'').slice(0,7)"><input class="form-input" id="mm_opnum" placeholder="N° OP (opcional)"></div></div>
     </div>
     <div class="form-group" id="mm_motivo_otro_box" style="display:none">
       <label class="form-label">Especificar motivo <span class="req">*</span></label>
@@ -1963,7 +1984,7 @@ html[data-theme="light"]{ --brand:#2563c9; --brand-dark:#1e4fa8; }
         <label class="form-label">Motivo <span class="req">*</span></label>
         <select class="form-input" id="am_motivo" onchange="toggleMotivoOtro('am')"></select>
       </div>
-      <div class="form-group"><label class="form-label">Cotización / N° OP</label><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px"><input class="form-input" id="am_op" placeholder="Cotización"><input class="form-input" id="am_opnum" placeholder="N° OP (opcional)"></div></div>
+      <div class="form-group"><label class="form-label">Cotización / N° OP</label><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px"><input class="form-input" id="am_op" placeholder="Cotización" inputmode="numeric" maxlength="7" oninput="this.value=this.value.replace(/\D/g,'').slice(0,7)"><input class="form-input" id="am_opnum" placeholder="N° OP (opcional)"></div></div>
     </div>
     <div class="form-group" id="am_motivo_otro_box" style="display:none">
       <label class="form-label">Especificar motivo <span class="req">*</span></label>
@@ -4032,16 +4053,28 @@ async function repCostoCotizacion(f){
     const ids=[...new Set(alm.filter(m=>m._d.mov===d.mov).map(m=>m[d.fk]).filter(Boolean))];
     for(let i=0;i<ids.length;i+=300){const {data:ps}=await sb.from(d.prod).select("id,nombre,precio_unitario,moneda").in("id",ids.slice(i,i+300));(ps||[]).forEach(p=>pmap[d.mov+"|"+p.id]={nombre:p.nombre,precio:p.precio_unitario,moneda:p.moneda});}
   }
-  // 3) Ítems normalizados
+  // Último precio de COMPRA por producto (de las entradas con precio) — prioritario sobre el precio del sistema.
+  const compraMap={};
+  for(const d of almDefs){
+    const ids=[...new Set(alm.filter(m=>m._d.mov===d.mov).map(m=>m[d.fk]).filter(Boolean))];
+    for(let i=0;i<ids.length;i+=200){
+      const {data:es}=await sb.from(d.mov).select(`${d.fk},precio_unitario,moneda,fecha`).eq("tipo","entrada").not("precio_unitario","is",null).in(d.fk,ids.slice(i,i+200)).order("fecha",{ascending:false});
+      (es||[]).forEach(m=>{const k=d.mov+"|"+m[d.fk];if(!(k in compraMap))compraMap[k]={precio:m.precio_unitario,moneda:m.moneda||"PEN"};});
+    }
+  }
+  // 3) Ítems normalizados. Costo = null → queda VACÍO (no hay ningún precio).
   const items=[];
   cons.forEach(c=>{
-    const t=tmap[c.tubo_id]; let costo=0;
+    const t=tmap[c.tubo_id]; let costo=null; // MP: usa el precio del tubo (que ES el último precio de compra)
     if(t&&t.precio!=null&&t.precio!==""){const largo=instTot({altura_total:imap[c.tubo_instancia_id]},t);if(largo>0)costo=(_aPen(t.precio,t.moneda)/largo)*(c.consumido||0);}
     items.push({cotiN:parseInt(String(c.cotizacion).replace(/\D/g,""))||0,coti:String(c.cotizacion),op:c.op||"",cliente:c.cliente_nombre||"",mp:true,item:c.material||"",origen:"Materia Prima",cant:Math.round(c.consumido||0)+" mm",costo});
   });
   alm.forEach(m=>{
-    const p=pmap[m._d.mov+"|"+m[m._d.fk]]; let costo=0;
-    if(p&&p.precio!=null&&p.precio!=="")costo=_aPen(p.precio,p.moneda)*(Number(m.cantidad)||0);
+    const key=m._d.mov+"|"+m[m._d.fk]; const compra=compraMap[key]; const p=pmap[key];
+    let precioU=null,moneda="PEN";
+    if(compra){precioU=compra.precio;moneda=compra.moneda;}                     // 1) última compra
+    else if(p&&p.precio!=null&&p.precio!==""){precioU=p.precio;moneda=p.moneda;} // 2) precio del sistema
+    const costo=(precioU!=null)?_aPen(precioU,moneda)*(Number(m.cantidad)||0):null; // 3) ninguno → vacío
     items.push({cotiN:parseInt(String(m.op_numero).replace(/\D/g,""))||0,coti:String(m.op_numero),op:m.op||"",cliente:m.cliente_nombre||"",mp:false,item:p?.nombre||"",origen:m._d.lbl,cant:(Number(m.cantidad)||0)+" und",costo});
   });
   // 4) Agrupar por cotización
@@ -4055,7 +4088,7 @@ async function repCostoCotizacion(f){
     const g=porCoti[cn];
     if(!g){aoa.push([String(cn),"","","","","","","","",""]);return;} // hueco (no usada)
     const tipo=g.mp?"Fabricación":"Venta directa";
-    g.items.forEach(it=>{total+=it.costo;aoa.push([it.coti,it.op,it.cliente,tipo,it.item,it.origen,it.cant,Math.round(it.costo*100)/100,"",""]);});
+    g.items.forEach(it=>{if(it.costo!=null)total+=it.costo;aoa.push([it.coti,it.op,it.cliente,tipo,it.item,it.origen,it.cant,it.costo!=null?Math.round(it.costo*100)/100:"","",""]);});
   };
   if(cotizF||opF){ usados.forEach(pushCoti); }
   else if(usados.length){
@@ -4082,10 +4115,12 @@ async function loadConfig(){
   // overrides por usuario). buildSidebar() corre antes que esto en el login, así
   // que sin esta línea el menú podía quedar con los permisos por defecto.
   if(CU){try{buildSidebar();}catch(e){}}
+  fetchTipoCambio().catch(()=>{}); // jala el tipo de cambio del día (una vez), sin bloquear
 }
 function loadConfigPage(){
   document.getElementById("cfgEur").value=cfg.tipo_cambio_eur_pen||3.8;
   document.getElementById("cfgUsd").value=cfg.tipo_cambio_usd_pen||3.78;
+  _renderTcAuto(); fetchTipoCambio().then(_renderTcAuto).catch(()=>{});
   document.getElementById("cfgStockMin").value=cfg.stock_minimo_default||2;
   // Dashboard config (solo visible para admin)
   const dashCard=document.getElementById("cfgDashboardCard");
@@ -5300,7 +5335,64 @@ async function saveMyDash(){
 }
 
 // ── Helpers de los widgets nuevos ──
-function _tcambio(){return {eur:parseFloat(cfg.tipo_cambio_eur_pen)||3.8, usd:parseFloat(cfg.tipo_cambio_usd_pen)||3.78};}
+// Tipo de cambio: si está en AUTOMÁTICO (por defecto) usa el del día cacheado; si no, el manual.
+function _tcAutoCache(){ try{return JSON.parse(localStorage.getItem("tc_auto")||"null");}catch(e){return null;} }
+function _tcambio(){
+  if(cfg.tc_auto!==false && cfg.tc_auto!=="false"){
+    const c=_tcAutoCache();
+    if(c&&c.usd>0&&c.eur>0) return {eur:c.eur, usd:c.usd, auto:true, fecha:c.fecha};
+  }
+  return {eur:parseFloat(cfg.tipo_cambio_eur_pen)||3.8, usd:parseFloat(cfg.tipo_cambio_usd_pen)||3.78, auto:false};
+}
+// Jala el tipo de cambio del día (una vez al día). Respaldo a prueba de fallos: si falla,
+// deja el último valor cacheado (o el manual). Fuente gratuita sin clave.
+async function fetchTipoCambio(force){
+  try{
+    const hoy=new Date().toISOString().slice(0,10);
+    const cache=_tcAutoCache();
+    if(!force && cache && cache.fecha===hoy) return cache;
+    const r=await fetch("https://open.er-api.com/v6/latest/USD",{cache:"no-store"});
+    const j=await r.json();
+    const rates=j&&j.rates;
+    if(!rates||!rates.PEN||!rates.EUR) throw new Error("Respuesta inválida del servicio de cambio");
+    const usd=rates.PEN;               // 1 USD = X S/
+    const eur=rates.PEN/rates.EUR;     // 1 EUR = (S//USD ÷ EUR/USD) S/
+    const nuevo={usd:Math.round(usd*1000)/1000, eur:Math.round(eur*1000)/1000, fecha:hoy, fuente:"open.er-api.com"};
+    localStorage.setItem("tc_auto",JSON.stringify(nuevo));
+    return nuevo;
+  }catch(e){ return _tcAutoCache(); } // respaldo: último valor conocido
+}
+function _renderTcAuto(){
+  const auto=(cfg.tc_auto!==false&&cfg.tc_auto!=="false");
+  const tg=document.getElementById("tcAutoToggle"); if(tg)tg.classList.toggle("on",auto);
+  const c=_tcAutoCache();
+  const info=document.getElementById("tcAutoInfo");
+  const eurI=document.getElementById("cfgEur"), usdI=document.getElementById("cfgUsd");
+  if(auto&&c&&c.usd>0){
+    if(info)info.innerHTML=`Actualizado: <strong>${fmtFecha(c.fecha)}</strong> · fuente ${esc(c.fuente||"—")} · EUR→USD ${(c.eur/c.usd).toFixed(4)}`;
+    if(eurI){eurI.value=c.eur;eurI.readOnly=true;eurI.style.opacity=".7";}
+    if(usdI){usdI.value=c.usd;usdI.readOnly=true;usdI.style.opacity=".7";}
+  }else{
+    if(info)info.textContent=auto?"Aún no se pudo obtener el del día (usando el manual).":"Desactivado — usando el tipo de cambio manual.";
+    if(eurI){eurI.readOnly=false;eurI.style.opacity="1";eurI.value=cfg.tipo_cambio_eur_pen||3.8;}
+    if(usdI){usdI.readOnly=false;usdI.style.opacity="1";usdI.value=cfg.tipo_cambio_usd_pen||3.78;}
+  }
+}
+async function toggleTcAuto(){
+  const activo=(cfg.tc_auto!==false&&cfg.tc_auto!=="false");
+  const activar=!activo;
+  cfg.tc_auto=activar;
+  await saveConfig("tc_auto",activar?"true":"false");
+  if(activar){ await fetchTipoCambio(true); }
+  _renderTcAuto();
+  toast(activar?"✓ Tipo de cambio automático activado":"Tipo de cambio en manual","ok");
+}
+async function actualizarTcAuto(){
+  const r=await fetchTipoCambio(true);
+  if(r&&r.usd>0) toast(`✓ Cambio del día: USD ${r.usd} · EUR ${r.eur} S/`,"ok");
+  else toast("No se pudo obtener el cambio (revisa internet). Se mantiene el último.","err");
+  _renderTcAuto();
+}
 function _aPen(v,mon){v=Number(v)||0;const {eur,usd}=_tcambio();if(mon==="USD")return v*usd;if(mon==="EUR")return v*eur;return v;}
 function _sIni(){const d=new Date();d.setDate(1);return d.toISOString().slice(0,10);}
 
@@ -11579,6 +11671,8 @@ async function saveMercMov(){
   const stockAntes=m.stock_actual;
   const stockDespues=tipo==="entrada"?stockAntes+cant:stockAntes-cant;
   if(stockDespues<0){toast(`Stock insuficiente (disponible: ${stockAntes})`,"err");return;}
+  const _coti=document.getElementById("mm_op").value.trim();
+  if(_coti&&_coti.length<7&&!confirm(`El N° de cotización "${_coti}" tiene menos de 7 dígitos. ¿Guardar así?`))return;
   const _opnum=document.getElementById("mm_opnum").value.trim();
   if(tipo==="salida"&&!_opnum&&!confirm("Esta salida no tiene N° OP.\n¿Es una venta directa (sin OP)?"))return;
   setBtnLoading("btnSaveMercMov",true,"Procesando...");
@@ -11852,6 +11946,8 @@ async function saveAlmMov(){
   const stockAntes=a.stock_actual;
   const stockDespues=tipo==="entrada"?stockAntes+cant:stockAntes-cant;
   if(stockDespues<0){toast(`Stock insuficiente (disponible: ${stockAntes})`,"err");return;}
+  const _coti=document.getElementById("am_op").value.trim();
+  if(_coti&&_coti.length<7&&!confirm(`El N° de cotización "${_coti}" tiene menos de 7 dígitos. ¿Guardar así?`))return;
   const _opnum=document.getElementById("am_opnum").value.trim();
   if(tipo==="salida"&&!_opnum&&!confirm("Esta salida no tiene N° OP.\n¿Es una venta directa (sin OP)?"))return;
   setBtnLoading("btnSaveAlmMov",true,"Procesando...");
@@ -12259,6 +12355,80 @@ function resolverMotivo(prefix){
 // ────────────────────────────────────────────────────────────────────────────
 //  RESUMEN DE CATÁLOGOS CARGADOS (por almacén) — listar / borrar por categoría
 // ────────────────────────────────────────────────────────────────────────────
+// ── Carga masiva de precios de Materia Prima (plantilla + subida) ──
+async function descargarPlantillaPreciosMP(){
+  if(typeof XLSX==="undefined"){toast("La librería de Excel no está disponible","err");return;}
+  const prog=document.getElementById("preciosMPProgress"); prog.style.display="block"; prog.innerHTML=`<div class="loading"><div class="spinner"></div>Generando plantilla...</div>`;
+  try{
+    let tubos=[];
+    for(let from=0;;from+=1000){
+      const {data,error}=await sb.from("tubos").select("codigo_mat,descripcion,di,de,altura_total,precio,moneda,sede").range(from,from+999);
+      if(error) throw error; if(!data?.length) break; tubos=tubos.concat(data); if(data.length<1000) break;
+    }
+    // Unión por código (una fila por código; muestra en qué sedes existe)
+    const porCod={};
+    tubos.forEach(t=>{
+      const key=(t.codigo_mat||"").trim()||("SINCOD::"+(t.descripcion||""));
+      const g=porCod[key]=porCod[key]||{codigo:t.codigo_mat||"",desc:t.descripcion||"",di:t.di,de:t.de,largo:t.altura_total,precio:t.precio,moneda:t.moneda||"PEN",sedes:new Set()};
+      if(t.sede)g.sedes.add(t.sede==="mecaniza"?"Mecaniza":"Custom");
+      if((g.precio==null||g.precio==="")&&t.precio!=null)g.precio=t.precio;
+    });
+    const lista=Object.values(porCod).sort((a,b)=>String(a.codigo).localeCompare(String(b.codigo)));
+    const aoa=[["Código","Descripción","DI","DE","Largo","Sede(s)","Moneda","Precio nacionalizado"]];
+    lista.forEach(g=>aoa.push([g.codigo,g.desc,g.di??"",g.de??"",g.largo??"",[...g.sedes].join(" + ")||"—",g.moneda,g.precio??""]));
+    const ws=XLSX.utils.aoa_to_sheet(aoa);
+    const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,"Precios MP");
+    XLSX.writeFile(wb,`Plantilla_precios_MP_${new Date().toISOString().slice(0,10)}.xlsx`);
+    prog.innerHTML=`<div style="font-size:12px;color:var(--green)">✓ Plantilla generada con ${lista.length} materiales. Llena la columna <strong>Precio</strong> y súbela.</div>`;
+  }catch(e){ prog.innerHTML=`<div style="font-size:12px;color:#e85a5a">Error: ${esc(String(e.message||e))}</div>`; }
+}
+async function cargarPreciosMP(event){
+  if(!userCanCRUD("editar","Tubos")){toast("Sin permiso para editar materiales","err");return;}
+  const file=event.target.files[0]; event.target.value=""; if(!file) return;
+  const prog=document.getElementById("preciosMPProgress"); prog.style.display="block"; prog.innerHTML=`<div class="loading"><div class="spinner"></div>Leyendo archivo...</div>`;
+  try{
+    const buf=await file.arrayBuffer();
+    const wb=XLSX.read(buf,{type:"array"});
+    const ws=wb.Sheets[wb.SheetNames[0]];
+    const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:""});
+    let hi=rows.findIndex(r=>r.some(c=>/c[oó]digo/i.test(String(c)))&&r.some(c=>/precio/i.test(String(c))));
+    if(hi<0) hi=0;
+    const head=rows[hi].map(c=>String(c).toLowerCase());
+    const ci=head.findIndex(c=>/c[oó]digo/.test(c)), pi=head.findIndex(c=>/precio/.test(c));
+    const dci=head.findIndex(c=>/descrip/.test(c)), mi=head.findIndex(c=>/moneda/.test(c));
+    if(ci<0||pi<0){prog.innerHTML=`<div style="color:#e85a5a;font-size:12px">No encontré las columnas <strong>Código</strong> y <strong>Precio</strong> en el archivo.</div>`;return;}
+    // Traer tubos para emparejar (por código, y respaldo por descripción)
+    let tubos=[];
+    for(let from=0;;from+=1000){const {data}=await sb.from("tubos").select("id,codigo_mat,descripcion").range(from,from+999);if(!data?.length)break;tubos=tubos.concat(data);if(data.length<1000)break;}
+    const porCod={}, porDesc={};
+    tubos.forEach(t=>{const c=(t.codigo_mat||"").trim().toUpperCase();if(c)(porCod[c]=porCod[c]||[]).push(t.id);const d=(t.descripcion||"").trim().toUpperCase();if(d)(porDesc[d]=porDesc[d]||[]).push(t.id);});
+    const updates=[]; let sinPrecio=0; const noMatch=[];
+    for(let r=hi+1;r<rows.length;r++){
+      const row=rows[r]; if(!row||!row.length) continue;
+      const cod=String(row[ci]||"").trim().toUpperCase();
+      const desc=dci>=0?String(row[dci]||"").trim().toUpperCase():"";
+      const precioRaw=String(row[pi]??"").replace(",",".").trim();
+      const moneda=(mi>=0?String(row[mi]||"").trim().toUpperCase():"")||"PEN";
+      if(!cod&&!desc) continue;
+      if(precioRaw===""){sinPrecio++;continue;}
+      const precio=parseFloat(precioRaw); if(isNaN(precio)||precio<0){sinPrecio++;continue;}
+      const ids=(cod&&porCod[cod])?porCod[cod]:((desc&&porDesc[desc])?porDesc[desc]:null); // código y si falta, descripción
+      if(!ids){noMatch.push(cod||desc);continue;}
+      ids.forEach(id=>updates.push({id,precio,moneda}));
+    }
+    if(!updates.length){prog.innerHTML=`<div style="color:#e85a5a;font-size:12px">No hay precios válidos para cargar.${noMatch.length?` (${noMatch.length} sin coincidencia)`:""}</div>`;return;}
+    if(!confirm(`Se actualizarán ${updates.length} tubo(s) (ambas sedes) con sus nuevos precios.\n\n• ${sinPrecio} fila(s) sin precio → se ignoran.\n• ${noMatch.length} sin coincidencia (código/descripción no encontrado).\n\n¿Continuar?`)){prog.style.display="none";return;}
+    let ok=0;
+    for(const u of updates){
+      const {error}=await sb.from("tubos").update({precio:u.precio,moneda:u.moneda}).eq("id",u.id);
+      if(!error)ok++;
+      if(ok%20===0)prog.innerHTML=`<div class="loading"><div class="spinner"></div>Actualizando precios (${ok}/${updates.length})...</div>`;
+    }
+    clearCache("tubos_custom");clearCache("tubos_mecaniza");clearCache("materiales_list");_consMatTuboCache=null;
+    prog.innerHTML=`<div style="font-size:12px;color:var(--green)">✓ ${ok} tubo(s) actualizado(s).${noMatch.length?` · <span style="color:#f5a623">${noMatch.length} sin coincidencia:</span> ${esc(noMatch.slice(0,8).join(", "))}${noMatch.length>8?"…":""}`:""}</div>`;
+    toast(`✓ Precios cargados: ${ok} tubo(s)`,"ok");
+  }catch(e){ prog.innerHTML=`<div style="color:#e85a5a;font-size:12px">Error: ${esc(String(e.message||e))}</div>`; }
+}
 async function renderCargasResumen(tabla){
   const _d=_almP(tabla);
   const contId=_d.cargasList;
