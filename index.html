@@ -4068,7 +4068,7 @@ async function repCostoCotizacion(f){
     // 1) Consumos de MP (CON y SIN cotización) — filtra por sede
     let cons=[];
     for(let from=0;;from+=1000){
-      let q=sb.from("consumos_ops").select("cotizacion,op,cliente_nombre,material,consumido,tubo_id,tubo_instancia_id,di,de,largo,fecha,sede").range(from,from+999);
+      let q=sb.from("consumos_ops").select("id,cotizacion,op,cliente_nombre,material,consumido,tubo_id,tubo_instancia_id,di,de,largo,fecha,sede").range(from,from+999);
       if(f.desde)q=q.gte("fecha",f.desde); if(f.hasta)q=q.lte("fecha",f.hasta);
       if(cotizF)q=q.eq("cotizacion",cotizF); if(opF)q=q.eq("op",opF);
       const {data,error}=await q; if(error||!data?.length)break; cons=cons.concat(data); if(data.length<1000)break;
@@ -4085,7 +4085,7 @@ async function repCostoCotizacion(f){
     if(wantMec)almDefs.push({mov:"alm_mecaniza_movimientos",prod:"alm_mecaniza_productos",fk:"producto_id",lbl:"Almacén Mecaniza"});
     let alm=[];
     for(const d of almDefs){
-      let q=sb.from(d.mov).select(`op_numero,op,cantidad,cliente_nombre,fecha,motivo,precio_unitario,moneda,${d.fk}`).eq("tipo","salida").not("op_numero","is",null).limit(50000);
+      let q=sb.from(d.mov).select(`id,op_numero,op,cantidad,cliente_nombre,fecha,motivo,precio_unitario,moneda,${d.fk}`).eq("tipo","salida").not("op_numero","is",null).limit(50000);
       if(f.desde)q=q.gte("fecha",f.desde); if(f.hasta)q=q.lte("fecha",f.hasta);
       if(cotizF)q=q.eq("op_numero",cotizF); if(opF)q=q.eq("op",opF);
       const {data}=await q; (data||[]).forEach(m=>{ if(m.motivo!==MOTIVO_TRANSFER) alm.push({...m,_d:d}); });
@@ -4113,7 +4113,7 @@ async function repCostoCotizacion(f){
       const dims=(c.di!=null||c.de!=null||c.largo!=null)?` ${c.di??0} / ${c.de??0} / ${c.largo??0}`:"";
       // MP (fabricación): muestra SOLO el costo. Sin precio de venta ni ganancia por ahora
       // (la ganancia saldrá del precio final por cotización que cargue Producción).
-      items.push({coti,op:c.op||"",cliente:c.cliente_nombre||"",mp:true,item:((c.material||"")+dims).trim(),origen:"Materia Prima",cant:Math.round(c.consumido||0)+" mm",costo,venta:null,nocoti:!coti});
+      items.push({coti,op:c.op||"",cliente:c.cliente_nombre||"",mp:true,item:((c.material||"")+dims).trim(),origen:"Materia Prima",cant:Math.round(c.consumido||0)+" mm",costo,venta:null,nocoti:!coti,__tbl:"consumos_ops",__id:c.id,__cotcol:"cotizacion"});
     });
     alm.forEach(m=>{
       const key=m._d.mov+"|"+m[m._d.fk]; const compra=compraMap[key]; const p=pmap[key];
@@ -4129,7 +4129,7 @@ async function repCostoCotizacion(f){
         ? _aMoneda(m.precio_unitario,m.moneda||"PEN",moneda)*cant
         : ((p&&p.precio!=null&&p.precio!=="") ? _aMoneda(p.precio,p.moneda||"PEN",moneda)*cant : costo);
       const coti=String(m.op_numero||"").trim();
-      items.push({coti,op:m.op||"",cliente:m.cliente_nombre||"",mp:false,item:p?.nombre||"",origen:m._d.lbl,cant:cant+" und",costo,venta,nocoti:!coti});
+      items.push({coti,op:m.op||"",cliente:m.cliente_nombre||"",mp:false,item:p?.nombre||"",origen:m._d.lbl,cant:cant+" und",costo,venta,nocoti:!coti,__tbl:m._d.mov,__id:m.id,__cotcol:"op_numero"});
     });
     // 4) Agrupar: por cotización (las que tienen), por OP (las sin cotización)
     const grupos={};
@@ -4166,10 +4166,16 @@ let _ccState=null;
 function _ccMoney(n){const s=(_ccState&&_ccState.meta&&_ccState.meta.sym)||"S/";return s+" "+(_r2(n)).toLocaleString("es-PE",{minimumFractionDigits:2});}
 function _ccGan(costo,venta){if(venta==null)return{gan:null,pct:null};const gan=venta-costo;return{gan,pct:costo>0?gan/costo*100:null};}
 function _ccVentaVal(i){const st=_ccState;const g=st.arr[i];if(g.nocoti)return null;const raw=(st.edits[i]!=null)?st.edits[i]:(st.precios[g.coti]!=null?st.precios[g.coti]:(g.ventaAuto!=null?g.ventaAuto:""));return(raw===""||raw==null)?null:Number(raw);}
-function _ccDetailHtml(g){
-  return `<div class="cc-dlbl">Detalle del costo — ${g.items.length} línea(s)</div>
-    <table class="cc-dtable"><thead><tr><th>Origen</th><th>Ítem / Material</th><th>Cantidad</th><th style="text-align:right">Costo</th></tr></thead>
-    <tbody>${g.items.map(it=>`<tr><td><span class="${it.mp?'cc-mp':'cc-alm'}">${it.mp?'MP':'Almacén'}</span></td><td>${esc(it.item||'—')}</td><td>${esc(it.cant)}</td><td style="text-align:right">${it.costo!=null?_ccMoney(it.costo):'—'}</td></tr>`).join("")}</tbody></table>
+function _ccDetailHtml(g,i){
+  return `<div class="cc-dlbl">Detalle del costo — ${g.items.length} línea(s) · la <b style="color:var(--blue)">OP es editable</b> por ítem</div>
+    <table class="cc-dtable"><thead><tr><th>Origen</th><th>OP</th><th>Ítem / Material</th><th>Cantidad</th><th style="text-align:right">Costo</th><th style="text-align:right">Precio venta</th><th style="text-align:right">Ganancia</th><th style="text-align:right">%</th></tr></thead>
+    <tbody>${g.items.map((it,j)=>{
+      const ig=(it.venta!=null&&it.costo!=null)?(it.venta-it.costo):null;
+      const ip=(ig!=null&&it.costo>0)?(ig/it.costo*100):null;
+      const gcls=ig==null?'cc-mut':(ig>=0?'cc-pos':'cc-neg');
+      const opv=_ccState.opEdits[i+'_'+j]!=null?_ccState.opEdits[i+'_'+j]:(it.op||'');
+      return `<tr><td><span class="${it.mp?'cc-mp':'cc-alm'}">${it.mp?'MP':'Almacén'}</span></td><td><input class="cc-op-inp" value="${escAttr(String(opv))}" placeholder="OP" oninput="_ccOp(${i},${j},this.value)"></td><td>${esc(it.item||'—')}</td><td>${esc(it.cant)}</td><td style="text-align:right">${it.costo!=null?_ccMoney(it.costo):'—'}</td><td style="text-align:right">${it.venta!=null?_ccMoney(it.venta):'—'}</td><td style="text-align:right" class="${gcls}">${ig!=null?(ig>=0?'+ ':'− ')+_ccMoney(Math.abs(ig)):'—'}</td><td style="text-align:right" class="${gcls}">${ip!=null?(ip>=0?'+':'')+ip.toFixed(1)+'%':'—'}</td></tr>`;
+    }).join("")}</tbody></table>
     <div class="cc-dtot">Costo total: <b>${_ccMoney(g.costo)}</b></div>`;
 }
 function _ccRowHtml(g,i){
@@ -4179,8 +4185,8 @@ function _ccRowHtml(g,i){
   const ventaTitle=isFinal?"Precio final guardado por Producción":"Sugerido (precio de las salidas o costo). Editá y guardá para fijar el precio final.";
   return `<div class="cc-tr">
     <div class="cc-row gridcc" id="ccRow${i}" onclick="_ccToggle(${i})">
-      <div>${g.nocoti?'':`<input type="checkbox" class="cc-sel" onclick="event.stopPropagation();_ccSel(${i},this.checked)">`}</div>
-      <div class="cc-coti">${g.nocoti?'<span class="cc-tag">sin coti.</span>':esc(g.coti)}</div>
+      <div><input type="checkbox" class="cc-sel" onclick="event.stopPropagation();_ccSel(${i},this.checked)"></div>
+      <div>${g.nocoti?`<input class="cc-coti-inp" type="text" inputmode="numeric" placeholder="asignar…" value="${_ccState.cotiEdits[i]!=null?escAttr(String(_ccState.cotiEdits[i])):''}" onclick="event.stopPropagation()" oninput="_ccCoti(${i},this.value)">`:`<span class="cc-coti">${esc(g.coti)}</span>`}</div>
       <div class="cc-op" title="${escAttr(opTxt)}">${esc(opTxt)}</div>
       <div class="cc-cli" title="${escAttr(g.cliente||'')}">${esc(g.cliente||'—')}</div>
       <div class="cc-costo">${_ccMoney(g.costo)}</div>
@@ -4189,11 +4195,11 @@ function _ccRowHtml(g,i){
       <div class="cc-pct cc-mut" id="ccPct${i}" style="text-align:right">—</div>
       <div class="cc-chev">▶</div>
     </div>
-    <div class="cc-detail" id="ccDet${i}">${_ccDetailHtml(g)}</div>
+    <div class="cc-detail" id="ccDet${i}">${_ccDetailHtml(g,i)}</div>
   </div>`;
 }
 function _renderCostoCotiz(arr,precios,meta){
-  _ccState={arr,precios:{...precios},meta,edits:{},sel:new Set()};
+  _ccState={arr,precios:{...precios},meta,edits:{},cotiEdits:{},opEdits:{},sel:new Set()};
   document.getElementById("reporteOverlay")?.remove();
   if(!document.getElementById("ccStyles")){
     document.head.insertAdjacentHTML("beforeend",`<style id="ccStyles">
@@ -4219,6 +4225,10 @@ function _renderCostoCotiz(arr,precios,meta){
       #reporteOverlay .cc-venta{width:100%;background:var(--bg-input);border:1px solid var(--border);border-radius:7px;padding:6px 8px;color:var(--green);font-size:12px;font-weight:600;text-align:right;outline:none}
       #reporteOverlay .cc-venta:focus{border-color:var(--green)}
       #reporteOverlay .cc-venta.cc-auto{color:var(--text-soft);font-style:italic;font-weight:500}
+      #reporteOverlay .cc-coti-inp{width:100%;background:var(--bg-input);border:1px solid var(--border);border-radius:6px;padding:5px 6px;color:var(--text-strong);font-size:12px;font-weight:700;outline:none}
+      #reporteOverlay .cc-coti-inp:focus{border-color:var(--blue)}
+      #reporteOverlay .cc-op-inp{width:88px;background:var(--bg-input);border:1px solid var(--border);border-radius:5px;padding:3px 6px;color:var(--blue);font-size:11px;font-weight:600;outline:none}
+      #reporteOverlay .cc-op-inp:focus{border-color:var(--blue)}
       #reporteOverlay .cc-sel{width:15px;height:15px;accent-color:var(--green);cursor:pointer}
       #reporteOverlay .cc-chev{color:var(--text-faint);font-size:11px;text-align:center;transition:transform .2s}
       #reporteOverlay .cc-row.cc-open .cc-chev{transform:rotate(90deg);color:var(--red)}
@@ -4289,32 +4299,49 @@ function _ccPrice(i,val){
 function _ccSel(i,checked){const st=_ccState;if(checked)st.sel.add(i);else st.sel.delete(i);document.getElementById("ccRow"+i)?.classList.toggle("cc-dirty",checked);_ccUpdateSaveBar();}
 function _ccSelAll(checked){
   const st=_ccState;
-  st.arr.forEach((g,i)=>{if(g.nocoti)return;const cb=document.querySelector(`#ccRow${i} .cc-sel`);if(cb)cb.checked=checked;if(checked)st.sel.add(i);else st.sel.delete(i);document.getElementById("ccRow"+i)?.classList.toggle("cc-dirty",checked);});
+  st.arr.forEach((g,i)=>{const cb=document.querySelector(`#ccRow${i} .cc-sel`);if(cb)cb.checked=checked;if(checked)st.sel.add(i);else st.sel.delete(i);document.getElementById("ccRow"+i)?.classList.toggle("cc-dirty",checked);});
   _ccUpdateSaveBar();
 }
+// Marca una fila como seleccionada+sucia (al editar cotización u OP se guardará junto con los precios).
+function _ccMark(i){const cb=document.querySelector(`#ccRow${i} .cc-sel`);if(cb)cb.checked=true;_ccState.sel.add(i);document.getElementById("ccRow"+i)?.classList.add("cc-dirty");_ccUpdateSaveBar();}
+function _ccCoti(i,val){_ccState.cotiEdits[i]=val;if(String(val).trim()!=="")_ccMark(i);}
+function _ccOp(i,j,val){_ccState.opEdits[i+"_"+j]=val;_ccMark(i);}
 function _ccUpdateSaveBar(){const st=_ccState;const n=st.sel.size;const bar=document.getElementById("ccSaveBar");if(bar)bar.style.display=n>0?"flex":"none";const c=document.getElementById("ccSaveCount");if(c)c.textContent=n;}
 async function _ccSave(){
   const st=_ccState;if(!st)return;
-  const idxs=[...st.sel];if(!idxs.length){toast("No hay cotizaciones seleccionadas","err");return;}
-  const rows=[];
+  const idxs=[...st.sel];if(!idxs.length){toast("No hay filas seleccionadas","err");return;}
+  let okP=0,okL=0,err=0; // precios / enlaces (coti+op)
   for(const i of idxs){
-    const g=st.arr[i];if(g.nocoti)continue;
-    const raw=(st.edits[i]!=null)?st.edits[i]:(st.precios[g.coti]!=null?st.precios[g.coti]:"");
-    if(raw===""||raw==null)continue;
-    const precio=Number(raw);if(isNaN(precio)||precio<0)continue;
-    rows.push({cotizacion:g.coti,precio,moneda:st.meta.moneda,usuario_id:CU?.id||null});
+    const g=st.arr[i];
+    // 1) Precio de venta final (solo filas CON cotización)
+    if(!g.nocoti){
+      const raw=(st.edits[i]!=null)?st.edits[i]:(st.precios[g.coti]!=null?st.precios[g.coti]:"");
+      if(raw!==""&&raw!=null){
+        const precio=Number(raw);
+        if(!isNaN(precio)&&precio>=0){
+          const {error}=await sb.from("cotizacion_precios").upsert({cotizacion:g.coti,precio,moneda:st.meta.moneda,usuario_id:CU?.id||null},{onConflict:"cotizacion"});
+          if(!error){okP++;st.precios[g.coti]=_r2(precio);} else err++;
+        }
+      }
+    }
+    // 2) Asignar cotización a los registros (solo filas SIN cotización)
+    if(g.nocoti){
+      const nc=String(st.cotiEdits[i]||"").trim();
+      if(nc){ for(const it of g.items){ const {error}=await sb.from(it.__tbl).update({[it.__cotcol]:nc}).eq("id",it.__id); if(!error){okL++;} else err++; } }
+    }
+    // 3) Asignar/corregir OP por ítem
+    for(let j=0;j<g.items.length;j++){
+      const nv=st.opEdits[i+"_"+j];
+      if(nv==null)continue;
+      const it=g.items[j]; const val=String(nv).trim()||null;
+      if(val!==(it.op||null)){ const {error}=await sb.from(it.__tbl).update({op:val}).eq("id",it.__id); if(!error){okL++;it.op=val||"";} else err++; }
+    }
   }
-  if(!rows.length){toast("Nada válido para guardar","err");return;}
-  let ok=0;
-  for(const r of rows){
-    const {error}=await sb.from("cotizacion_precios").upsert(r,{onConflict:"cotizacion"});
-    if(!error){ok++;st.precios[r.cotizacion]=_r2(r.precio);}
-  }
-  st.sel.clear();st.edits={};
+  st.sel.clear();st.edits={};st.cotiEdits={};st.opEdits={};
   document.querySelectorAll("#reporteOverlay .cc-row").forEach(el=>el.classList.remove("cc-dirty"));
   document.querySelectorAll("#reporteOverlay .cc-sel").forEach(cb=>cb.checked=false);
   _ccUpdateSaveBar();_ccRecalcTotals();
-  toast(`✓ ${ok} precio(s) de venta guardado(s)`,"ok");
+  toast(`✓ Guardado: ${okP} precio(s) · ${okL} enlace(s)${err?` · ${err} error(es)`:""}`, err?"err":"ok");
 }
 function _ccExcel(){
   const st=_ccState;if(!st)return; if(typeof XLSX==="undefined"){toast("La librería de Excel no está disponible","err");return;}
@@ -4322,7 +4349,15 @@ function _ccExcel(){
   const aoa=[["Cotización","OP","Cliente","Tipo","Ítem / Material","Origen","Cantidad",`Costo (${sym})`,`Precio venta (${sym})`,`Ganancia (${sym})`,"Ganancia %"]];
   st.arr.forEach((g,i)=>{
     const tipo=g.items.some(x=>x.mp)?"Fabricación":"Venta directa";
-    g.items.forEach(it=>aoa.push([g.nocoti?"":g.coti,it.op,it.cliente,tipo,it.item,it.origen,it.cant,it.costo!=null?_r2(it.costo):"","","",""]));
+    g.items.forEach(it=>{
+      const ig=(it.venta!=null&&it.costo!=null)?(it.venta-it.costo):null;
+      const ip=(ig!=null&&it.costo>0)?(ig/it.costo*100):null;
+      aoa.push([g.nocoti?"":g.coti,it.op,it.cliente,tipo,it.item,it.origen,it.cant,
+        it.costo!=null?_r2(it.costo):"",
+        it.venta!=null?_r2(it.venta):"",
+        ig!=null?_r2(ig):"",
+        ip!=null?ip.toFixed(1)+"%":""]);
+    });
     const venta=_ccVentaVal(i);const {gan,pct}=_ccGan(g.costo,venta);
     aoa.push([g.nocoti?"(sin coti.)":g.coti,[...g.ops].join(", "),g.cliente,"TOTAL","","","",_r2(g.costo),venta==null?"—":_r2(venta),gan==null?"—":_r2(gan),pct==null?"—":pct.toFixed(1)+"%"]);
   });
