@@ -1071,7 +1071,12 @@ html[data-theme="light"]{ --brand:#2563c9; --brand-dark:#1e4fa8; }
       <div class="card">
         <div class="card-title"><i class="ti ti-currency-dollar"></i>Precios de Materia Prima (carga masiva)</div>
         <div style="font-size:11px;color:var(--text-soft);margin-bottom:10px">1) Descarga la plantilla con tus materiales. 2) Llena la columna <strong>Precio</strong>. 3) Súbela: se actualizan los precios de <strong>ambas sedes</strong> (Custom y Mecaniza) de golpe. Vuelve a subirla cuando cambien los costos.</div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+          <select id="preciosMPStock" class="form-input" style="max-width:190px" title="Qué materiales incluir en la plantilla">
+            <option value="todos">Todos los materiales</option>
+            <option value="con">Solo con stock</option>
+            <option value="sin">Solo sin stock</option>
+          </select>
           <button class="btn btn-blue" onclick="descargarPlantillaPreciosMP()"><i class="ti ti-download"></i>Descargar plantilla</button>
           <button class="btn btn-red" onclick="document.getElementById('preciosMPInput').click()"><i class="ti ti-upload"></i>Cargar precios llenos</button>
           <input type="file" id="preciosMPInput" style="display:none" accept=".xlsx,.xls" onchange="cargarPreciosMP(event)">
@@ -3772,6 +3777,12 @@ function pedirFiltros(cfgF){
   (cfgF.textos||[]).forEach(t=>{
     h+=`<div style="margin-bottom:14px"><label class="form-label">${esc(t.label)}</label><input class="form-input" id="rf_txt_${t.key}" placeholder="${escAttr(t.placeholder||"")}" autocomplete="off"${t.numeric?' inputmode="numeric" oninput="this.value=this.value.replace(/\\D/g,\'\')"':""}></div>`;
   });
+  (cfgF.selects||[]).forEach(s=>{
+    h+=`<div style="margin-bottom:14px"><label class="form-label">${esc(s.label)}</label>
+      <select class="form-input" id="rf_sel_${s.key}">
+      ${s.options.map(o=>`<option value="${escAttr(o.value)}"${o.value===s.def?" selected":""}>${esc(o.label)}</option>`).join("")}
+      </select></div>`;
+  });
   (cfgF.grupos||[]).forEach(g=>{
     h+=`<div style="margin-bottom:14px"><label class="form-label">${esc(g.label)} <span style="color:var(--text-faint);font-weight:400">(elige uno o varios)</span></label>
       <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:5px" data-rfgroup="${g.key}">
@@ -3793,6 +3804,7 @@ function _repFiltGenerar(){
   if(!_repFiltCfg)return;
   const f={desde:document.getElementById("rf_desde")?.value||"",hasta:document.getElementById("rf_hasta")?.value||"",incluirHist:!!document.getElementById("rf_hist")?.checked,material:document.getElementById("rf_material")?.value.trim()||""};
   (_repFiltCfg.grupos||[]).forEach(g=>{f[g.key]=[...document.querySelectorAll(`#repFiltCampos [data-rfgroup="${g.key}"] input:checked`)].map(cb=>cb.value);});
+  (_repFiltCfg.selects||[]).forEach(s=>{f[s.key]=document.getElementById("rf_sel_"+s.key)?.value||s.def||"";});
   (_repFiltCfg.textos||[]).forEach(t=>{f[t.key]=(document.getElementById("rf_txt_"+t.key)?.value||"").trim();});
   closeModal("modalRepFiltros");
   _repFiltCfg.onGenerar(f);
@@ -4014,91 +4026,302 @@ async function repStockMuertoAlm(f){
 // NUEVO: Costo por cotización — junta el consumo de MP (por sus OPs) + los productos de almacén,
 // por cotización, en un período; rellena los huecos de la secuencia; busca por cotización u OP.
 function abrirRepCostoCotiz(){
-  pedirFiltros({titulo:"Costo por cotización",fechas:true,textos:[
-    {key:"cotiz",label:"Buscar por N° Cotización (opcional)",placeholder:"Ej: 2602601",numeric:true},
-    {key:"opb",label:"Buscar por N° OP (opcional)",placeholder:"Ej: E009846"},
-  ],onGenerar:repCostoCotizacion});
+  pedirFiltros({titulo:"Costo por cotización",fechas:true,
+    selects:[
+      {key:"moneda",label:"Moneda del reporte",def:"PEN",options:[{value:"PEN",label:"S/ Soles"},{value:"USD",label:"$ USD"},{value:"EUR",label:"€ EUR"}]},
+      {key:"sede",label:"Sede",def:"todas",options:[{value:"todas",label:"Todas"},{value:"custom",label:"Custom"},{value:"mecaniza",label:"Mecaniza"}]},
+    ],
+    textos:[
+      {key:"cotiz",label:"Buscar por N° Cotización (opcional)",placeholder:"Ej: 2602601",numeric:true},
+      {key:"opb",label:"Buscar por N° OP (opcional)",placeholder:"Ej: E009846"},
+    ],onGenerar:repCostoCotizacion});
 }
+// Convierte un valor de la moneda `from` a la moneda `to` (pasando por PEN).
+function _aMoneda(v,from,to){
+  const pen=_aPen(v,from);
+  if(!to||to==="PEN")return pen;
+  const {eur,usd}=_tcambio();
+  if(to==="USD")return pen/(usd||1);
+  if(to==="EUR")return pen/(eur||1);
+  return pen;
+}
+function _r2(n){return Math.round((Number(n)||0)*100)/100;}
+// Fuerza MAYÚSCULAS en vivo en todos los campos de nombre de cliente / proveedor.
+(function(){
+  const CAMPOS_NOMBRE=['cli_nombre','cli_nom_comercial','cli_nombre_nat','cli_ape_pat','cli_ape_mat'];
+  const esNombreCliProv=el=>{
+    if(!el||(el.tagName!=="INPUT"&&el.tagName!=="TEXTAREA")||!el.id)return false;
+    return /(_cliente|_proveedor)$/.test(el.id)||CAMPOS_NOMBRE.includes(el.id);
+  };
+  document.addEventListener("input",e=>{
+    const el=e.target; if(!esNombreCliProv(el))return;
+    const pos=el.selectionStart, u=el.value.toUpperCase();
+    if(el.value!==u){el.value=u; try{el.setSelectionRange(pos,pos);}catch(_){}}
+  },true);
+})();
 async function repCostoCotizacion(f){
   repCargando(true);
   const cotizF=(f.cotiz||"").replace(/\D/g,""); const opF=(f.opb||"").trim();
-  // 1) Consumos de MP con cotización
-  let cons=[];
-  for(let from=0;;from+=1000){
-    let q=sb.from("consumos_ops").select("cotizacion,op,cliente_nombre,material,consumido,tubo_id,tubo_instancia_id,fecha").not("cotizacion","is",null).range(from,from+999);
-    if(f.desde)q=q.gte("fecha",f.desde); if(f.hasta)q=q.lte("fecha",f.hasta);
-    if(cotizF)q=q.eq("cotizacion",cotizF); if(opF)q=q.eq("op",opF);
-    const {data,error}=await q; if(error||!data?.length)break; cons=cons.concat(data); if(data.length<1000)break;
-  }
-  const tids=[...new Set(cons.map(c=>c.tubo_id).filter(Boolean))];
-  const iids=[...new Set(cons.map(c=>c.tubo_instancia_id).filter(Boolean))];
-  const tmap={},imap={};
-  for(let i=0;i<tids.length;i+=300){const {data:ts}=await sb.from("tubos").select("id,precio,moneda,altura_total").in("id",tids.slice(i,i+300));(ts||[]).forEach(t=>tmap[t.id]=t);}
-  for(let i=0;i<iids.length;i+=300){const {data:is}=await sb.from("tubo_instancias").select("id,altura_total").in("id",iids.slice(i,i+300));(is||[]).forEach(x=>imap[x.id]=x.altura_total);}
-  // 2) Salidas de almacén con cotización (op_numero)
-  const almDefs=[
-    {mov:"mercaderia_movimientos",prod:"mercaderias",fk:"mercaderia_id",lbl:"Almacén Custom"},
-    {mov:"alm_mecaniza_movimientos",prod:"alm_mecaniza_productos",fk:"producto_id",lbl:"Almacén Mecaniza"},
-    {mov:"suministros_movimientos",prod:"suministros_productos",fk:"producto_id",lbl:"Suministros"},
-  ];
-  let alm=[];
-  for(const d of almDefs){
-    let q=sb.from(d.mov).select(`op_numero,op,cantidad,cliente_nombre,fecha,${d.fk}`).eq("tipo","salida").not("op_numero","is",null).limit(50000);
-    if(f.desde)q=q.gte("fecha",f.desde); if(f.hasta)q=q.lte("fecha",f.hasta);
-    if(cotizF)q=q.eq("op_numero",cotizF); if(opF)q=q.eq("op",opF);
-    const {data}=await q; (data||[]).forEach(m=>alm.push({...m,_d:d}));
-  }
-  const pmap={};
-  for(const d of almDefs){
-    const ids=[...new Set(alm.filter(m=>m._d.mov===d.mov).map(m=>m[d.fk]).filter(Boolean))];
-    for(let i=0;i<ids.length;i+=300){const {data:ps}=await sb.from(d.prod).select("id,nombre,precio_unitario,moneda").in("id",ids.slice(i,i+300));(ps||[]).forEach(p=>pmap[d.mov+"|"+p.id]={nombre:p.nombre,precio:p.precio_unitario,moneda:p.moneda});}
-  }
-  // Último precio de COMPRA por producto (de las entradas con precio) — prioritario sobre el precio del sistema.
-  const compraMap={};
-  for(const d of almDefs){
-    const ids=[...new Set(alm.filter(m=>m._d.mov===d.mov).map(m=>m[d.fk]).filter(Boolean))];
-    for(let i=0;i<ids.length;i+=200){
-      const {data:es}=await sb.from(d.mov).select(`${d.fk},precio_unitario,moneda,fecha`).eq("tipo","entrada").not("precio_unitario","is",null).in(d.fk,ids.slice(i,i+200)).order("fecha",{ascending:false});
-      (es||[]).forEach(m=>{const k=d.mov+"|"+m[d.fk];if(!(k in compraMap))compraMap[k]={precio:m.precio_unitario,moneda:m.moneda||"PEN"};});
+  const moneda=(f.moneda||"PEN"); const sym=(_MONEDA_SIMBOLO[moneda]||moneda);
+  const sede=(f.sede||"todas"); const wantCustom=(sede==="todas"||sede==="custom"), wantMec=(sede==="todas"||sede==="mecaniza");
+  try{
+    // 1) Consumos de MP (CON y SIN cotización) — filtra por sede
+    let cons=[];
+    for(let from=0;;from+=1000){
+      let q=sb.from("consumos_ops").select("cotizacion,op,cliente_nombre,material,consumido,tubo_id,tubo_instancia_id,di,de,largo,fecha,sede").range(from,from+999);
+      if(f.desde)q=q.gte("fecha",f.desde); if(f.hasta)q=q.lte("fecha",f.hasta);
+      if(cotizF)q=q.eq("cotizacion",cotizF); if(opF)q=q.eq("op",opF);
+      const {data,error}=await q; if(error||!data?.length)break; cons=cons.concat(data); if(data.length<1000)break;
     }
+    cons=cons.filter(c=>((c.sede||"custom")==="mecaniza")?wantMec:wantCustom);
+    const tids=[...new Set(cons.map(c=>c.tubo_id).filter(Boolean))];
+    const iids=[...new Set(cons.map(c=>c.tubo_instancia_id).filter(Boolean))];
+    const tmap={},imap={};
+    for(let i=0;i<tids.length;i+=300){const {data:ts}=await sb.from("tubos").select("id,precio,moneda,altura_total").in("id",tids.slice(i,i+300));(ts||[]).forEach(t=>tmap[t.id]=t);}
+    for(let i=0;i<iids.length;i+=300){const {data:is}=await sb.from("tubo_instancias").select("id,altura_total").in("id",iids.slice(i,i+300));(is||[]).forEach(x=>imap[x.id]=x.altura_total);}
+    // 2) Salidas de almacén con cotización (op_numero) — SOLO Custom/Mecaniza, sin suministros, sin traslados
+    const almDefs=[];
+    if(wantCustom)almDefs.push({mov:"mercaderia_movimientos",prod:"mercaderias",fk:"mercaderia_id",lbl:"Almacén Custom"});
+    if(wantMec)almDefs.push({mov:"alm_mecaniza_movimientos",prod:"alm_mecaniza_productos",fk:"producto_id",lbl:"Almacén Mecaniza"});
+    let alm=[];
+    for(const d of almDefs){
+      let q=sb.from(d.mov).select(`op_numero,op,cantidad,cliente_nombre,fecha,motivo,precio_unitario,moneda,${d.fk}`).eq("tipo","salida").not("op_numero","is",null).limit(50000);
+      if(f.desde)q=q.gte("fecha",f.desde); if(f.hasta)q=q.lte("fecha",f.hasta);
+      if(cotizF)q=q.eq("op_numero",cotizF); if(opF)q=q.eq("op",opF);
+      const {data}=await q; (data||[]).forEach(m=>{ if(m.motivo!==MOTIVO_TRANSFER) alm.push({...m,_d:d}); });
+    }
+    const pmap={};
+    for(const d of almDefs){
+      const ids=[...new Set(alm.filter(m=>m._d.mov===d.mov).map(m=>m[d.fk]).filter(Boolean))];
+      for(let i=0;i<ids.length;i+=300){const {data:ps}=await sb.from(d.prod).select("id,nombre,precio_unitario,moneda").in("id",ids.slice(i,i+300));(ps||[]).forEach(p=>pmap[d.mov+"|"+p.id]={nombre:p.nombre,precio:p.precio_unitario,moneda:p.moneda});}
+    }
+    // Último precio de COMPRA por producto (entradas con precio) — prioritario sobre el precio del sistema.
+    const compraMap={};
+    for(const d of almDefs){
+      const ids=[...new Set(alm.filter(m=>m._d.mov===d.mov).map(m=>m[d.fk]).filter(Boolean))];
+      for(let i=0;i<ids.length;i+=200){
+        const {data:es}=await sb.from(d.mov).select(`${d.fk},precio_unitario,moneda,fecha`).eq("tipo","entrada").not("precio_unitario","is",null).in(d.fk,ids.slice(i,i+200)).order("fecha",{ascending:false});
+        (es||[]).forEach(m=>{const k=d.mov+"|"+m[d.fk];if(!(k in compraMap))compraMap[k]={precio:m.precio_unitario,moneda:m.moneda||"PEN"};});
+      }
+    }
+    // 3) Ítems normalizados (costo en la moneda elegida)
+    const items=[];
+    cons.forEach(c=>{
+      const t=tmap[c.tubo_id]; let costo=null;
+      if(t&&t.precio!=null&&t.precio!==""){const largo=instTot({altura_total:imap[c.tubo_instancia_id]},t);if(largo>0)costo=(_aMoneda(t.precio,t.moneda,moneda)/largo)*(c.consumido||0);}
+      const coti=String(c.cotizacion||"").trim();
+      const dims=(c.di!=null||c.de!=null||c.largo!=null)?` ${c.di??0} / ${c.de??0} / ${c.largo??0}`:"";
+      // MP: el precio de venta arranca duplicando el costo (queda vacío si aún no hay precio de tubo)
+      items.push({coti,op:c.op||"",cliente:c.cliente_nombre||"",mp:true,item:((c.material||"")+dims).trim(),origen:"Materia Prima",cant:Math.round(c.consumido||0)+" mm",costo,venta:costo,nocoti:!coti});
+    });
+    alm.forEach(m=>{
+      const key=m._d.mov+"|"+m[m._d.fk]; const compra=compraMap[key]; const p=pmap[key];
+      let precioU=null,mon="PEN";
+      if(compra){precioU=compra.precio;mon=compra.moneda;}
+      else if(p&&p.precio!=null&&p.precio!==""){precioU=p.precio;mon=p.moneda;}
+      const cant=Number(m.cantidad)||0;
+      const costo=(precioU!=null)?_aMoneda(precioU,mon,moneda)*cant:null;
+      // Venta directa: usa el precio ingresado en la salida; si no hay, cae al costo.
+      const venta=(m.precio_unitario!=null&&m.precio_unitario!=="")?_aMoneda(m.precio_unitario,m.moneda||"PEN",moneda)*cant:costo;
+      const coti=String(m.op_numero||"").trim();
+      items.push({coti,op:m.op||"",cliente:m.cliente_nombre||"",mp:false,item:p?.nombre||"",origen:m._d.lbl,cant:cant+" und",costo,venta,nocoti:!coti});
+    });
+    // 4) Agrupar: por cotización (las que tienen), por OP (las sin cotización)
+    const grupos={};
+    items.forEach(it=>{
+      const key=it.nocoti?("OP::"+it.op):("C::"+it.coti);
+      const g=grupos[key]=grupos[key]||{coti:it.nocoti?"":it.coti,nocoti:it.nocoti,ops:new Set(),cliente:"",items:[],costo:0,_vsum:0,_vhas:false};
+      if(it.op)g.ops.add(it.op);
+      if(!g.cliente&&it.cliente)g.cliente=it.cliente;
+      g.items.push(it);
+      if(it.costo!=null)g.costo+=it.costo;
+      if(it.venta!=null){g._vsum+=it.venta;g._vhas=true;}
+    });
+    // 5) Precios de venta ya guardados (convertidos a la moneda del reporte)
+    const cotizList=[...new Set(Object.values(grupos).filter(g=>!g.nocoti).map(g=>g.coti))];
+    const precios={};
+    for(let i=0;i<cotizList.length;i+=300){
+      const {data}=await sb.from("cotizacion_precios").select("cotizacion,precio,moneda").in("cotizacion",cotizList.slice(i,i+300));
+      (data||[]).forEach(r=>{precios[r.cotizacion]=_r2(_aMoneda(r.precio,r.moneda||"PEN",moneda));});
+    }
+    // 6) Ordenar: cotizaciones asc, luego las sin cotización por OP
+    const arr=Object.values(grupos).map(g=>({...g,costo:_r2(g.costo),ventaAuto:g._vhas?_r2(g._vsum):null}));
+    arr.sort((a,b)=>{
+      if(a.nocoti!==b.nocoti)return a.nocoti?1:-1;
+      if(a.nocoti)return String([...a.ops][0]||"").localeCompare(String([...b.ops][0]||""));
+      return (parseInt(a.coti.replace(/\D/g,""))||0)-(parseInt(b.coti.replace(/\D/g,""))||0);
+    });
+    repCargando(false);
+    if(!arr.length){ toast("No hay datos para los filtros elegidos","err"); return; }
+    _renderCostoCotiz(arr,precios,{sub:_subF(f),moneda,sym,sede,sedeLbl:(sede==="custom"?"Custom":sede==="mecaniza"?"Mecaniza":"Todas"),cotizF,opF});
+  }catch(e){ repCargando(false); toast("Error generando el reporte: "+(e.message||e),"err"); }
+}
+// ── Reporte "Costo por cotización": vista interactiva (acordeón + carga de precios) ──
+let _ccState=null;
+function _ccMoney(n){const s=(_ccState&&_ccState.meta&&_ccState.meta.sym)||"S/";return s+" "+(_r2(n)).toLocaleString("es-PE",{minimumFractionDigits:2});}
+function _ccGan(costo,venta){if(venta==null)return{gan:null,pct:null};const gan=venta-costo;return{gan,pct:costo>0?gan/costo*100:null};}
+function _ccVentaVal(i){const st=_ccState;const g=st.arr[i];if(g.nocoti)return null;const raw=(st.edits[i]!=null)?st.edits[i]:(st.precios[g.coti]!=null?st.precios[g.coti]:(g.ventaAuto!=null?g.ventaAuto:""));return(raw===""||raw==null)?null:Number(raw);}
+function _ccDetailHtml(g){
+  return `<div class="cc-dlbl">Detalle del costo — ${g.items.length} línea(s)</div>
+    <table class="cc-dtable"><thead><tr><th>Origen</th><th>Ítem / Material</th><th>Cantidad</th><th style="text-align:right">Costo</th></tr></thead>
+    <tbody>${g.items.map(it=>`<tr><td><span class="${it.mp?'cc-mp':'cc-alm'}">${it.mp?'MP':'Almacén'}</span></td><td>${esc(it.item||'—')}</td><td>${esc(it.cant)}</td><td style="text-align:right">${it.costo!=null?_ccMoney(it.costo):'—'}</td></tr>`).join("")}</tbody></table>
+    <div class="cc-dtot">Costo total: <b>${_ccMoney(g.costo)}</b></div>`;
+}
+function _ccRowHtml(g,i){
+  const opTxt=[...g.ops].join(", ")||"—";
+  const isFinal=!g.nocoti&&_ccState.precios[g.coti]!=null;
+  const venta=g.nocoti?"":( _ccState.edits[i]!=null?_ccState.edits[i]:(isFinal?_ccState.precios[g.coti]:(g.ventaAuto!=null?g.ventaAuto:"")) );
+  const ventaTitle=isFinal?"Precio final guardado por Producción":"Sugerido (precio de las salidas o costo). Editá y guardá para fijar el precio final.";
+  return `<div class="cc-tr">
+    <div class="cc-row gridcc" id="ccRow${i}" onclick="_ccToggle(${i})">
+      <div>${g.nocoti?'':`<input type="checkbox" class="cc-sel" onclick="event.stopPropagation();_ccSel(${i},this.checked)">`}</div>
+      <div class="cc-coti">${g.nocoti?'<span class="cc-tag">sin coti.</span>':esc(g.coti)}</div>
+      <div class="cc-op" title="${escAttr(opTxt)}">${esc(opTxt)}</div>
+      <div class="cc-cli" title="${escAttr(g.cliente||'')}">${esc(g.cliente||'—')}</div>
+      <div class="cc-costo">${_ccMoney(g.costo)}</div>
+      <div>${g.nocoti?'<div class="cc-mut" style="text-align:right">—</div>':`<input class="cc-venta${isFinal?'':' cc-auto'}" type="number" step="0.01" placeholder="cargar…" value="${venta}" title="${escAttr(ventaTitle)}" onclick="event.stopPropagation()" oninput="_ccPrice(${i},this.value)">`}</div>
+      <div class="cc-gan cc-mut" id="ccGan${i}" style="text-align:right">—</div>
+      <div class="cc-pct cc-mut" id="ccPct${i}" style="text-align:right">—</div>
+      <div class="cc-chev">▶</div>
+    </div>
+    <div class="cc-detail" id="ccDet${i}">${_ccDetailHtml(g)}</div>
+  </div>`;
+}
+function _renderCostoCotiz(arr,precios,meta){
+  _ccState={arr,precios:{...precios},meta,edits:{},sel:new Set()};
+  document.getElementById("reporteOverlay")?.remove();
+  if(!document.getElementById("ccStyles")){
+    document.head.insertAdjacentHTML("beforeend",`<style id="ccStyles">
+      #reporteOverlay .cc-chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+      #reporteOverlay .cc-chip{background:var(--bg-input);border:1px solid var(--border-soft);border-radius:10px;padding:6px 12px;min-width:92px}
+      #reporteOverlay .cc-cl{font-size:9px;text-transform:uppercase;letter-spacing:.6px;color:var(--text-faint);font-weight:600}
+      #reporteOverlay .cc-cv{font-size:15px;font-weight:700;margin-top:2px}
+      #reporteOverlay .cc-red{color:var(--red)} #reporteOverlay .cc-green{color:var(--green)}
+      #reporteOverlay .gridcc{display:grid;grid-template-columns:30px 88px 92px 1fr 108px 126px 112px 56px 20px;gap:8px;align-items:center}
+      #reporteOverlay .cc-head{padding:8px 10px;font-size:9px;text-transform:uppercase;letter-spacing:.5px;color:var(--text-faint);font-weight:600;background:var(--bg-sidebar);border:1px solid var(--border-soft);border-bottom:none;border-radius:8px 8px 0 0}
+      #reporteOverlay .cc-rows{border:1px solid var(--border-soft);border-radius:0 0 8px 8px;overflow:auto;max-height:52vh}
+      #reporteOverlay .cc-tr{border-bottom:1px solid var(--border-soft)}
+      #reporteOverlay .cc-row{padding:9px 10px;cursor:pointer;transition:background .12s}
+      #reporteOverlay .cc-row:hover{background:var(--bg-card-2)}
+      #reporteOverlay .cc-row.cc-dirty{box-shadow:inset 3px 0 0 var(--green)}
+      #reporteOverlay .cc-coti{font-weight:700;color:var(--text-strong);font-size:12px}
+      #reporteOverlay .cc-op{font-size:11px;color:var(--blue);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+      #reporteOverlay .cc-cli{font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+      #reporteOverlay .cc-costo{font-size:12px;font-weight:600;color:var(--red);text-align:right}
+      #reporteOverlay .cc-gan{font-size:12px;font-weight:700}
+      #reporteOverlay .cc-pct{font-size:11px;font-weight:600}
+      #reporteOverlay .cc-pos{color:var(--green)} #reporteOverlay .cc-neg{color:var(--red)} #reporteOverlay .cc-mut{color:var(--text-faint)}
+      #reporteOverlay .cc-venta{width:100%;background:var(--bg-input);border:1px solid var(--border);border-radius:7px;padding:6px 8px;color:var(--green);font-size:12px;font-weight:600;text-align:right;outline:none}
+      #reporteOverlay .cc-venta:focus{border-color:var(--green)}
+      #reporteOverlay .cc-venta.cc-auto{color:var(--text-soft);font-style:italic;font-weight:500}
+      #reporteOverlay .cc-sel{width:15px;height:15px;accent-color:var(--green);cursor:pointer}
+      #reporteOverlay .cc-chev{color:var(--text-faint);font-size:11px;text-align:center;transition:transform .2s}
+      #reporteOverlay .cc-row.cc-open .cc-chev{transform:rotate(90deg);color:var(--red)}
+      #reporteOverlay .cc-tag{font-size:8.5px;background:var(--bg-input);border:1px solid var(--border);color:var(--text-faint);padding:1px 5px;border-radius:4px}
+      #reporteOverlay .cc-detail{display:none;padding:2px 12px 12px 38px;background:var(--bg-sidebar)}
+      #reporteOverlay .cc-detail.cc-show{display:block}
+      #reporteOverlay .cc-dlbl{font-size:9px;text-transform:uppercase;letter-spacing:.5px;color:var(--text-faint);font-weight:600;margin:8px 0 5px}
+      #reporteOverlay .cc-dtable{width:100%;border-collapse:collapse;font-size:11px}
+      #reporteOverlay .cc-dtable th{text-align:left;color:var(--text-faint);font-weight:600;font-size:9px;text-transform:uppercase;padding:4px 7px;border-bottom:1px solid var(--border-soft)}
+      #reporteOverlay .cc-dtable td{padding:5px 7px;border-bottom:1px solid var(--border-soft);color:var(--text)}
+      #reporteOverlay .cc-mp{color:var(--violet);font-size:9px;font-weight:700;background:rgba(163,119,240,.12);padding:1px 5px;border-radius:4px}
+      #reporteOverlay .cc-alm{color:var(--blue);font-size:9px;font-weight:700;background:var(--blue-bg);padding:1px 5px;border-radius:4px}
+      #reporteOverlay .cc-dtot{text-align:right;padding:7px;font-size:11px;color:var(--text-soft)}
+      #reporteOverlay .cc-dtot b{color:var(--text-strong)}
+      #reporteOverlay .cc-savebar{display:none;align-items:center;justify-content:space-between;gap:12px;padding:10px;margin-top:8px;background:var(--bg-card-2);border:1px solid var(--border);border-radius:10px}
+      #reporteOverlay .cc-saveinfo{font-size:12px;color:var(--text)} #reporteOverlay .cc-saveinfo b{color:var(--green)}
+    </style>`);
   }
-  // 3) Ítems normalizados. Costo = null → queda VACÍO (no hay ningún precio).
-  const items=[];
-  cons.forEach(c=>{
-    const t=tmap[c.tubo_id]; let costo=null; // MP: usa el precio del tubo (que ES el último precio de compra)
-    if(t&&t.precio!=null&&t.precio!==""){const largo=instTot({altura_total:imap[c.tubo_instancia_id]},t);if(largo>0)costo=(_aPen(t.precio,t.moneda)/largo)*(c.consumido||0);}
-    items.push({cotiN:parseInt(String(c.cotizacion).replace(/\D/g,""))||0,coti:String(c.cotizacion),op:c.op||"",cliente:c.cliente_nombre||"",mp:true,item:c.material||"",origen:"Materia Prima",cant:Math.round(c.consumido||0)+" mm",costo});
-  });
-  alm.forEach(m=>{
-    const key=m._d.mov+"|"+m[m._d.fk]; const compra=compraMap[key]; const p=pmap[key];
-    let precioU=null,moneda="PEN";
-    if(compra){precioU=compra.precio;moneda=compra.moneda;}                     // 1) última compra
-    else if(p&&p.precio!=null&&p.precio!==""){precioU=p.precio;moneda=p.moneda;} // 2) precio del sistema
-    const costo=(precioU!=null)?_aPen(precioU,moneda)*(Number(m.cantidad)||0):null; // 3) ninguno → vacío
-    items.push({cotiN:parseInt(String(m.op_numero).replace(/\D/g,""))||0,coti:String(m.op_numero),op:m.op||"",cliente:m.cliente_nombre||"",mp:false,item:p?.nombre||"",origen:m._d.lbl,cant:(Number(m.cantidad)||0)+" und",costo});
-  });
-  // 4) Agrupar por cotización
-  const porCoti={};
-  items.forEach(it=>{const g=porCoti[it.cotiN]=porCoti[it.cotiN]||{items:[],cliente:"",mp:false};g.items.push(it);if(it.mp)g.mp=true;if(!g.cliente&&it.cliente)g.cliente=it.cliente;});
-  const usados=Object.keys(porCoti).map(Number).filter(n=>n>0).sort((a,b)=>a-b);
-  // 5) Armar filas (con huecos de la secuencia si no se buscó puntual)
-  const aoa=[["Cotización","OP","Cliente","Tipo","Ítem / Material","Origen","Cantidad","Costo (S/)","Precio venta (S/)","Ganancia %"]];
-  let total=0;
-  const pushCoti=cn=>{
-    const g=porCoti[cn];
-    if(!g){aoa.push([String(cn),"","","","","","","","",""]);return;} // hueco (no usada)
-    const tipo=g.mp?"Fabricación":"Venta directa";
-    g.items.forEach(it=>{if(it.costo!=null)total+=it.costo;aoa.push([it.coti,it.op,it.cliente,tipo,it.item,it.origen,it.cant,it.costo!=null?Math.round(it.costo*100)/100:"","",""]);});
-  };
-  if(cotizF||opF){ usados.forEach(pushCoti); }
-  else if(usados.length){
-    const min=usados[0],max=usados[usados.length-1];
-    if(max-min<=2000){ for(let n=min;n<=max;n++) pushCoti(n); } else usados.forEach(pushCoti);
+  const rowsHtml=arr.map((g,i)=>_ccRowHtml(g,i)).join("");
+  const html=`<div id="reporteOverlay" class="modal-overlay" onclick="if(event.target===this)this.remove()">
+    <div class="modal" style="max-width:1150px;max-height:92vh;display:flex;flex-direction:column">
+      <div class="modal-title"><i class="ti ti-file-analytics" style="color:var(--blue)"></i>Costo por cotización</div>
+      <div style="font-size:12px;color:var(--text-soft);margin-bottom:8px">${esc(meta.sub)} · Moneda: <b style="color:var(--green)">${esc(meta.sym)}</b> · Sede: ${esc(meta.sedeLbl)} · ${arr.length} cotización(es)</div>
+      <div class="cc-chips">
+        <div class="cc-chip"><div class="cc-cl">Costo total</div><div class="cc-cv cc-red" id="ccTotCosto">—</div></div>
+        <div class="cc-chip"><div class="cc-cl">Venta total</div><div class="cc-cv cc-green" id="ccTotVenta">—</div></div>
+        <div class="cc-chip"><div class="cc-cl">Ganancia</div><div class="cc-cv" id="ccTotGan">—</div></div>
+      </div>
+      <div class="cc-head gridcc">
+        <div><input type="checkbox" class="cc-sel" onclick="_ccSelAll(this.checked)" title="Seleccionar todas"></div>
+        <div>Cotización</div><div>OP</div><div>Cliente</div>
+        <div style="text-align:right">Costo</div><div style="text-align:right">Precio venta</div>
+        <div style="text-align:right">Ganancia</div><div style="text-align:right">%</div><div></div>
+      </div>
+      <div class="cc-rows">${rowsHtml}</div>
+      <div class="cc-savebar" id="ccSaveBar"><div class="cc-saveinfo"><b id="ccSaveCount">0</b> cotización(es) seleccionada(s)</div><button class="btn btn-green" onclick="_ccSave()"><i class="ti ti-device-floppy"></i>Guardar precios</button></div>
+      <div class="modal-footer" style="margin-top:10px">
+        <button class="btn btn-ghost" onclick="document.getElementById('reporteOverlay').remove()">Cerrar</button>
+        <button class="btn btn-ghost" onclick="_ccExcel()"><i class="ti ti-file-spreadsheet"></i>Excel</button>
+      </div>
+    </div></div>`;
+  document.body.insertAdjacentHTML("beforeend",html);
+  if(meta.cotizF||meta.opF){ arr.forEach((g,i)=>_ccToggle(i)); }
+  _ccRecalcTotals();
+}
+function _ccToggle(i){const r=document.getElementById("ccRow"+i),d=document.getElementById("ccDet"+i);if(!r)return;r.classList.toggle("cc-open");d.classList.toggle("cc-show");}
+function _ccRecalc(i){
+  const g=_ccState.arr[i];const {gan,pct}=_ccGan(g.costo,_ccVentaVal(i));
+  const gE=document.getElementById("ccGan"+i),pE=document.getElementById("ccPct"+i);if(!gE)return;
+  if(gan==null){gE.textContent="—";gE.className="cc-gan cc-mut";pE.textContent="—";pE.className="cc-pct cc-mut";}
+  else{const cls=gan>=0?"cc-pos":"cc-neg";gE.textContent=(gan>=0?"+ ":"− ")+_ccMoney(Math.abs(gan));gE.className="cc-gan "+cls;pE.textContent=pct==null?"—":(pct>=0?"+":"")+pct.toFixed(1)+"%";pE.className="cc-pct "+cls;}
+}
+function _ccRecalcTotals(){
+  const st=_ccState;let tc=0,tv=0;
+  st.arr.forEach((g,i)=>{tc+=g.costo;const v=_ccVentaVal(i);if(v!=null)tv+=v;_ccRecalc(i);});
+  const cE=document.getElementById("ccTotCosto");if(cE)cE.textContent=_ccMoney(tc);
+  const vE=document.getElementById("ccTotVenta");if(vE)vE.textContent=_ccMoney(tv);
+  const gE=document.getElementById("ccTotGan");if(gE){const g=tv-tc;gE.textContent=(g>=0?"":"− ")+_ccMoney(Math.abs(g));gE.className="cc-cv "+(g>=0?"cc-green":"cc-red");}
+}
+function _ccPrice(i,val){
+  const st=_ccState;st.edits[i]=val;
+  const inp=document.querySelector(`#ccRow${i} .cc-venta`);if(inp)inp.classList.remove("cc-auto"); // ya no es sugerido
+  if(val!==""){st.sel.add(i);const cb=document.querySelector(`#ccRow${i} .cc-sel`);if(cb)cb.checked=true;document.getElementById("ccRow"+i)?.classList.add("cc-dirty");}
+  _ccRecalc(i);_ccRecalcTotals();_ccUpdateSaveBar();
+}
+function _ccSel(i,checked){const st=_ccState;if(checked)st.sel.add(i);else st.sel.delete(i);document.getElementById("ccRow"+i)?.classList.toggle("cc-dirty",checked);_ccUpdateSaveBar();}
+function _ccSelAll(checked){
+  const st=_ccState;
+  st.arr.forEach((g,i)=>{if(g.nocoti)return;const cb=document.querySelector(`#ccRow${i} .cc-sel`);if(cb)cb.checked=checked;if(checked)st.sel.add(i);else st.sel.delete(i);document.getElementById("ccRow"+i)?.classList.toggle("cc-dirty",checked);});
+  _ccUpdateSaveBar();
+}
+function _ccUpdateSaveBar(){const st=_ccState;const n=st.sel.size;const bar=document.getElementById("ccSaveBar");if(bar)bar.style.display=n>0?"flex":"none";const c=document.getElementById("ccSaveCount");if(c)c.textContent=n;}
+async function _ccSave(){
+  const st=_ccState;if(!st)return;
+  const idxs=[...st.sel];if(!idxs.length){toast("No hay cotizaciones seleccionadas","err");return;}
+  const rows=[];
+  for(const i of idxs){
+    const g=st.arr[i];if(g.nocoti)continue;
+    const raw=(st.edits[i]!=null)?st.edits[i]:(st.precios[g.coti]!=null?st.precios[g.coti]:"");
+    if(raw===""||raw==null)continue;
+    const precio=Number(raw);if(isNaN(precio)||precio<0)continue;
+    rows.push({cotizacion:g.coti,precio,moneda:st.meta.moneda,usuario_id:CU?.id||null});
   }
-  repCargando(false);
-  const sub=(f.desde||f.hasta)?`${fmtFecha(f.desde)||"inicio"} → ${fmtFecha(f.hasta)||"hoy"}`:"Todo el histórico";
-  const resumen=`<div style="font-size:13px;margin-bottom:8px">Costo total: <b style="color:var(--red)">S/ ${(Math.round(total*100)/100).toLocaleString("es-PE",{minimumFractionDigits:2})}</b> · el precio de venta y la ganancia los completa Producción</div>`;
-  verReporte("Costo por cotización",sub,aoa,resumen,"Costo_por_cotizacion");
+  if(!rows.length){toast("Nada válido para guardar","err");return;}
+  let ok=0;
+  for(const r of rows){
+    const {error}=await sb.from("cotizacion_precios").upsert(r,{onConflict:"cotizacion"});
+    if(!error){ok++;st.precios[r.cotizacion]=_r2(r.precio);}
+  }
+  st.sel.clear();st.edits={};
+  document.querySelectorAll("#reporteOverlay .cc-row").forEach(el=>el.classList.remove("cc-dirty"));
+  document.querySelectorAll("#reporteOverlay .cc-sel").forEach(cb=>cb.checked=false);
+  _ccUpdateSaveBar();_ccRecalcTotals();
+  toast(`✓ ${ok} precio(s) de venta guardado(s)`,"ok");
+}
+function _ccExcel(){
+  const st=_ccState;if(!st)return; if(typeof XLSX==="undefined"){toast("La librería de Excel no está disponible","err");return;}
+  const sym=st.meta.sym;
+  const aoa=[["Cotización","OP","Cliente","Tipo","Ítem / Material","Origen","Cantidad",`Costo (${sym})`,`Precio venta (${sym})`,`Ganancia (${sym})`,"Ganancia %"]];
+  st.arr.forEach((g,i)=>{
+    const tipo=g.items.some(x=>x.mp)?"Fabricación":"Venta directa";
+    g.items.forEach(it=>aoa.push([g.nocoti?"":g.coti,it.op,it.cliente,tipo,it.item,it.origen,it.cant,it.costo!=null?_r2(it.costo):"","","",""]));
+    const venta=_ccVentaVal(i);const {gan,pct}=_ccGan(g.costo,venta);
+    aoa.push([g.nocoti?"(sin coti.)":g.coti,[...g.ops].join(", "),g.cliente,"TOTAL","","","",_r2(g.costo),venta==null?"—":_r2(venta),gan==null?"—":_r2(gan),pct==null?"—":pct.toFixed(1)+"%"]);
+  });
+  const ws=XLSX.utils.aoa_to_sheet(aoa);const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,"Costo por cotización");
+  XLSX.writeFile(wb,`Costo_por_cotizacion_${new Date().toISOString().slice(0,10)}.xlsx`);
 }
 
 async function loadConfig(){
@@ -5468,8 +5691,8 @@ async function calcComprasMes(){
     sb.from("alm_mecaniza_movimientos").select("cantidad,precio_unitario,moneda,proveedor,motivo").eq("tipo","entrada").gte("fecha",ini).limit(50000),
     sb.from("suministros_movimientos").select("cantidad,precio_unitario,moneda,proveedor,motivo").eq("tipo","entrada").gte("fecha",ini).limit(50000),
   ]);
-  // Excluir "Inventario inicial": no es una compra (es la carga inicial de stock).
-  const all=[...(m1.data||[]),...(m2.data||[]),...(m3.data||[])].filter(r=>r.motivo!=="Inventario inicial");
+  // Excluir "Inventario inicial" (carga inicial) y "Transferencia entre almacenes" (traslado interno): no son compras.
+  const all=[...(m1.data||[]),...(m2.data||[]),...(m3.data||[])].filter(r=>r.motivo!=="Inventario inicial"&&r.motivo!==MOTIVO_TRANSFER);
   let total=0;const porProv={};
   all.forEach(r=>{const v=_aPen(r.precio_unitario,r.moneda)*(Number(r.cantidad)||0);total+=v;const p=(r.proveedor||"").trim()||"(sin prov.)";porProv[p]=(porProv[p]||0)+v;});
   const top=Object.entries(porProv).sort((a,b)=>b[1]-a[1])[0];
@@ -5644,12 +5867,13 @@ async function dashDetalleValorInv(){
 async function dashDetalleComprasMes(){
   const ini=_sIni();
   const [m1,m2]=await Promise.all([
-    sb.from("mercaderia_movimientos").select("cantidad,precio_unitario,moneda,proveedor,fecha,mercaderia_id").eq("tipo","entrada").gte("fecha",ini).limit(50000),
-    sb.from("alm_mecaniza_movimientos").select("cantidad,precio_unitario,moneda,proveedor,fecha,producto_id").eq("tipo","entrada").gte("fecha",ini).limit(50000),
+    sb.from("mercaderia_movimientos").select("cantidad,precio_unitario,moneda,proveedor,fecha,motivo,mercaderia_id").eq("tipo","entrada").gte("fecha",ini).limit(50000),
+    sb.from("alm_mecaniza_movimientos").select("cantidad,precio_unitario,moneda,proveedor,fecha,motivo,producto_id").eq("tipo","entrada").gte("fecha",ini).limit(50000),
   ]);
+  const _esCompra=r=>r.motivo!=="Inventario inicial"&&r.motivo!==MOTIVO_TRANSFER;
   const rows=[
-    ...(m1.data||[]).map(r=>({...r,_alm:"Custom",_pid:r.mercaderia_id,_tbl:"merc"})),
-    ...(m2.data||[]).map(r=>({...r,_alm:"Mecaniza",_pid:r.producto_id,_tbl:"alm"})),
+    ...(m1.data||[]).filter(_esCompra).map(r=>({...r,_alm:"Custom",_pid:r.mercaderia_id,_tbl:"merc"})),
+    ...(m2.data||[]).filter(_esCompra).map(r=>({...r,_alm:"Mecaniza",_pid:r.producto_id,_tbl:"alm"})),
   ];
   if(!rows.length) return `<div class="no-data" style="padding:20px">Sin compras registradas este mes.</div>`;
   // Nombres de producto (para el detalle de cada compra)
@@ -9051,7 +9275,7 @@ async function saveCliente(){
   if(!perm.editarClientes){toast("Sin permiso","err");return;}
   const v=k=>document.getElementById(k).value.trim();
   const chk=k=>document.getElementById(k).checked;
-  const codigo=v("cli_codigo"),nombre=v("cli_nombre");
+  const codigo=v("cli_codigo"),nombre=(v("cli_nombre")||"").toUpperCase();
   if(!codigo||!nombre){toast("Código y nombre son obligatorios","err");return;}
 
   // ── Reglas configurables de cliente ──
@@ -9072,14 +9296,14 @@ async function saveCliente(){
     ruc:v("cli_ruc")||null,
     dni:v("cli_dni")||null,
     doc_ident:v("cli_doc_ident")||null,
-    nom_comercial:v("cli_nom_comercial")||null,
+    nom_comercial:(v("cli_nom_comercial")||"").toUpperCase()||null,
     ind_cli:chk("cli_ind_cli"),ind_pro:chk("cli_ind_pro"),ind_tra:chk("cli_ind_tra"),ind_otr:chk("cli_ind_otr"),
     ind_domic:chk("cli_ind_domic")?"1":null,
     direccion:v("cli_direccion")||null,
     pais:v("cli_pais")||null,ubigeo:v("cli_ubigeo")||null,des_ubigeo:v("cli_des_ubigeo")||null,
     telefono:v("cli_telefono")||null,celular:v("cli_celular")||null,fax:v("cli_fax")||null,
     email:v("cli_email")||null,pag_web:v("cli_pag_web")||null,contactos:v("cli_contactos")||null,
-    nombre_nat:v("cli_nombre_nat")||null,ape_pat:v("cli_ape_pat")||null,ape_mat:v("cli_ape_mat")||null,
+    nombre_nat:(v("cli_nombre_nat")||"").toUpperCase()||null,ape_pat:(v("cli_ape_pat")||"").toUpperCase()||null,ape_mat:(v("cli_ape_mat")||"").toUpperCase()||null,
     genero:v("cli_genero")||null,fec_nacim:v("cli_fec_nacim")||null,ind_vincul:v("cli_ind_vincul")||null,
     des_tipo_actividad:v("cli_des_tipo_actividad")||null,codanterior:v("cli_codanterior")||null,
     notas:v("cli_notas")||null,
@@ -12358,28 +12582,42 @@ function resolverMotivo(prefix){
 // ── Carga masiva de precios de Materia Prima (plantilla + subida) ──
 async function descargarPlantillaPreciosMP(){
   if(typeof XLSX==="undefined"){toast("La librería de Excel no está disponible","err");return;}
+  const stockF=(document.getElementById("preciosMPStock")?.value)||"todos";
   const prog=document.getElementById("preciosMPProgress"); prog.style.display="block"; prog.innerHTML=`<div class="loading"><div class="spinner"></div>Generando plantilla...</div>`;
   try{
     let tubos=[];
     for(let from=0;;from+=1000){
-      const {data,error}=await sb.from("tubos").select("codigo_mat,descripcion,di,de,altura_total,precio,moneda,sede").range(from,from+999);
+      const {data,error}=await sb.from("tubos").select("id,codigo_mat,descripcion,precio,moneda,sede").range(from,from+999);
       if(error) throw error; if(!data?.length) break; tubos=tubos.concat(data); if(data.length<1000) break;
+    }
+    // IDs de tubos CON stock (≥1 instancia disponible) — solo si el filtro lo necesita
+    const stockIds=new Set();
+    if(stockF!=="todos"){
+      for(let from=0;;from+=1000){
+        const {data,error}=await sb.from("tubo_instancias").select("tubo_id").eq("estado","disponible").range(from,from+999);
+        if(error) throw error; if(!data?.length) break; data.forEach(i=>{if(i.tubo_id)stockIds.add(i.tubo_id);}); if(data.length<1000) break;
+      }
     }
     // Unión por código (una fila por código; muestra en qué sedes existe)
     const porCod={};
     tubos.forEach(t=>{
       const key=(t.codigo_mat||"").trim()||("SINCOD::"+(t.descripcion||""));
-      const g=porCod[key]=porCod[key]||{codigo:t.codigo_mat||"",desc:t.descripcion||"",di:t.di,de:t.de,largo:t.altura_total,precio:t.precio,moneda:t.moneda||"PEN",sedes:new Set()};
+      const g=porCod[key]=porCod[key]||{codigo:t.codigo_mat||"",desc:t.descripcion||"",precio:t.precio,moneda:t.moneda||"PEN",sedes:new Set(),hasStock:false};
       if(t.sede)g.sedes.add(t.sede==="mecaniza"?"Mecaniza":"Custom");
       if((g.precio==null||g.precio==="")&&t.precio!=null)g.precio=t.precio;
+      if(stockIds.has(t.id))g.hasStock=true;
     });
-    const lista=Object.values(porCod).sort((a,b)=>String(a.codigo).localeCompare(String(b.codigo)));
-    const aoa=[["Código","Descripción","DI","DE","Largo","Sede(s)","Moneda","Precio nacionalizado"]];
-    lista.forEach(g=>aoa.push([g.codigo,g.desc,g.di??"",g.de??"",g.largo??"",[...g.sedes].join(" + ")||"—",g.moneda,g.precio??""]));
+    let lista=Object.values(porCod).sort((a,b)=>String(a.codigo).localeCompare(String(b.codigo)));
+    if(stockF==="con") lista=lista.filter(g=>g.hasStock);
+    else if(stockF==="sin") lista=lista.filter(g=>!g.hasStock);
+    if(!lista.length){prog.innerHTML=`<div style="font-size:12px;color:#f5a623">No hay materiales para el filtro elegido (${stockF==="con"?"con stock":"sin stock"}).</div>`;return;}
+    const aoa=[["Código","Descripción","Sede(s)","Moneda","Precio nacionalizado"]];
+    lista.forEach(g=>aoa.push([g.codigo,g.desc,[...g.sedes].join(" + ")||"—",g.moneda,g.precio??""]));
     const ws=XLSX.utils.aoa_to_sheet(aoa);
     const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,"Precios MP");
-    XLSX.writeFile(wb,`Plantilla_precios_MP_${new Date().toISOString().slice(0,10)}.xlsx`);
-    prog.innerHTML=`<div style="font-size:12px;color:var(--green)">✓ Plantilla generada con ${lista.length} materiales. Llena la columna <strong>Precio</strong> y súbela.</div>`;
+    const suf=stockF==="con"?"_con_stock":stockF==="sin"?"_sin_stock":"";
+    XLSX.writeFile(wb,`Plantilla_precios_MP${suf}_${new Date().toISOString().slice(0,10)}.xlsx`);
+    prog.innerHTML=`<div style="font-size:12px;color:var(--green)">✓ Plantilla generada con ${lista.length} materiales${stockF==="con"?" (con stock)":stockF==="sin"?" (sin stock)":""}. Llena la columna <strong>Precio</strong> y súbela.</div>`;
   }catch(e){ prog.innerHTML=`<div style="font-size:12px;color:#e85a5a">Error: ${esc(String(e.message||e))}</div>`; }
 }
 async function cargarPreciosMP(event){
@@ -13064,7 +13302,7 @@ async function loadClientesFile(e){
         const genero=(rawGen==="M"||rawGen==="F")?rawGen:null;
         return{
           codigo:String(get("CODIGO")||"").trim(),
-          nombre:String(get("NOMBRE")||"").trim(),
+          nombre:String(get("NOMBRE")||"").trim().toUpperCase(),
           ruc:onlyDigits(get("RUC")),dni:onlyDigits(get("DNI")),
           tipo,estado,genero,
           ind_domic:String(get("IND_DOMIC")||"").trim()||null,
@@ -13074,7 +13312,7 @@ async function loadClientesFile(e){
           pais:String(get("PAIS")||"").trim()||null,
           des_ubigeo:String(get("DES_UBIGEO")||"").trim()||null,
           ubigeo:String(get("UBIGEO")||"").trim()||null,
-          nom_comercial:String(get("NOM_COMERCIAL")||"").trim()||null,
+          nom_comercial:String(get("NOM_COMERCIAL")||"").trim().toUpperCase()||null,
           email:String(get("EMAIL")||"").trim()||null,
           telefono:String(get("TELEFONO")||"").trim()||null,
           celular:String(get("CELULAR")||"").trim()||null,
