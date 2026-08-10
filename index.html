@@ -4111,8 +4111,9 @@ async function repCostoCotizacion(f){
       if(t&&t.precio!=null&&t.precio!==""){const largo=instTot({altura_total:imap[c.tubo_instancia_id]},t);if(largo>0)costo=(_aMoneda(t.precio,t.moneda,moneda)/largo)*(c.consumido||0);}
       const coti=String(c.cotizacion||"").trim();
       const dims=(c.di!=null||c.de!=null||c.largo!=null)?` ${c.di??0} / ${c.de??0} / ${c.largo??0}`:"";
-      // MP: el precio de venta arranca duplicando el costo (queda vacío si aún no hay precio de tubo)
-      items.push({coti,op:c.op||"",cliente:c.cliente_nombre||"",mp:true,item:((c.material||"")+dims).trim(),origen:"Materia Prima",cant:Math.round(c.consumido||0)+" mm",costo,venta:costo,nocoti:!coti});
+      // MP (fabricación): muestra SOLO el costo. Sin precio de venta ni ganancia por ahora
+      // (la ganancia saldrá del precio final por cotización que cargue Producción).
+      items.push({coti,op:c.op||"",cliente:c.cliente_nombre||"",mp:true,item:((c.material||"")+dims).trim(),origen:"Materia Prima",cant:Math.round(c.consumido||0)+" mm",costo,venta:null,nocoti:!coti});
     });
     alm.forEach(m=>{
       const key=m._d.mov+"|"+m[m._d.fk]; const compra=compraMap[key]; const p=pmap[key];
@@ -4121,8 +4122,12 @@ async function repCostoCotizacion(f){
       else if(p&&p.precio!=null&&p.precio!==""){precioU=p.precio;mon=p.moneda;}
       const cant=Number(m.cantidad)||0;
       const costo=(precioU!=null)?_aMoneda(precioU,mon,moneda)*cant:null;
-      // Venta directa: usa el precio ingresado en la salida; si no hay, cae al costo.
-      const venta=(m.precio_unitario!=null&&m.precio_unitario!=="")?_aMoneda(m.precio_unitario,m.moneda||"PEN",moneda)*cant:costo;
+      // Precio de venta: 1) el ingresado en la salida; 2) si no, el PRECIO DEL SISTEMA del producto
+      //    (así se ve la pérdida cuando el precio de compra supera al del sistema en un consumo en OP);
+      //    3) si el producto no tiene precio de sistema, cae al costo (= precio de compra) → ganancia 0.
+      const venta=(m.precio_unitario!=null&&m.precio_unitario!=="")
+        ? _aMoneda(m.precio_unitario,m.moneda||"PEN",moneda)*cant
+        : ((p&&p.precio!=null&&p.precio!=="") ? _aMoneda(p.precio,p.moneda||"PEN",moneda)*cant : costo);
       const coti=String(m.op_numero||"").trim();
       items.push({coti,op:m.op||"",cliente:m.cliente_nombre||"",mp:false,item:p?.nombre||"",origen:m._d.lbl,cant:cant+" und",costo,venta,nocoti:!coti});
     });
@@ -4267,11 +4272,13 @@ function _ccRecalc(i){
   else{const cls=gan>=0?"cc-pos":"cc-neg";gE.textContent=(gan>=0?"+ ":"− ")+_ccMoney(Math.abs(gan));gE.className="cc-gan "+cls;pE.textContent=pct==null?"—":(pct>=0?"+":"")+pct.toFixed(1)+"%";pE.className="cc-pct "+cls;}
 }
 function _ccRecalcTotals(){
-  const st=_ccState;let tc=0,tv=0;
-  st.arr.forEach((g,i)=>{tc+=g.costo;const v=_ccVentaVal(i);if(v!=null)tv+=v;_ccRecalc(i);});
+  // Costo total = todo lo gastado. Venta total = suma de ventas presentes.
+  // Ganancia total = solo sobre cotizaciones CON precio (las de MP sin precio no restan).
+  const st=_ccState;let tc=0,tv=0,tg=0;
+  st.arr.forEach((g,i)=>{tc+=g.costo;const v=_ccVentaVal(i);if(v!=null){tv+=v;tg+=(v-g.costo);}_ccRecalc(i);});
   const cE=document.getElementById("ccTotCosto");if(cE)cE.textContent=_ccMoney(tc);
   const vE=document.getElementById("ccTotVenta");if(vE)vE.textContent=_ccMoney(tv);
-  const gE=document.getElementById("ccTotGan");if(gE){const g=tv-tc;gE.textContent=(g>=0?"":"− ")+_ccMoney(Math.abs(g));gE.className="cc-cv "+(g>=0?"cc-green":"cc-red");}
+  const gE=document.getElementById("ccTotGan");if(gE){gE.textContent=(tg>=0?"":"− ")+_ccMoney(Math.abs(tg));gE.className="cc-cv "+(tg>=0?"cc-green":"cc-red");}
 }
 function _ccPrice(i,val){
   const st=_ccState;st.edits[i]=val;
