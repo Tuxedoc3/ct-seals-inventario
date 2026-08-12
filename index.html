@@ -3925,8 +3925,8 @@ async function repCompras(f){
   repCargando(true);
   const sedes=(f.sedes&&f.sedes.length)?f.sedes:["custom","mecaniza"];
   const tareas=[];
-  if(sedes.includes("custom")) tareas.push(sb.from("mercaderia_movimientos").select("cantidad,precio_unitario,moneda,proveedor,fecha,mercaderia_id").eq("tipo","entrada").gte("fecha",f.desde||"1900-01-01").lte("fecha",f.hasta||"2999-12-31").limit(50000).then(r=>({r,alm:"Custom"})));
-  if(sedes.includes("mecaniza")) tareas.push(sb.from("alm_mecaniza_movimientos").select("cantidad,precio_unitario,moneda,proveedor,fecha,producto_id").eq("tipo","entrada").gte("fecha",f.desde||"1900-01-01").lte("fecha",f.hasta||"2999-12-31").limit(50000).then(r=>({r,alm:"Mecaniza"})));
+  if(sedes.includes("custom")) tareas.push(sb.from("mercaderia_movimientos").select("cantidad,precio_unitario,moneda,proveedor,fecha,motivo,mercaderia_id").eq("tipo","entrada").gte("fecha",f.desde||"1900-01-01").lte("fecha",f.hasta||"2999-12-31").limit(50000).then(r=>({r,alm:"Custom"})));
+  if(sedes.includes("mecaniza")) tareas.push(sb.from("alm_mecaniza_movimientos").select("cantidad,precio_unitario,moneda,proveedor,fecha,motivo,producto_id").eq("tipo","entrada").gte("fecha",f.desde||"1900-01-01").lte("fecha",f.hasta||"2999-12-31").limit(50000).then(r=>({r,alm:"Mecaniza"})));
   const res=await Promise.all(tareas);
   const mids=new Set(),aids=new Set();
   res.forEach(({r,alm})=>(r.data||[]).forEach(x=>{if(alm==="Custom")mids.add(x.mercaderia_id);else aids.add(x.producto_id);}));
@@ -3934,7 +3934,11 @@ async function repCompras(f){
   if(mids.size){const {data}=await sb.from("mercaderias").select("id,nombre").in("id",[...mids].filter(Boolean));(data||[]).forEach(p=>pmap["merc"+p.id]=p.nombre);}
   if(aids.size){const {data}=await sb.from("alm_mecaniza_productos").select("id,nombre").in("id",[...aids].filter(Boolean));(data||[]).forEach(p=>pmap["alm"+p.id]=p.nombre);}
   const rows=[];
-  res.forEach(({r,alm})=>(r.data||[]).forEach(x=>rows.push({...x,alm,prod:alm==="Custom"?(pmap["merc"+x.mercaderia_id]||"—"):(pmap["alm"+x.producto_id]||"—")})));
+  // Solo COMPRAS reales: excluir inventario inicial (carga) y traslados (movimiento interno).
+  res.forEach(({r,alm})=>(r.data||[]).forEach(x=>{
+    if(x.motivo==="Inventario inicial"||x.motivo===MOTIVO_TRANSFER) return;
+    rows.push({...x,alm,prod:alm==="Custom"?(pmap["merc"+x.mercaderia_id]||"—"):(pmap["alm"+x.producto_id]||"—")});
+  }));
   rows.sort((a,b)=>String(b.fecha).localeCompare(String(a.fecha)));
   let tot=0;
   const aoa=[["Fecha","Proveedor","Producto","Almacén","Cantidad","Monto (S/)"]];
@@ -4068,7 +4072,7 @@ async function repCostoCotizacion(f){
     // 1) Consumos de MP (CON y SIN cotización) — filtra por sede
     let cons=[];
     for(let from=0;;from+=1000){
-      let q=sb.from("consumos_ops").select("id,cotizacion,op,cliente_nombre,material,consumido,tubo_id,tubo_instancia_id,di,de,largo,fecha,sede").range(from,from+999);
+      let q=sb.from("consumos_ops").select("id,cotizacion,op,cliente_nombre,material,consumido,tubo_id,tubo_instancia_id,di,de,largo,fecha,sede,observaciones").range(from,from+999);
       if(f.desde)q=q.gte("fecha",f.desde); if(f.hasta)q=q.lte("fecha",f.hasta);
       if(cotizF)q=q.eq("cotizacion",cotizF); if(opF)q=q.eq("op",opF);
       const {data,error}=await q; if(error||!data?.length)break; cons=cons.concat(data); if(data.length<1000)break;
@@ -4111,9 +4115,11 @@ async function repCostoCotizacion(f){
       if(t&&t.precio!=null&&t.precio!==""){const largo=instTot({altura_total:imap[c.tubo_instancia_id]},t);if(largo>0)costo=(_aMoneda(t.precio,t.moneda,moneda)/largo)*(c.consumido||0);}
       const coti=String(c.cotizacion||"").trim();
       const dims=(c.di!=null||c.de!=null||c.largo!=null)?` ${c.di??0} / ${c.de??0} / ${c.largo??0}`:"";
+      // Tipo real del consumo: interno (OP "INT-" u obs "INTERNO") vs orden de producción.
+      const esInt=String(c.op||"").toUpperCase().startsWith("INT-")||(c.observaciones||"").toUpperCase().includes("INTERNO");
       // MP (fabricación): muestra SOLO el costo. Sin precio de venta ni ganancia por ahora
       // (la ganancia saldrá del precio final por cotización que cargue Producción).
-      items.push({coti,op:c.op||"",cliente:c.cliente_nombre||"",mp:true,item:((c.material||"")+dims).trim(),origen:"Materia Prima",cant:Math.round(c.consumido||0)+" mm",costo,venta:null,nocoti:!coti,__tbl:"consumos_ops",__id:c.id,__cotcol:"cotizacion"});
+      items.push({coti,op:c.op||"",cliente:c.cliente_nombre||"",mp:true,tipo:esInt?"Consumo interno":"Orden de producción",item:((c.material||"")+dims).trim(),origen:"Materia Prima",cant:Math.round(c.consumido||0)+" mm",costo,venta:null,nocoti:!coti,__tbl:"consumos_ops",__id:c.id,__cotcol:"cotizacion"});
     });
     alm.forEach(m=>{
       const key=m._d.mov+"|"+m[m._d.fk]; const compra=compraMap[key]; const p=pmap[key];
@@ -4129,7 +4135,7 @@ async function repCostoCotizacion(f){
         ? _aMoneda(m.precio_unitario,m.moneda||"PEN",moneda)*cant
         : ((p&&p.precio!=null&&p.precio!=="") ? _aMoneda(p.precio,p.moneda||"PEN",moneda)*cant : costo);
       const coti=String(m.op_numero||"").trim();
-      items.push({coti,op:m.op||"",cliente:m.cliente_nombre||"",mp:false,item:p?.nombre||"",origen:m._d.lbl,cant:cant+" und",costo,venta,nocoti:!coti,__tbl:m._d.mov,__id:m.id,__cotcol:"op_numero"});
+      items.push({coti,op:m.op||"",cliente:m.cliente_nombre||"",mp:false,tipo:m.motivo||"Salida",item:p?.nombre||"",origen:m._d.lbl,cant:cant+" und",costo,venta,nocoti:!coti,__tbl:m._d.mov,__id:m.id,__cotcol:"op_numero"});
     });
     // 4) Agrupar: por cotización (las que tienen), por OP (las sin cotización)
     const grupos={};
@@ -4168,13 +4174,13 @@ function _ccGan(costo,venta){if(venta==null)return{gan:null,pct:null};const gan=
 function _ccVentaVal(i){const st=_ccState;const g=st.arr[i];if(g.nocoti)return null;const raw=(st.edits[i]!=null)?st.edits[i]:(st.precios[g.coti]!=null?st.precios[g.coti]:(g.ventaAuto!=null?g.ventaAuto:""));return(raw===""||raw==null)?null:Number(raw);}
 function _ccDetailHtml(g,i){
   return `<div class="cc-dlbl">Detalle del costo — ${g.items.length} línea(s) · la <b style="color:var(--blue)">OP es editable</b> por ítem</div>
-    <table class="cc-dtable"><thead><tr><th>Origen</th><th>OP</th><th>Ítem / Material</th><th>Cantidad</th><th style="text-align:right">Costo</th><th style="text-align:right">Precio venta</th><th style="text-align:right">Ganancia</th><th style="text-align:right">%</th></tr></thead>
+    <table class="cc-dtable"><thead><tr><th>Origen</th><th>Tipo</th><th>OP</th><th>Ítem / Material</th><th>Cantidad</th><th style="text-align:right">Costo</th><th style="text-align:right">Precio venta</th><th style="text-align:right">Ganancia</th><th style="text-align:right">%</th></tr></thead>
     <tbody>${g.items.map((it,j)=>{
       const ig=(it.venta!=null&&it.costo!=null)?(it.venta-it.costo):null;
       const ip=(ig!=null&&it.costo>0)?(ig/it.costo*100):null;
       const gcls=ig==null?'cc-mut':(ig>=0?'cc-pos':'cc-neg');
       const opv=_ccState.opEdits[i+'_'+j]!=null?_ccState.opEdits[i+'_'+j]:(it.op||'');
-      return `<tr><td><span class="${it.mp?'cc-mp':'cc-alm'}">${it.mp?'MP':'Almacén'}</span></td><td><input class="cc-op-inp" value="${escAttr(String(opv))}" placeholder="OP" oninput="_ccOp(${i},${j},this.value)"></td><td>${esc(it.item||'—')}</td><td>${esc(it.cant)}</td><td style="text-align:right">${it.costo!=null?_ccMoney(it.costo):'—'}</td><td style="text-align:right">${it.venta!=null?_ccMoney(it.venta):'—'}</td><td style="text-align:right" class="${gcls}">${ig!=null?(ig>=0?'+ ':'− ')+_ccMoney(Math.abs(ig)):'—'}</td><td style="text-align:right" class="${gcls}">${ip!=null?(ip>=0?'+':'')+ip.toFixed(1)+'%':'—'}</td></tr>`;
+      return `<tr><td><span class="${it.mp?'cc-mp':'cc-alm'}">${it.mp?'MP':'Almacén'}</span></td><td>${esc(it.tipo||'—')}</td><td><input class="cc-op-inp" value="${escAttr(String(opv))}" placeholder="OP" oninput="_ccOp(${i},${j},this.value)"></td><td>${esc(it.item||'—')}</td><td>${esc(it.cant)}</td><td style="text-align:right">${it.costo!=null?_ccMoney(it.costo):'—'}</td><td style="text-align:right">${it.venta!=null?_ccMoney(it.venta):'—'}</td><td style="text-align:right" class="${gcls}">${ig!=null?(ig>=0?'+ ':'− ')+_ccMoney(Math.abs(ig)):'—'}</td><td style="text-align:right" class="${gcls}">${ip!=null?(ip>=0?'+':'')+ip.toFixed(1)+'%':'—'}</td></tr>`;
     }).join("")}</tbody></table>
     <div class="cc-dtot">Costo total: <b>${_ccMoney(g.costo)}</b></div>`;
 }
@@ -4348,11 +4354,10 @@ function _ccExcel(){
   const sym=st.meta.sym;
   const aoa=[["Cotización","OP","Cliente","Tipo","Ítem / Material","Origen","Cantidad",`Costo (${sym})`,`Precio venta (${sym})`,`Ganancia (${sym})`,"Ganancia %"]];
   st.arr.forEach((g,i)=>{
-    const tipo=g.items.some(x=>x.mp)?"Fabricación":"Venta directa";
     g.items.forEach(it=>{
       const ig=(it.venta!=null&&it.costo!=null)?(it.venta-it.costo):null;
       const ip=(ig!=null&&it.costo>0)?(ig/it.costo*100):null;
-      aoa.push([g.nocoti?"":g.coti,it.op,it.cliente,tipo,it.item,it.origen,it.cant,
+      aoa.push([g.nocoti?"":g.coti,it.op,it.cliente,it.tipo||"",it.item,it.origen,it.cant,
         it.costo!=null?_r2(it.costo):"",
         it.venta!=null?_r2(it.venta):"",
         ig!=null?_r2(ig):"",
@@ -5707,19 +5712,30 @@ function setDisplayCur(v){
 
 let _valorInvData=null; // {mpCustom,mpMecaniza,almCustom,almMecaniza,suministros,total} en PEN
 async function calcValorInventario(){
-  const [merc,alm,sum,tubos,inst]=await Promise.all([
+  const [merc,alm,sum]=await Promise.all([
     sb.from("mercaderias").select("stock_actual,precio_unitario,moneda").eq("activo",true).limit(5000),
     sb.from("alm_mecaniza_productos").select("stock_actual,precio_unitario,moneda").eq("activo",true).limit(5000),
     sb.from("suministros_productos").select("stock_actual,precio_unitario,moneda").eq("activo",true).limit(5000),
-    sb.from("tubos").select("id,precio,moneda,sede").limit(20000),
-    sb.from("tubo_instancias").select("tubo_id").eq("estado","disponible").limit(99999)
   ]);
+  // Tubos e instancias: PAGINADO (antes un límite fijo cortaba registros → MP Mecaniza en 0).
+  let tubos=[]; for(let f=0;;f+=1000){const {data}=await sb.from("tubos").select("id,precio,moneda,sede,altura_total").range(f,f+999);if(!data?.length)break;tubos=tubos.concat(data);if(data.length<1000)break;}
+  let inst=[];  for(let f=0;;f+=1000){const {data}=await sb.from("tubo_instancias").select("tubo_id,altura_total,altura_usada").eq("estado","disponible").range(f,f+999);if(!data?.length)break;inst=inst.concat(data);if(data.length<1000)break;}
   let vMerc=0,vAlm=0,vSum=0,vMpC=0,vMpM=0;
   (merc.data||[]).forEach(p=>vMerc+=_aPen(p.precio_unitario,p.moneda)*(Number(p.stock_actual)||0));
   (alm.data||[]).forEach(p=>vAlm+=_aPen(p.precio_unitario,p.moneda)*(Number(p.stock_actual)||0));
   (sum.data||[]).forEach(p=>vSum+=_aPen(p.precio_unitario,p.moneda)*(Number(p.stock_actual)||0));
-  const disp={};(inst.data||[]).forEach(i=>disp[i.tubo_id]=(disp[i.tubo_id]||0)+1);
-  (tubos.data||[]).forEach(t=>{const v=_aPen(t.precio,t.moneda)*(disp[t.id]||0);if((t.sede||"custom")==="mecaniza")vMpM+=v;else vMpC+=v;});
+  // Valor de MP = (precio del tubo ÷ largo nominal) × mm DISPONIBLES en stock (proporcional a lo que queda).
+  const tmap={}; tubos.forEach(t=>tmap[t.id]=t);
+  inst.forEach(i=>{
+    const t=tmap[i.tubo_id]; if(!t||t.precio==null||t.precio==="") return;
+    const nominal=Number(t.altura_total)||0;
+    // NACIONALES (largo variable): divisor = largo REAL de la instancia. IMPORTADOS: largo nominal del modelo.
+    const largo=Number(i.altura_total)||nominal;
+    if(largo<=0) return;
+    const restante=Math.max(0,largo-(Number(i.altura_usada)||0));
+    const v=(_aPen(t.precio,t.moneda)/largo)*restante;
+    if((t.sede||"custom")==="mecaniza")vMpM+=v;else vMpC+=v;
+  });
   const total=vMerc+vAlm+vSum+vMpC+vMpM;
   _valorInvData={mpCustom:vMpC,mpMecaniza:vMpM,almCustom:vMerc,almMecaniza:vAlm,suministros:vSum,total};
   const el=document.querySelector("#kpiValorInv .kpi-val");if(el)el.textContent=fmtDispMonto(total);
@@ -5887,19 +5903,26 @@ async function renderDashCharts(){
 
 // Detalles (modales) de los widgets nuevos
 async function dashDetalleValorInv(){
-  const [merc,alm,sum,tubos,inst]=await Promise.all([
+  const [merc,alm,sum]=await Promise.all([
     sb.from("mercaderias").select("nombre,stock_actual,precio_unitario,moneda").eq("activo",true).limit(5000),
     sb.from("alm_mecaniza_productos").select("nombre,stock_actual,precio_unitario,moneda").eq("activo",true).limit(5000),
     sb.from("suministros_productos").select("nombre,stock_actual,precio_unitario,moneda").eq("activo",true).limit(5000),
-    sb.from("tubos").select("id,descripcion,precio,moneda").limit(20000),
-    sb.from("tubo_instancias").select("tubo_id").eq("estado","disponible").limit(99999)
   ]);
+  // Tubos e instancias: PAGINADO + misma fórmula que el KPI (precio ÷ largo × mm disponibles; nacionales usan largo real).
+  let tubosD=[]; for(let f=0;;f+=1000){const {data}=await sb.from("tubos").select("id,descripcion,precio,moneda,altura_total").range(f,f+999);if(!data?.length)break;tubosD=tubosD.concat(data);if(data.length<1000)break;}
+  let instD=[];  for(let f=0;;f+=1000){const {data}=await sb.from("tubo_instancias").select("tubo_id,altura_total,altura_usada").eq("estado","disponible").range(f,f+999);if(!data?.length)break;instD=instD.concat(data);if(data.length<1000)break;}
   const items=[];
   (merc.data||[]).forEach(p=>{const v=_aPen(p.precio_unitario,p.moneda)*(Number(p.stock_actual)||0);if(v>0)items.push({label:`${p.nombre} (Custom)`,val:v});});
   (alm.data||[]).forEach(p=>{const v=_aPen(p.precio_unitario,p.moneda)*(Number(p.stock_actual)||0);if(v>0)items.push({label:`${p.nombre} (Mecaniza)`,val:v});});
   (sum.data||[]).forEach(p=>{const v=_aPen(p.precio_unitario,p.moneda)*(Number(p.stock_actual)||0);if(v>0)items.push({label:`${p.nombre} (Suministros)`,val:v});});
-  const disp={};(inst.data||[]).forEach(i=>disp[i.tubo_id]=(disp[i.tubo_id]||0)+1);
-  (tubos.data||[]).forEach(t=>{const v=_aPen(t.precio,t.moneda)*(disp[t.id]||0);if(v>0)items.push({label:`${t.descripcion} (MP)`,val:v});});
+  const tmapD={}, valTubo={}; tubosD.forEach(t=>tmapD[t.id]=t);
+  instD.forEach(i=>{
+    const t=tmapD[i.tubo_id]; if(!t||t.precio==null||t.precio==="") return;
+    const nominal=Number(t.altura_total)||0; const largo=Number(i.altura_total)||nominal; if(largo<=0) return;
+    const restante=Math.max(0,largo-(Number(i.altura_usada)||0));
+    valTubo[i.tubo_id]=(valTubo[i.tubo_id]||0)+(_aPen(t.precio,t.moneda)/largo)*restante;
+  });
+  Object.keys(valTubo).forEach(id=>{const t=tmapD[id]; const v=valTubo[id]; if(v>0)items.push({label:`${t.descripcion} (MP)`,val:v});});
   items.sort((a,b)=>b.val-a.val);
   const tot=items.reduce((a,i)=>a+i.val,0);
   if(!items.length) return `<div class="no-data" style="padding:20px">Aún no hay precios cargados en tus productos. Agrega precios para ver el valor del inventario.</div>`;
@@ -9975,9 +9998,24 @@ function gridPasteApply(){
   toast(`✓ ${added} fila(s) cargada(s)`,"ok");
 }
 let _consumoSaving=false; // candado anti-doble-envío (compartido por los guardados de consumo)
+// Validaciones anti-typo para una línea de consumo. Devuelve string de error o null si todo bien.
+// Devuelve {err:"..."} para bloquear o {warn:"..."} para pedir confirmación (típico dedazo).
+function _validarLineaConsumo({k,di,de,largo,enviado}){
+  // 1) Coherencia geométrica: DI debe ser < DE (interior < exterior). DI=DE=0 se permite (barra maciza).
+  if(di>0&&de>0&&di>=de) return {err:`Línea ${k+1}: DI (${di}) debe ser MENOR que DE (${de}). ¿Los invertiste?`};
+  // 2) Techos de plausibilidad — sospechosos, pedir confirmar (no bloquear).
+  const alerts=[];
+  if(largo>2000) alerts.push(`largo ${largo} mm (¿le sobra un 0?)`);
+  if(enviado>2000) alerts.push(`enviado ${enviado} mm (¿le sobra un 0?)`);
+  if(de>500) alerts.push(`DE ${de} mm (¿le sobra un 0?)`);
+  if(enviado>0&&largo>0&&enviado>largo*10) alerts.push(`enviado (${enviado}) parece muy grande para el largo (${largo})`);
+  if(alerts.length) return {warn:`Línea ${k+1}: ${alerts.join(" · ")}\n\n¿Continuar de todos modos?`};
+  return null;
+}
 async function gridSave(){
   if(_consumoSaving) return; _consumoSaving=true;
   try{
+  setBtnLoading("btnGridSave",true,"Guardando...");   // deshabilita YA el botón (evita doble clic)
   const fecha=document.getElementById("g_fecha").value.trim();
   const tipoOp=document.getElementById("g_tipo").value;
   let op=document.getElementById("g_op").value.trim();
@@ -10021,7 +10059,7 @@ async function gridSave(){
   toast(`✓ OP ${op} anotada · ${rows.length} línea(s) pendiente(s) de cerrar`,"ok");
   if(corr.length) toast(`Reconocido del catálogo: ${corr.join(", ")}`,"ok");
   clearCache("consumos");clearCache("materiales_list");_consMatTuboCache=null;loadConsumos(true);
-  }finally{_consumoSaving=false;}
+  }finally{_consumoSaving=false;setBtnLoading("btnGridSave",false);}
 }
 
 // ── Editar OP completa (todas las líneas a la vez) ──
@@ -10108,6 +10146,7 @@ function eopAddRow(){
 async function eopSave(){
   if(_consumoSaving) return; _consumoSaving=true;
   try{
+  setBtnLoading("btnEopSave",true,"Guardando...");   // deshabilita YA el botón (evita doble clic)
   if(!userCanCRUD("editar","Consumos")){toast("Sin permiso","err");return;}
   const fecha=document.getElementById("eop_fecha").value.trim();
   const op=document.getElementById("eop_op").value.trim();
@@ -10152,7 +10191,7 @@ async function eopSave(){
   closeModal("modalEditOp");
   toast(`✓ OP ${op} actualizada · ${okN} línea(s)`,"ok");
   clearCache("consumos");_consMatTuboCache=null;loadConsumos(true);
-  }finally{_consumoSaving=false;}
+  }finally{_consumoSaving=false;setBtnLoading("btnEopSave",false);}
 }
 
 async function openModalConsumo(id=null){
@@ -10492,6 +10531,8 @@ function updateConsumoResumen(){
 async function saveConsumo(){
   if(_consumoSaving) return; _consumoSaving=true;
   try{
+  setBtnLoading("btnSaveConsumo",true,"Guardando...");   // deshabilita YA el botón (evita doble clic)
+  let _warnAntitypo=null;   // acumulador de warnings anti-typo (una sola confirmación al final)
   const fecha=document.getElementById("co_fecha").value.trim();
   const tipoOp=document.getElementById("co_tipo_op").value;
   let op=document.getElementById("co_op").value.trim();
@@ -10541,6 +10582,10 @@ async function saveConsumo(){
       if(!material){toast(`Línea ${k+1}: indica el material (elige un tubo o escríbelo)`,"err");return;}
       if(isNaN(enviado)||enviado<=0){toast(`Línea ${k+1}: ENVIADO inválido`,"err");return;}
       if(!ruleBool("consumo_permitir_sin_tubo",true)&&!intInstId){toast(`Línea ${k+1}: debes elegir el tubo (configuración exige tubo al registrar)`,"err");return;}
+      // Anti-typo (DI<DE, techos, coherencia enviado/largo)
+      const _v=_validarLineaConsumo({k,di,de,largo,enviado});
+      if(_v&&_v.err){toast(_v.err,"err");return;}
+      if(_v&&_v.warn){ _warnAntitypo=(_warnAntitypo||[]).concat([_v.warn]); }
 
       rows.push({
         fecha, op, material,
@@ -10552,6 +10597,10 @@ async function saveConsumo(){
         usuario_id:CU?.id,
         cliente_nombre: tipoOp==="interno"?null:(cliente||null),
       });
+    }
+    // Confirmar valores sospechosos (una sola vez para toda la OP)
+    if(_warnAntitypo&&_warnAntitypo.length){
+      if(!confirm("⚠️ Valores sospechosos detectados:\n\n"+_warnAntitypo.join("\n")+"\n\n¿Guardar de todos modos?")) return;
     }
     setBtnLoading("btnSaveConsumo",true,"Guardando...");
     const {error}=await sb.from("consumos_ops").insert(rows);
@@ -10764,7 +10813,7 @@ async function saveConsumo(){
   }else{
     toast(`Error: ${errors[0]||"falló el guardado"}`,"err");
   }
-  }finally{_consumoSaving=false;}
+  }finally{_consumoSaving=false;setBtnLoading("btnSaveConsumo",false);}
 }
 
 async function deleteConsumo(consumoId){
@@ -12674,7 +12723,11 @@ async function cargarPreciosMP(event){
     let hi=rows.findIndex(r=>r.some(c=>/c[oó]digo/i.test(String(c)))&&r.some(c=>/precio/i.test(String(c))));
     if(hi<0) hi=0;
     const head=rows[hi].map(c=>String(c).toLowerCase());
-    const ci=head.findIndex(c=>/c[oó]digo/.test(c)), pi=head.findIndex(c=>/precio/.test(c));
+    const ci=head.findIndex(c=>/c[oó]digo/.test(c));
+    // Columna de precio: priorizar "precio nacionalizado"; si no, cualquier "precio" que NO sea
+    // la descripción (evita que "Descripción (Plantilla precios)" se tome como columna de precio).
+    let pi=head.findIndex(c=>/precio/.test(c)&&/nacionaliz/.test(c));
+    if(pi<0) pi=head.findIndex(c=>/precio/.test(c)&&!/descrip/.test(c));
     const dci=head.findIndex(c=>/descrip/.test(c)), mi=head.findIndex(c=>/moneda/.test(c));
     if(ci<0||pi<0){prog.innerHTML=`<div style="color:#e85a5a;font-size:12px">No encontré las columnas <strong>Código</strong> y <strong>Precio</strong> en el archivo.</div>`;return;}
     // Traer tubos para emparejar (por código, y respaldo por descripción)
