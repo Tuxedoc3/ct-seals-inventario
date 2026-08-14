@@ -1685,7 +1685,8 @@ html[data-theme="light"]{ --brand:#2563c9; --brand-dark:#1e4fa8; }
 </div>
 
 <!-- MODAL: CERRAR OP (descuento diferido, línea por línea) -->
-<div class="modal-overlay" id="modalCierre" style="display:none" onclick="if(event.target===this)closeModalSafe('modalCierre')">
+<!-- Cierre de OP: NO se cierra al hacer clic fuera (flujo crítico, se perdía el trabajo). Se sale con "Cerrar ventana". -->
+<div class="modal-overlay" id="modalCierre" style="display:none">
   <div class="modal" style="max-width:1000px">
     <div class="modal-title"><i class="ti ti-circle-check" style="color:#4caf8c"></i><span id="cierreTitle">Cerrar OP</span></div>
     <div style="background:#0f1e2e;border:.5px solid #1a4a7a;color:#5b9bd5;font-size:11px;padding:8px 12px;border-radius:8px;margin-bottom:12px">
@@ -3243,6 +3244,13 @@ function closeModalSafe(id){
     if(el.type==="checkbox"||el.type==="radio"){ if(el.checked!==el.defaultChecked) dirty=true; }
     else if((el.value||"").trim()!=="" && (el.value||"")!==(el.defaultValue||"")) dirty=true;
   });
+  // Los <select> también cuentan (ej. elegir el tubo en el cierre de OP): antes se ignoraban
+  // y la ventana se cerraba sin avisar, perdiendo lo seleccionado.
+  m.querySelectorAll("select").forEach(el=>{
+    if(el.disabled) return;
+    const orig=[...el.options].find(o=>o.defaultSelected);
+    if(orig ? el.value!==orig.value : (el.selectedIndex>0)) dirty=true;
+  });
   if(dirty && !confirm("Tienes datos sin guardar en esta ventana.\n¿Cerrar y perder lo escrito?")) return;
   closeModal(id);
 }
@@ -3925,8 +3933,10 @@ async function repCompras(f){
   repCargando(true);
   const sedes=(f.sedes&&f.sedes.length)?f.sedes:["custom","mecaniza"];
   const tareas=[];
-  if(sedes.includes("custom")) tareas.push(sb.from("mercaderia_movimientos").select("cantidad,precio_unitario,moneda,proveedor,fecha,motivo,mercaderia_id").eq("tipo","entrada").gte("fecha",f.desde||"1900-01-01").lte("fecha",f.hasta||"2999-12-31").limit(50000).then(r=>({r,alm:"Custom"})));
-  if(sedes.includes("mecaniza")) tareas.push(sb.from("alm_mecaniza_movimientos").select("cantidad,precio_unitario,moneda,proveedor,fecha,motivo,producto_id").eq("tipo","entrada").gte("fecha",f.desde||"1900-01-01").lte("fecha",f.hasta||"2999-12-31").limit(50000).then(r=>({r,alm:"Mecaniza"})));
+  // `fecha` es timestamptz: el "hasta" debe llegar al fin del día o se pierde el último día.
+  const _hastaFin=(f.hasta?f.hasta+"T23:59:59":"2999-12-31");
+  if(sedes.includes("custom")) tareas.push(sb.from("mercaderia_movimientos").select("cantidad,precio_unitario,moneda,proveedor,fecha,motivo,mercaderia_id").eq("tipo","entrada").gte("fecha",f.desde||"1900-01-01").lte("fecha",_hastaFin).limit(50000).then(r=>({r,alm:"Custom"})));
+  if(sedes.includes("mecaniza")) tareas.push(sb.from("alm_mecaniza_movimientos").select("cantidad,precio_unitario,moneda,proveedor,fecha,motivo,producto_id").eq("tipo","entrada").gte("fecha",f.desde||"1900-01-01").lte("fecha",_hastaFin).limit(50000).then(r=>({r,alm:"Mecaniza"})));
   const res=await Promise.all(tareas);
   const mids=new Set(),aids=new Set();
   res.forEach(({r,alm})=>(r.data||[]).forEach(x=>{if(alm==="Custom")mids.add(x.mercaderia_id);else aids.add(x.producto_id);}));
@@ -4100,7 +4110,9 @@ async function repCostoCotizacion(f){
     let alm=[];
     for(const d of almDefs){
       let q=sb.from(d.mov).select(`id,op_numero,op,cantidad,cliente_nombre,fecha,motivo,precio_unitario,moneda,${d.fk}`).eq("tipo","salida").not("op_numero","is",null).limit(50000);
-      if(f.desde)q=q.gte("fecha",f.desde); if(f.hasta)q=q.lte("fecha",f.hasta);
+      // OJO: en los movimientos de almacén `fecha` es timestamptz → el "hasta" necesita fin de día,
+      // si no se pierde el último día completo del rango.
+      if(f.desde)q=q.gte("fecha",f.desde); if(f.hasta)q=q.lte("fecha",f.hasta+"T23:59:59");
       if(cotizF)q=q.eq("op_numero",cotizF); if(opF)q=q.eq("op",opF);
       const {data}=await q; (data||[]).forEach(m=>{ if(m.motivo!==MOTIVO_TRANSFER) alm.push({...m,_d:d}); });
     }
@@ -10715,75 +10727,20 @@ async function saveConsumo(){
       const consumoOrig=id?(L.enviadoOrig-(L.devueltoOrig||0)):0;
       const tuboCambio=id && L.tuboInstIdOrig && L.tuboInstIdOrig!==L.instancia?.id;
 
-      // Pre-check: si cambió el tubo, verificar que el NUEVO tenga espacio para consumoNuevo
-      if(tuboCambio && consumoNuevo>0 && L.instancia){
-        const altTot=L.tubo.altura_total||0;
-        const usadoActualBD=L.instancia.altura_usada||0;
-        if(usadoActualBD+consumoNuevo>altTot){
-          errors.push(`Línea ${i+1} (${L.material}): el tubo nuevo solo tiene ${altTot-usadoActualBD}mm libres, necesitas ${consumoNuevo}mm. No se aplicó el cambio.`);
+      // 1a) Pre-check de espacio en la instancia DESTINO (antes de guardar nada).
+      //     usadoOtros = lo que ocupan los OTROS consumos (si es el mismo tubo, se descuenta lo que
+      //     esta misma línea tenía reservado; si cambió de tubo, cuenta todo lo que ya usa el nuevo).
+      if(L.instancia && consumoNuevo>0){
+        const altTot=instTot(L.instancia,L.tubo);
+        const usadoOtros=Math.max(0,(L.instancia.altura_usada||0)-(tuboCambio?0:consumoOrig));
+        if(usadoOtros+consumoNuevo>altTot){
+          errors.push(`Línea ${i+1} (${L.material}): solo hay ${Math.max(0,altTot-usadoOtros)}mm disponibles, necesitas ${consumoNuevo}mm. No se aplicó el cambio.`);
           continue;
         }
       }
 
-      // 1a) Si CAMBIÓ el tubo: revertir el viejo (devolver los mm) antes de aplicar al nuevo
-      if(tuboCambio && consumoOrig>0){
-        const {data:oldInst}=await sb.from("tubo_instancias").select("*").eq("id",L.tuboInstIdOrig).maybeSingle();
-        const {data:oldTubo}=await sb.from("tubos").select("altura_total").eq("id",L.tuboIdOrig).maybeSingle();
-        if(oldInst && oldTubo){
-          const altOld=oldTubo.altura_total||0;
-          const nuevoUsadoOld=Math.max(0,(oldInst.altura_usada||0)-consumoOrig);
-          const nuevoEstadoOld=oldInst.estado==="separado"?"separado":(nuevoUsadoOld>=altOld?"agotado":"disponible");
-          await sb.from("tubo_instancias").update({altura_usada:nuevoUsadoOld,estado:nuevoEstadoOld}).eq("id",L.tuboInstIdOrig);
-          await sb.from("movimientos").insert({
-            tubo_id:L.tuboIdOrig,tubo_instancia_id:L.tuboInstIdOrig,tipo:"ajuste",
-            altura_usada:consumoOrig,op_numero:op,usuario_id:CU?.id,
-            nota:`Edit OP ${op}: revertir +${consumoOrig}mm (tubo cambiado)`
-          });
-        }
-      }
-
-      // Delta a aplicar al tubo NUEVO: si cambió, es el consumo nuevo completo; si no, el delta
-      const delta = tuboCambio ? consumoNuevo : (consumoNuevo-consumoOrig);
-
-      // 2) Aplicar al tubo (instancia) — con verificación POST-UPDATE
-      if(L.instancia&&delta!==0){
-        const altTot=L.tubo.altura_total||0;
-        const usadoActualBD=L.instancia.altura_usada||0;
-        const nuevoUsado=Math.max(0,usadoActualBD+delta);
-        if(nuevoUsado>altTot){
-          errors.push(`Línea ${i+1} (${L.material}): solo hay ${altTot-usadoActualBD}mm disponibles`);
-          continue;
-        }
-        // Si nuevoUsado < altTot Y > 0 → estado "en_uso" (en producción, parcial)
-        // Si nuevoUsado === altTot → "agotado"
-        // Si nuevoUsado === 0 → "disponible" (vuelve completo)
-        const nuevoEstado=nuevoUsado>=altTot?"agotado":"disponible";
-
-        // UPDATE + select() para confirmar que se aplicó (Supabase devuelve [] si RLS lo bloquea)
-        const {data:updated,error:eU}=await sb.from("tubo_instancias")
-          .update({altura_usada:nuevoUsado,estado:nuevoEstado})
-          .eq("id",L.instancia.id)
-          .select();
-        if(eU){errors.push(`Línea ${i+1}: ${eU.message}`);continue;}
-        if(!updated||!updated.length){
-          // RLS bloqueó silenciosamente. Reportar error claro al usuario.
-          errors.push(`Línea ${i+1}: tu rol no tiene permiso para actualizar tubos (consulta al admin). Ajustes registrados solo en el historial.`);
-          // Igual registramos el movimiento para auditoría
-        }else{
-          // Actualizar cache local con el valor confirmado por la BD
-          L.instancia.altura_usada=updated[0].altura_usada;
-          L.instancia.estado=updated[0].estado;
-        }
-        // Movimiento (auditoría) — siempre se registra (aunque update fallara)
-        await sb.from("movimientos").insert({
-          tubo_id:L.tuboId, tubo_instancia_id:L.instancia.id,
-          tipo:delta>0?"consumo":"ajuste",
-          altura_usada:Math.abs(delta), op_numero:op, usuario_id:CU?.id,
-          nota:`Consumo ${tipoOp==="interno"?"interno":""} OP ${op}: ${delta>0?"-":"+"}${Math.abs(delta)}mm de ${L.material}`
-        });
-      }
-
-      // 3) Persistir consumo
+      // 2) Persistir consumo (PRIMERO). El stock se recalcula después desde los consumos reales,
+      //    en vez de sumar/restar deltas (que se descuadraba al editar líneas con descarte).
       const payload={
         fecha, op, material:L.material,
         tubo_id:L.tuboId, tubo_instancia_id:L.instancia?.id||null,
@@ -10800,6 +10757,23 @@ async function saveConsumo(){
         res=await sb.from("consumos_ops").insert(payload);
       }
       if(res.error){errors.push(`Línea ${i+1}: ${res.error.message}`);continue;}
+
+      // 3) Recalcular el stock de las instancias afectadas (la actual y, si cambió, la anterior).
+      const _afect=[];
+      if(L.instancia?.id) _afect.push({inst:L.instancia.id,tubo:L.tuboId});
+      if(tuboCambio&&L.tuboInstIdOrig) _afect.push({inst:L.tuboInstIdOrig,tubo:L.tuboIdOrig});
+      for(const a of _afect){
+        const r=await _recalcInstancia(a.inst,a.tubo);
+        if(r&&r.delta!==0){
+          await sb.from("movimientos").insert({
+            tubo_id:a.tubo, tubo_instancia_id:a.inst,
+            tipo:r.delta<0?"consumo":"ajuste",
+            altura_usada:Math.abs(r.delta), op_numero:op, usuario_id:CU?.id,
+            nota:`Consumo ${tipoOp==="interno"?"interno":""} OP ${op}: ${r.delta<0?"-":"+"}${Math.abs(r.delta)}mm de ${L.material}`
+          });
+        }
+        if(L.instancia&&a.inst===L.instancia.id&&r){L.instancia.altura_usada=r.after;}
+      }
       okCount++;
     }catch(err){
       errors.push(`Línea ${i+1}: ${err.message}`);
@@ -10948,15 +10922,21 @@ async function confirmMerma(){
   if(!motivo){toast("El motivo es obligatorio","err");return;}
   if(!tuboInstId){toast("Este consumo no tiene tubo vinculado","err");return;}
   setBtnLoading("btnConfirmMerma",true,"Procesando...");
-  // 1) Marcar instancia como agotada con altura_usada = altura_total (el tubo ya no sirve)
-  const {data:tubo}=await sb.from("tubos").select("altura_total").eq("id",tuboId).single();
+  // 1) Marcar la instancia como agotada. OJO: usar el largo REAL de la instancia (los nacionales
+  //    tienen largo variable), no el nominal del modelo.
+  const [{data:tubo},{data:instM}]=await Promise.all([
+    sb.from("tubos").select("altura_total").eq("id",tuboId).single(),
+    sb.from("tubo_instancias").select("altura_total,altura_usada").eq("id",tuboInstId).maybeSingle(),
+  ]);
   if(!tubo){setBtnLoading("btnConfirmMerma",false);toast("Tubo no encontrado","err");return;}
-  const {error:e1}=await sb.from("tubo_instancias").update({altura_usada:tubo.altura_total,estado:"agotado",separado_hasta:null,separado_motivo:null}).eq("id",tuboInstId);
+  const _altReal=instTot(instM,tubo);
+  const _desperdicio=Math.max(0,_altReal-(Number(instM?.altura_usada)||0));   // solo lo que QUEDABA sin usar
+  const {error:e1}=await sb.from("tubo_instancias").update({altura_usada:_altReal,estado:"agotado",separado_hasta:null,separado_motivo:null}).eq("id",tuboInstId);
   if(e1){setBtnLoading("btnConfirmMerma",false);toast("Error: "+e1.message,"err");return;}
-  // 2) Registrar movimiento de merma
+  // 2) Registrar movimiento de merma por los mm realmente desperdiciados (no el tubo entero).
   await sb.from("movimientos").insert({
     tubo_id:tuboId,tubo_instancia_id:tuboInstId,
-    tipo:"merma",altura_usada:tubo.altura_total,
+    tipo:"merma",altura_usada:_desperdicio,
     usuario_id:CU?.id,motivo:motivo,nota:`MERMA: ${motivo}`
   });
   // 3) Marcar el consumo como merma
