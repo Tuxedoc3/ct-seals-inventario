@@ -3866,14 +3866,14 @@ async function repConsumos(f){
   const tids=[...new Set(data.map(c=>c.tubo_id).filter(Boolean))];
   const iids=[...new Set(data.map(c=>c.tubo_instancia_id).filter(Boolean))];
   const tmap={},imap={};
-  for(let i=0;i<tids.length;i+=300){const {data:ts}=await sb.from("tubos").select("id,precio,moneda,altura_total").in("id",tids.slice(i,i+300));(ts||[]).forEach(t=>tmap[t.id]=t);}
+  for(let i=0;i<tids.length;i+=300){const {data:ts}=await sb.from("tubos").select("id,precio,moneda,altura_total,origen,codigo_mat").in("id",tids.slice(i,i+300));(ts||[]).forEach(t=>tmap[t.id]=t);}
   for(let i=0;i<iids.length;i+=300){const {data:is}=await sb.from("tubo_instancias").select("id,altura_total").in("id",iids.slice(i,i+300));(is||[]).forEach(x=>imap[x.id]=x.altura_total);}
   const norm=s=>String(s||"").trim().toUpperCase().replace(/\s+/g," ");
   const g={};
   data.forEach(c=>{const k=norm(c.material);if(!k)return;const x=g[k]=g[k]||{material:c.material,consumido:0,enviado:0,devuelto:0,gasto:0,ops:new Set(),lineas:0};
     const cons=c.consumido||0; x.consumido+=cons; x.enviado+=c.enviado||0; x.devuelto+=c.devuelto||0; x.ops.add(c.op); x.lineas++;
     const t=tmap[c.tubo_id];
-    if(t&&t.precio!=null&&t.precio!==""){const largo=instTot({altura_total:imap[c.tubo_instancia_id]},t);if(largo>0)x.gasto+=(_aPen(t.precio,t.moneda)/largo)*cons;}
+    if(t&&t.precio!=null&&t.precio!==""){const largo=_largoRef(t,imap[c.tubo_instancia_id]);if(largo>0)x.gasto+=(_aPen(t.precio,t.moneda)/largo)*cons;}
   });
   const lista=Object.values(g).sort((a,b)=>b.consumido-a.consumido);
   const aoa=[["Material","OPs","Líneas","Enviado (mm)","Devuelto (mm)","Consumido (mm)","Gasto (S/)"],...lista.map(m=>[m.material,m.ops.size,m.lineas,Math.round(m.enviado),Math.round(m.devuelto),Math.round(m.consumido),Math.round(m.gasto*100)/100])];
@@ -4050,6 +4050,16 @@ function _aMoneda(v,from,to){
   return pen;
 }
 function _r2(n){return Math.round((Number(n)||0)*100)/100;}
+// Largo de referencia para el costo por mm de un material:
+//   IMPORTADOS  -> largo NOMINAL del modelo (tubos.altura_total)  [costo por mm constante]
+//   NACIONALES  -> altura de COMPRA (la de la instancia, que se carga junto con el precio)
+// Nacional se detecta por origen "Nacional" o código de familia MN.
+function _largoRef(tubo, instAltura){
+  if(!tubo) return 0;
+  const esNac = /nacional/i.test(tubo.origen||"") || /^MN/i.test(tubo.codigo_mat||"");
+  const nominal = Number(tubo.altura_total)||0;
+  return esNac ? (Number(instAltura)||nominal) : nominal;
+}
 // Fuerza MAYÚSCULAS en vivo en todos los campos de nombre de cliente / proveedor.
 (function(){
   const CAMPOS_NOMBRE=['cli_nombre','cli_nom_comercial','cli_nombre_nat','cli_ape_pat','cli_ape_mat'];
@@ -4081,7 +4091,7 @@ async function repCostoCotizacion(f){
     const tids=[...new Set(cons.map(c=>c.tubo_id).filter(Boolean))];
     const iids=[...new Set(cons.map(c=>c.tubo_instancia_id).filter(Boolean))];
     const tmap={},imap={};
-    for(let i=0;i<tids.length;i+=300){const {data:ts}=await sb.from("tubos").select("id,precio,moneda,altura_total").in("id",tids.slice(i,i+300));(ts||[]).forEach(t=>tmap[t.id]=t);}
+    for(let i=0;i<tids.length;i+=300){const {data:ts}=await sb.from("tubos").select("id,precio,moneda,altura_total,origen,codigo_mat").in("id",tids.slice(i,i+300));(ts||[]).forEach(t=>tmap[t.id]=t);}
     for(let i=0;i<iids.length;i+=300){const {data:is}=await sb.from("tubo_instancias").select("id,altura_total").in("id",iids.slice(i,i+300));(is||[]).forEach(x=>imap[x.id]=x.altura_total);}
     // 2) Salidas de almacén con cotización (op_numero) — SOLO Custom/Mecaniza, sin suministros, sin traslados
     const almDefs=[];
@@ -4112,7 +4122,8 @@ async function repCostoCotizacion(f){
     const items=[];
     cons.forEach(c=>{
       const t=tmap[c.tubo_id]; let costo=null;
-      if(t&&t.precio!=null&&t.precio!==""){const largo=instTot({altura_total:imap[c.tubo_instancia_id]},t);if(largo>0)costo=(_aMoneda(t.precio,t.moneda,moneda)/largo)*(c.consumido||0);}
+      // Costo por mm: importados = precio ÷ largo nominal (constante); nacionales = precio ÷ altura de compra.
+      if(t&&t.precio!=null&&t.precio!==""){const largo=_largoRef(t,imap[c.tubo_instancia_id])||Number(c.largo)||0;if(largo>0)costo=(_aMoneda(t.precio,t.moneda,moneda)/largo)*(c.consumido||0);}
       const coti=String(c.cotizacion||"").trim();
       const dims=(c.di!=null||c.de!=null||c.largo!=null)?` ${c.di??0} / ${c.de??0} / ${c.largo??0}`:"";
       // Tipo real del consumo: interno (OP "INT-" u obs "INTERNO") vs orden de producción.
@@ -5552,11 +5563,11 @@ async function calcMerma(){
   try{
     const ids=[...new Set(desc.map(m=>m.tubo_id).filter(Boolean))];
     const tmap={};
-    if(ids.length){for(let i=0;i<ids.length;i+=300){const {data:ts}=await sb.from("tubos").select("id,precio,moneda,altura_total").in("id",ids.slice(i,i+300));(ts||[]).forEach(t=>tmap[t.id]=t);}}
+    if(ids.length){for(let i=0;i<ids.length;i+=300){const {data:ts}=await sb.from("tubos").select("id,precio,moneda,altura_total,origen,codigo_mat").in("id",ids.slice(i,i+300));(ts||[]).forEach(t=>tmap[t.id]=t);}}
     const iids=[...new Set(desc.map(m=>m.tubo_instancia_id).filter(Boolean))];
     const imap={};
     if(iids.length){for(let i=0;i<iids.length;i+=300){const {data:is}=await sb.from("tubo_instancias").select("id,altura_total").in("id",iids.slice(i,i+300));(is||[]).forEach(x=>imap[x.id]=x.altura_total);}}
-    desc.forEach(m=>{const t=tmap[m.tubo_id];if(!t||t.precio==null||t.precio==="")return;const largo=instTot({altura_total:imap[m.tubo_instancia_id]},t);if(largo>0)dinero+=(_aPen(t.precio,t.moneda)/largo)*(Number(m.altura_usada)||0);});
+    desc.forEach(m=>{const t=tmap[m.tubo_id];if(!t||t.precio==null||t.precio==="")return;const largo=_largoRef(t,imap[m.tubo_instancia_id]);if(largo>0)dinero+=(_aPen(t.precio,t.moneda)/largo)*(Number(m.altura_usada)||0);});
   }catch(e){}
   const el=document.querySelector("#kpiMermaDash .kpi-val");
   if(el){el.textContent=`${Math.round(mmDesc).toLocaleString()}mm`;el.style.color=pct>=thr?"var(--red)":"var(--green)";}
@@ -5718,7 +5729,7 @@ async function calcValorInventario(){
     sb.from("suministros_productos").select("stock_actual,precio_unitario,moneda").eq("activo",true).limit(5000),
   ]);
   // Tubos e instancias: PAGINADO (antes un límite fijo cortaba registros → MP Mecaniza en 0).
-  let tubos=[]; for(let f=0;;f+=1000){const {data}=await sb.from("tubos").select("id,precio,moneda,sede,altura_total").range(f,f+999);if(!data?.length)break;tubos=tubos.concat(data);if(data.length<1000)break;}
+  let tubos=[]; for(let f=0;;f+=1000){const {data}=await sb.from("tubos").select("id,precio,moneda,sede,altura_total,origen,codigo_mat").range(f,f+999);if(!data?.length)break;tubos=tubos.concat(data);if(data.length<1000)break;}
   let inst=[];  for(let f=0;;f+=1000){const {data}=await sb.from("tubo_instancias").select("tubo_id,altura_total,altura_usada").eq("estado","disponible").range(f,f+999);if(!data?.length)break;inst=inst.concat(data);if(data.length<1000)break;}
   let vMerc=0,vAlm=0,vSum=0,vMpC=0,vMpM=0;
   (merc.data||[]).forEach(p=>vMerc+=_aPen(p.precio_unitario,p.moneda)*(Number(p.stock_actual)||0));
@@ -5728,11 +5739,11 @@ async function calcValorInventario(){
   const tmap={}; tubos.forEach(t=>tmap[t.id]=t);
   inst.forEach(i=>{
     const t=tmap[i.tubo_id]; if(!t||t.precio==null||t.precio==="") return;
-    const nominal=Number(t.altura_total)||0;
-    // NACIONALES (largo variable): divisor = largo REAL de la instancia. IMPORTADOS: largo nominal del modelo.
-    const largo=Number(i.altura_total)||nominal;
+    // Tasa por mm: importados = precio/nominal; nacionales = precio/altura de compra. Remanente = físico de la instancia.
+    const largo=_largoRef(t,i.altura_total);
     if(largo<=0) return;
-    const restante=Math.max(0,largo-(Number(i.altura_usada)||0));
+    const fisico=Number(i.altura_total)||Number(t.altura_total)||0;
+    const restante=Math.max(0,fisico-(Number(i.altura_usada)||0));
     const v=(_aPen(t.precio,t.moneda)/largo)*restante;
     if((t.sede||"custom")==="mecaniza")vMpM+=v;else vMpC+=v;
   });
@@ -5909,7 +5920,7 @@ async function dashDetalleValorInv(){
     sb.from("suministros_productos").select("nombre,stock_actual,precio_unitario,moneda").eq("activo",true).limit(5000),
   ]);
   // Tubos e instancias: PAGINADO + misma fórmula que el KPI (precio ÷ largo × mm disponibles; nacionales usan largo real).
-  let tubosD=[]; for(let f=0;;f+=1000){const {data}=await sb.from("tubos").select("id,descripcion,precio,moneda,altura_total").range(f,f+999);if(!data?.length)break;tubosD=tubosD.concat(data);if(data.length<1000)break;}
+  let tubosD=[]; for(let f=0;;f+=1000){const {data}=await sb.from("tubos").select("id,descripcion,precio,moneda,altura_total,origen,codigo_mat").range(f,f+999);if(!data?.length)break;tubosD=tubosD.concat(data);if(data.length<1000)break;}
   let instD=[];  for(let f=0;;f+=1000){const {data}=await sb.from("tubo_instancias").select("tubo_id,altura_total,altura_usada").eq("estado","disponible").range(f,f+999);if(!data?.length)break;instD=instD.concat(data);if(data.length<1000)break;}
   const items=[];
   (merc.data||[]).forEach(p=>{const v=_aPen(p.precio_unitario,p.moneda)*(Number(p.stock_actual)||0);if(v>0)items.push({label:`${p.nombre} (Custom)`,val:v});});
@@ -5918,8 +5929,9 @@ async function dashDetalleValorInv(){
   const tmapD={}, valTubo={}; tubosD.forEach(t=>tmapD[t.id]=t);
   instD.forEach(i=>{
     const t=tmapD[i.tubo_id]; if(!t||t.precio==null||t.precio==="") return;
-    const nominal=Number(t.altura_total)||0; const largo=Number(i.altura_total)||nominal; if(largo<=0) return;
-    const restante=Math.max(0,largo-(Number(i.altura_usada)||0));
+    const largo=_largoRef(t,i.altura_total); if(largo<=0) return;
+    const fisico=Number(i.altura_total)||Number(t.altura_total)||0;
+    const restante=Math.max(0,fisico-(Number(i.altura_usada)||0));
     valTubo[i.tubo_id]=(valTubo[i.tubo_id]||0)+(_aPen(t.precio,t.moneda)/largo)*restante;
   });
   Object.keys(valTubo).forEach(id=>{const t=tmapD[id]; const v=valTubo[id]; if(v>0)items.push({label:`${t.descripcion} (MP)`,val:v});});
@@ -10106,21 +10118,13 @@ async function reabrirLineaEditOp(lineId,btn){
   try{
     const {data:L}=await sb.from("consumos_ops").select("*").eq("id",lineId).maybeSingle();
     if(!L){setBtnLoading2(btn,false);toast("Línea no encontrada","err");return;}
-    if(L.devuelto==null){setBtnLoading2(btn,false);toast("Esta línea ya está pendiente","info");return;}
-    const consumido=(L.enviado||0)-(L.devuelto||0);
-    if(L.tubo_instancia_id&&consumido>0){
-      const {data:inst}=await sb.from("tubo_instancias").select("*").eq("id",L.tubo_instancia_id).maybeSingle();
-      const {data:tubo}=await sb.from("tubos").select("altura_total").eq("id",L.tubo_id).maybeSingle();
-      if(inst&&tubo){
-        const nuevoUsado=Math.max(0,(inst.altura_usada||0)-consumido);
-        const altTot=instTot(inst,tubo);
-        // No resucitar un tubo separado/agotado a mano
-        const nuevoEstado=inst.estado==="separado"?"separado":(nuevoUsado>=altTot?"agotado":"disponible");
-        await sb.from("tubo_instancias").update({altura_usada:nuevoUsado,estado:nuevoEstado}).eq("id",L.tubo_instancia_id);
-        await sb.from("movimientos").insert({tubo_id:L.tubo_id,tubo_instancia_id:L.tubo_instancia_id,tipo:"ajuste",altura_usada:consumido,op_numero:L.op,usuario_id:CU?.id,nota:`Reabrir línea OP ${L.op}: +${consumido}mm`});
-      }
+    if(L.devuelto==null&&!L.es_merma){setBtnLoading2(btn,false);toast("Esta línea ya está pendiente","info");return;}
+    // Dejar pendiente + quitar merma, y RECALCULAR la instancia (devuelve consumo + descarte, respeta otros consumos).
+    await sb.from("consumos_ops").update({devuelto:null,es_merma:false,motivo_merma:null}).eq("id",lineId);
+    if(L.tubo_instancia_id){
+      const r=await _recalcInstancia(L.tubo_instancia_id, L.tubo_id);
+      if(r&&r.delta>0) await sb.from("movimientos").insert({tubo_id:L.tubo_id,tubo_instancia_id:L.tubo_instancia_id,tipo:"ajuste",altura_usada:r.delta,op_numero:L.op,usuario_id:CU?.id,nota:`Reabrir línea OP ${L.op}: +${r.delta}mm`});
     }
-    await sb.from("consumos_ops").update({devuelto:null}).eq("id",lineId);
     await loadConsMatTuboCache(true);
     clearCache("consumos");clearCache("tubos_custom");clearCache("tubos_mecaniza");
     toast("✓ Línea reabierta · stock restaurado","ok");
@@ -10822,46 +10826,43 @@ async function deleteConsumo(consumoId){
   if(!c){toast("Registro no encontrado","err");return;}
   const conf=confirm(`¿Eliminar este registro de consumo?\n\nOP: ${c.op}\nMaterial: ${c.material}\nENVIADO: ${c.enviado}mm\n\nSi tiene un tubo vinculado, los mm consumidos se restituirán al stock.\nEsta acción no se puede deshacer.`);
   if(!conf) return;
-  // Revertir el descuento del tubo si existe instancia vinculada
-  if(c.tubo_instancia_id&&!c.es_historico){
-    const consumoARevertir=(c.enviado||0)-(c.devuelto||0);
-    if(consumoARevertir>0){
-      const {data:inst}=await sb.from("tubo_instancias").select("*").eq("id",c.tubo_instancia_id).maybeSingle();
-      if(inst){
-        const nuevoUsado=Math.max(0,(inst.altura_usada||0)-consumoARevertir);
-        const {data:tubo}=await sb.from("tubos").select("altura_total").eq("id",c.tubo_id).maybeSingle();
-        const altTot=tubo?.altura_total||0;
-        const nuevoEstado=nuevoUsado>=altTot?"agotado":"disponible";
-        await sb.from("tubo_instancias").update({altura_usada:nuevoUsado,estado:nuevoEstado}).eq("id",c.tubo_instancia_id);
-        await sb.from("movimientos").insert({
-          tubo_id:c.tubo_id,tubo_instancia_id:c.tubo_instancia_id,
-          tipo:"ajuste",altura_usada:consumoARevertir,
-          op_numero:c.op,usuario_id:CU?.id,
-          nota:`Revertir consumo eliminado OP ${c.op}: +${consumoARevertir}mm`
-        });
-      }
-    }
-  }
+  // Borrar el registro y RECALCULAR la instancia con los consumos que quedan (devuelve consumo + descarte).
   const {error}=await sb.from("consumos_ops").delete().eq("id",consumoId);
   if(error){toast(errMsg(error),"err");return;}
+  await revertirStockConsumo(c);
   toast("✓ Registro eliminado · stock restaurado","ok");
   clearCache("consumos");clearCache("tubos_custom");clearCache("tubos_mecaniza");clearCache("materiales_list");_consMatTuboCache=null;loadConsumos(true);
 }
 
-// Restituye al stock los mm consumidos de un registro (si tenía instancia vinculada).
-// Reutilizable por borrado/reapertura masiva. No borra el registro.
+// Recalcula el estado REAL de una instancia a partir de los consumos que le quedan
+// (cerrados = con DEVUELTO; los pendientes no descuentan; si hay alguna merma activa → agotado).
+// Reemplaza el ajuste por deltas, que se descuadraba al reabrir/borrar consumos con descarte.
+// Debe llamarse DESPUÉS de actualizar/borrar el registro. Devuelve {before, after, delta}.
+async function _recalcInstancia(instId, tuboId){
+  if(!instId) return null;
+  const [{data:cons},{data:tubo},{data:inst}]=await Promise.all([
+    sb.from("consumos_ops").select("enviado,devuelto,es_merma").eq("tubo_instancia_id",instId),
+    sb.from("tubos").select("altura_total").eq("id",tuboId).maybeSingle(),
+    sb.from("tubo_instancias").select("altura_total,altura_usada,estado").eq("id",instId).maybeSingle(),
+  ]);
+  if(!inst) return null;
+  const altTot=instTot(inst,tubo);
+  let usado=0, hayMerma=false;
+  (cons||[]).forEach(c=>{ if(c.es_merma)hayMerma=true; else if(c.devuelto!=null)usado+=Math.max(0,(c.enviado||0)-(c.devuelto||0)); });
+  usado=Math.min(usado,altTot);
+  const before=Number(inst.altura_usada)||0;
+  let estado, finalUsado;
+  if(inst.estado==="separado"){ estado="separado"; finalUsado=usado; }        // no resucitar/tocar separados
+  else if(hayMerma){ estado="agotado"; finalUsado=altTot; }                    // aún queda una merma activa
+  else { finalUsado=usado; estado = (altTot>0&&usado>=altTot) ? "agotado" : "disponible"; }
+  await sb.from("tubo_instancias").update({altura_usada:finalUsado,estado}).eq("id",instId);
+  return {before, after:finalUsado, delta:before-finalUsado};   // delta>0 = mm liberados
+}
+// Restituye el stock de un consumo recalculando su instancia. Llamar DESPUÉS de actualizar/borrar el registro.
 async function revertirStockConsumo(c){
   if(!c||!c.tubo_instancia_id||c.es_historico) return;
-  const consumoARevertir=(c.enviado||0)-(c.devuelto||0);
-  if(consumoARevertir<=0) return;
-  const {data:inst}=await sb.from("tubo_instancias").select("*").eq("id",c.tubo_instancia_id).maybeSingle();
-  if(!inst) return;
-  const {data:tubo}=await sb.from("tubos").select("altura_total").eq("id",c.tubo_id).maybeSingle();
-  const altTot=tubo?.altura_total||0;
-  const nuevoUsado=Math.max(0,(inst.altura_usada||0)-consumoARevertir);
-  const nuevoEstado=nuevoUsado>=altTot?"agotado":"disponible";
-  await sb.from("tubo_instancias").update({altura_usada:nuevoUsado,estado:nuevoEstado}).eq("id",c.tubo_instancia_id);
-  await sb.from("movimientos").insert({tubo_id:c.tubo_id,tubo_instancia_id:c.tubo_instancia_id,tipo:"ajuste",altura_usada:consumoARevertir,op_numero:c.op,usuario_id:CU?.id,nota:`Restituir stock OP ${c.op}: +${consumoARevertir}mm`});
+  const r=await _recalcInstancia(c.tubo_instancia_id, c.tubo_id);
+  if(r&&r.delta>0) await sb.from("movimientos").insert({tubo_id:c.tubo_id,tubo_instancia_id:c.tubo_instancia_id,tipo:"ajuste",altura_usada:r.delta,op_numero:c.op,usuario_id:CU?.id,nota:`Restituir stock OP ${c.op}: +${r.delta}mm`});
 }
 
 // ── Selección masiva de consumos ──
@@ -10893,13 +10894,12 @@ async function bulkDeleteConsumos(){
   if(!confirm(`¿Eliminar ${ids.length} registro(s) seleccionado(s)?\n\nLos que tengan tubo vinculado restituirán los mm al stock.\nEsta acción no se puede deshacer.`))return;
   showLoading(true,`Eliminando ${ids.length}...`);
   try{
-    for(const id of ids){
-      const c=_consCache.find(x=>x.id===id);
-      if(c) await revertirStockConsumo(c);
-    }
+    // Borrar primero; después recalcular cada instancia con los consumos que quedan.
+    const afectados=ids.map(id=>_consCache.find(x=>x.id===id)).filter(Boolean);
     const {error}=await sb.from("consumos_ops").delete().in("id",ids);
+    if(error){showLoading(false);toast(errMsg(error),"err");return;}
+    for(const c of afectados) await revertirStockConsumo(c);
     showLoading(false);
-    if(error){toast(errMsg(error),"err");return;}
     toast(`✓ ${ids.length} registro(s) eliminado(s) · stock restaurado`,"ok");
     clearConsSel();
     clearCache("consumos");clearCache("tubos_custom");clearCache("tubos_mecaniza");clearCache("materiales_list");_consMatTuboCache=null;loadConsumos(true);
@@ -10915,9 +10915,9 @@ async function bulkReabrirConsumos(){
     let n=0;
     for(const id of ids){
       const c=_consCache.find(x=>x.id===id);
-      if(!c||c.es_merma||c.es_historico) continue;
-      await revertirStockConsumo(c);
-      await sb.from("consumos_ops").update({devuelto:null}).eq("id",id);
+      if(!c||c.es_historico) continue;
+      await sb.from("consumos_ops").update({devuelto:null,es_merma:false,motivo_merma:null}).eq("id",id);
+      await revertirStockConsumo(c);   // recalcula la instancia (devuelve consumo + descarte)
       n++;
     }
     showLoading(false);
@@ -11413,27 +11413,22 @@ async function revertirCierreLinea(lineId){
 // devuelve los mm al stock y deja las líneas pendientes otra vez.
 async function reabrirOpCompleta(){
   if(!getEffectivePerms().editarConsumos){toast("Sin permiso","err");return;}
-  const cerradas=_cierreState.lineas.filter(l=>l.devuelto!=null&&!l.es_merma);
+  const cerradas=_cierreState.lineas.filter(l=>l.devuelto!=null||l.es_merma);   // incluye descartes (merma)
   if(!cerradas.length){toast("No hay líneas cerradas para reabrir","err");return;}
-  if(!confirm(`¿Reabrir la OP ${_cierreState.op} completa?\n\nSe revertirán ${cerradas.length} línea(s) cerrada(s): los mm consumidos vuelven al stock y las líneas quedan pendientes.`))return;
+  if(!confirm(`¿Reabrir la OP ${_cierreState.op} completa?\n\nSe revertirán ${cerradas.length} línea(s): vuelven al stock los mm consumidos Y los descartes; las líneas quedan pendientes.`))return;
   showLoading(true,"Reabriendo OP...");
   try{
+    // 1) Dejar todas las líneas pendientes y sin merma.
     for(const L of cerradas){
-      const consumido=(L.enviado||0)-(L.devuelto||0);
-      if(L.tubo_instancia_id&&consumido>0){
-        const {data:inst}=await sb.from("tubo_instancias").select("*").eq("id",L.tubo_instancia_id).maybeSingle();
-        const {data:tubo}=await sb.from("tubos").select("altura_total").eq("id",L.tubo_id).maybeSingle();
-        if(inst&&tubo){
-          const nuevoUsado=Math.max(0,(inst.altura_usada||0)-consumido);
-          const altTot=instTot(inst,tubo);
-          // No resucitar un tubo separado/agotado manualmente
-          const nuevoEstado=inst.estado==="separado"?"separado":(nuevoUsado>=altTot?"agotado":"disponible");
-          await sb.from("tubo_instancias").update({altura_usada:nuevoUsado,estado:nuevoEstado}).eq("id",L.tubo_instancia_id);
-          await sb.from("movimientos").insert({tubo_id:L.tubo_id,tubo_instancia_id:L.tubo_instancia_id,tipo:"ajuste",altura_usada:consumido,op_numero:_cierreState.op,usuario_id:CU?.id,nota:`Reabrir OP ${_cierreState.op}: +${consumido}mm`});
-        }
-      }
-      await sb.from("consumos_ops").update({devuelto:null}).eq("id",L.id);
-      L.devuelto=null;
+      await sb.from("consumos_ops").update({devuelto:null,es_merma:false,motivo_merma:null}).eq("id",L.id);
+      L.devuelto=null; L.es_merma=false;
+    }
+    // 2) Recalcular cada instancia afectada (una sola vez por instancia).
+    const insts=[...new Set(cerradas.map(l=>l.tubo_instancia_id).filter(Boolean))];
+    for(const instId of insts){
+      const L=cerradas.find(l=>l.tubo_instancia_id===instId);
+      const r=await _recalcInstancia(instId, L.tubo_id);
+      if(r&&r.delta>0) await sb.from("movimientos").insert({tubo_id:L.tubo_id,tubo_instancia_id:instId,tipo:"ajuste",altura_usada:r.delta,op_numero:_cierreState.op,usuario_id:CU?.id,nota:`Reabrir OP ${_cierreState.op}: +${r.delta}mm`});
     }
     await loadConsMatTuboCache(true);
     showLoading(false);
