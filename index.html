@@ -210,6 +210,20 @@ tbody tr:hover td{background:var(--bg-card-2)}
 /* Quitar las flechitas (spinners) de los campos numéricos */
 input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
 input[type=number]{-moz-appearance:textfield;appearance:textfield}
+/* Campos de fecha: SOLO el iconito del calendario (a la derecha del input) es oscuro por
+   defecto y no se ve sobre el fondo oscuro de la app. Se reemplaza por un ícono propio
+   (círculo + calendario, en blanco), igual en todos los navegadores. No toca el resto
+   del campo ni el popup del calendario. Aplica a TODOS los inputs de fecha del sistema. */
+input[type=date]::-webkit-calendar-picker-indicator{
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='10'/><rect x='7' y='8' width='10' height='9' rx='1'/><line x1='9' y1='6' x2='9' y2='9'/><line x1='15' y1='6' x2='15' y2='9'/><line x1='7' y1='11.2' x2='17' y2='11.2'/><circle cx='9.3' cy='13.6' r='.55' fill='white' stroke='none'/><circle cx='12' cy='13.6' r='.55' fill='white' stroke='none'/><circle cx='14.7' cy='13.6' r='.55' fill='white' stroke='none'/><circle cx='9.3' cy='15.6' r='.55' fill='white' stroke='none'/><circle cx='12' cy='15.6' r='.55' fill='white' stroke='none'/></svg>");
+  background-repeat:no-repeat;
+  background-position:center;
+  background-size:15px 15px;
+  filter:none;
+  opacity:.9;
+  cursor:pointer;
+}
+input[type=date]::-webkit-calendar-picker-indicator:hover{opacity:1}
 .form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .form-row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
 .modal-footer{display:flex;gap:8px;justify-content:flex-end;margin-top:16px;border-top:1px solid var(--border);padding-top:14px}
@@ -851,12 +865,11 @@ html[data-theme="light"]{ --brand:#2563c9; --brand-dark:#1e4fa8; }
           <button class="btn btn-ghost" onclick="resetFiltrosMerc()"><i class="ti ti-refresh"></i>Limpiar</button>
           <button class="btn btn-red" id="btnNuevoMerc" onclick="openModalMerc()"><i class="ti ti-plus"></i>Nuevo producto</button>
           <button class="btn btn-ghost" id="btnNuevaCatMerc" onclick="openCategoriaModal('merc')"><i class="ti ti-category-plus"></i>+ Categoría</button>
-          <button class="btn btn-ghost" onclick="openRepMov('merc')"><i class="ti ti-report"></i>Reporte mov.</button>
-          <button class="btn btn-ghost" onclick="openAnalisisPrecios('merc')" title="Compara precios de venta vs el precio registrado (ganancia/pérdida)"><i class="ti ti-chart-dots"></i>Análisis de precios</button>
-          <button class="btn btn-ghost" id="btnConteoMerc" onclick="openConteoAlm('merc')"><i class="ti ti-clipboard-check"></i>Conteo físico</button>
-          <button class="btn btn-ghost" id="btnRotMerc" onclick="openRotProd('merc')"><i class="ti ti-arrows-shuffle"></i>Rotación</button>
           <button class="btn btn-ghost" id="btnSyncFichas" style="display:none" onclick="sincronizarFichasCustomAMec()" title="Copiar fichas y precios a los mismos productos en Mecaniza"><i class="ti ti-arrows-transfer-right"></i>Sincronizar → Mecaniza</button>
-          <button class="btn btn-ghost" onclick="ayudaAlmacen()" title="¿Cómo funciona esta pantalla?"><i class="ti ti-help-circle"></i>¿Cómo funciona?</button>
+          <!-- "Reporte mov.", "Análisis de precios", "Conteo físico" y "Rotación" se quitaron: ya están duplicados en Reportes. -->
+          <!-- "¿Cómo funciona?" se quitó (no se usaba). -->
+          <button class="btn btn-ghost" id="btnEntMultMerc" onclick="abrirMovMultiple('merc','entrada')" title="Registrar varios productos recibidos de una vez"><i class="ti ti-arrow-down"></i>Entrada múltiple</button>
+          <button class="btn btn-ghost" id="btnSalMultMerc" onclick="abrirMovMultiple('merc','salida')" title="Registrar varias salidas de una vez"><i class="ti ti-arrow-up"></i>Salida múltiple</button>
           <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:#94a3b8;white-space:nowrap;margin-left:auto">Ver en
             <select class="cur-sel fi" style="width:auto;padding:4px 8px" onchange="setDisplayCur(this.value)"><option value="orig">Original</option><option value="PEN">S/ Soles</option><option value="USD">$ Dólares</option><option value="EUR">€ Euros</option></select>
           </label>
@@ -910,11 +923,10 @@ html[data-theme="light"]{ --brand:#2563c9; --brand-dark:#1e4fa8; }
           <button class="btn btn-ghost" onclick="resetFiltrosAlm()"><i class="ti ti-refresh"></i>Limpiar</button>
           <button class="btn btn-red" id="btnNuevoAlm" onclick="openModalAlm()"><i class="ti ti-plus"></i>Nuevo producto</button>
           <button class="btn btn-ghost" id="btnNuevaCatAlm" onclick="openCategoriaModal('merc')"><i class="ti ti-category-plus"></i>+ Categoría</button>
-          <button class="btn btn-ghost" onclick="openRepMov('alm')"><i class="ti ti-report"></i>Reporte mov.</button>
-          <button class="btn btn-ghost" onclick="openAnalisisPrecios('alm')" title="Compara precios de venta vs el precio registrado (ganancia/pérdida)"><i class="ti ti-chart-dots"></i>Análisis de precios</button>
-          <button class="btn btn-ghost" id="btnConteoAlm" onclick="openConteoAlm('alm')"><i class="ti ti-clipboard-check"></i>Conteo físico</button>
-          <button class="btn btn-ghost" id="btnRotAlm" onclick="openRotProd('alm')"><i class="ti ti-arrows-shuffle"></i>Rotación</button>
-          <button class="btn btn-ghost" onclick="ayudaAlmacen()" title="¿Cómo funciona esta pantalla?"><i class="ti ti-help-circle"></i>¿Cómo funciona?</button>
+          <!-- "Reporte mov.", "Análisis de precios", "Conteo físico" y "Rotación" se quitaron: ya están duplicados en Reportes. -->
+          <!-- "¿Cómo funciona?" se quitó (no se usaba). -->
+          <button class="btn btn-ghost" id="btnEntMultAlm" onclick="abrirMovMultiple('alm','entrada')" title="Registrar varios productos recibidos de una vez"><i class="ti ti-arrow-down"></i>Entrada múltiple</button>
+          <button class="btn btn-ghost" id="btnSalMultAlm" onclick="abrirMovMultiple('alm','salida')" title="Registrar varias salidas de una vez"><i class="ti ti-arrow-up"></i>Salida múltiple</button>
           <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:#94a3b8;white-space:nowrap;margin-left:auto">Ver en
             <select class="cur-sel fi" style="width:auto;padding:4px 8px" onchange="setDisplayCur(this.value)"><option value="orig">Original</option><option value="PEN">S/ Soles</option><option value="USD">$ Dólares</option><option value="EUR">€ Euros</option></select>
           </label>
@@ -959,10 +971,10 @@ html[data-theme="light"]{ --brand:#2563c9; --brand-dark:#1e4fa8; }
           <button class="btn btn-ghost" onclick="resetFiltrosSum()"><i class="ti ti-refresh"></i>Limpiar</button>
           <button class="btn btn-red" id="btnNuevoSum" onclick="openModalSum()"><i class="ti ti-plus"></i>Nuevo producto</button>
           <button class="btn btn-ghost" id="btnNuevaCatSum" onclick="openCategoriaModal('sum')"><i class="ti ti-category-plus"></i>+ Categoría</button>
-          <button class="btn btn-ghost" onclick="openRepMov('sum')"><i class="ti ti-report"></i>Reporte mov.</button>
-          <button class="btn btn-ghost" id="btnConteoSum" onclick="openConteoAlm('sum')"><i class="ti ti-clipboard-check"></i>Conteo físico</button>
-          <button class="btn btn-ghost" id="btnRotSum" onclick="openRotProd('sum')"><i class="ti ti-arrows-shuffle"></i>Rotación</button>
-          <button class="btn btn-ghost" onclick="ayudaAlmacen()" title="¿Cómo funciona esta pantalla?"><i class="ti ti-help-circle"></i>¿Cómo funciona?</button>
+          <!-- "Reporte mov.", "Conteo físico" y "Rotación" se quitaron: ya están duplicados en Reportes. -->
+          <!-- "¿Cómo funciona?" se quitó (no se usaba). -->
+          <button class="btn btn-ghost" id="btnEntMultSum" onclick="abrirMovMultiple('sum','entrada')" title="Registrar varios productos recibidos de una vez"><i class="ti ti-arrow-down"></i>Entrada múltiple</button>
+          <button class="btn btn-ghost" id="btnSalMultSum" onclick="abrirMovMultiple('sum','salida')" title="Registrar varias salidas de una vez"><i class="ti ti-arrow-up"></i>Salida múltiple</button>
           <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:#94a3b8;white-space:nowrap;margin-left:auto">Ver en
             <select class="cur-sel fi" style="width:auto;padding:4px 8px" onchange="setDisplayCur(this.value)"><option value="orig">Original</option><option value="PEN">S/ Soles</option><option value="USD">$ Dólares</option><option value="EUR">€ Euros</option></select>
           </label>
@@ -1034,7 +1046,6 @@ html[data-theme="light"]{ --brand:#2563c9; --brand-dark:#1e4fa8; }
           <button class="btn btn-ghost" onclick="resetFiltrosCons()"><i class="ti ti-refresh"></i>Limpiar</button>
           <button class="btn btn-red" id="btnGridCons" onclick="openGridConsumo()"><i class="ti ti-plus"></i>Nuevo registro</button>
           <button class="btn btn-blue" id="btnExportCons" onclick="exportarConsumosExcel()"><i class="ti ti-download"></i>Exportar a Excel</button>
-          <button class="btn btn-ghost" onclick="ayudaConsumos()" title="¿Cómo funciona esta pantalla?"><i class="ti ti-help-circle"></i>¿Cómo funciona?</button>
           <input type="file" id="consImportInput" style="display:none" accept=".xlsx,.xls" onchange="importConsumosExcel(event)">
         </div>
         <div id="consImportProgress" style="display:none"></div>
@@ -1473,7 +1484,7 @@ html[data-theme="light"]{ --brand:#2563c9; --brand-dark:#1e4fa8; }
 </div>
 
 <!-- MODAL: Cliente -->
-<div class="modal-overlay" id="modalCliente" style="display:none" onclick="if(event.target===this)closeModalSafe('modalCliente')">
+<div class="modal-overlay" id="modalCliente" style="display:none">
   <div class="modal" style="max-width:720px">
     <div class="modal-title"><i class="ti ti-user" style="color:var(--red)"></i><span id="modalClienteTitle">Nuevo cliente</span></div>
     <div class="cli-section"><i class="ti ti-id"></i>Identificación</div>
@@ -1542,7 +1553,7 @@ html[data-theme="light"]{ --brand:#2563c9; --brand-dark:#1e4fa8; }
 
 <!-- MODAL: Nuevo consumo (multi-línea con selectores jerárquicos) -->
 <!-- MODAL: Nuevo registro (grid tipo Excel) -->
-<div class="modal-overlay" id="modalGrid" style="display:none" onclick="if(event.target===this)closeModalSafe('modalGrid')">
+<div class="modal-overlay" id="modalGrid" style="display:none">
   <div class="modal" style="max-width:920px">
     <div class="modal-title"><i class="ti ti-clipboard-plus" style="color:#f5a623"></i>Nuevo registro — Consumos <span style="margin-left:auto;font-size:11px;color:var(--text-faint);font-weight:normal"><i class="ti ti-bolt"></i> Tab avanza · Enter agrega fila</span></div>
     <!-- Cabecera de la OP -->
@@ -1583,7 +1594,7 @@ html[data-theme="light"]{ --brand:#2563c9; --brand-dark:#1e4fa8; }
 </div>
 
 <!-- MODAL: Editar OP completa (todas sus líneas) -->
-<div class="modal-overlay" id="modalEditOp" style="display:none" onclick="if(event.target===this)closeModalSafe('modalEditOp')">
+<div class="modal-overlay" id="modalEditOp" style="display:none">
   <div class="modal" style="max-width:1120px">
     <div class="modal-title"><i class="ti ti-edit" style="color:#5b9bd5"></i><span id="eopTitle">Editar OP</span></div>
     <div style="font-size:11px;color:var(--text-soft);margin-bottom:10px">Edita todas las líneas de la OP a la vez. En las líneas <strong>cerradas</strong> no se puede cambiar el ENVIADO — usa el botón <strong>Reabrir</strong> de la línea para devolver el descuento y poder corregirlo.</div>
@@ -1611,7 +1622,7 @@ html[data-theme="light"]{ --brand:#2563c9; --brand-dark:#1e4fa8; }
   </div>
 </div>
 
-<div class="modal-overlay" id="modalConsumo" style="display:none" onclick="if(event.target===this)closeModalSafe('modalConsumo')">
+<div class="modal-overlay" id="modalConsumo" style="display:none">
   <div class="modal" style="max-width:880px">
     <div class="modal-title"><i class="ti ti-clipboard-plus" style="color:var(--red)"></i><span id="modalConsumoTitle">Nuevo registro de consumo</span></div>
 
@@ -1663,7 +1674,7 @@ html[data-theme="light"]{ --brand:#2563c9; --brand-dark:#1e4fa8; }
 </div>
 
 <!-- MODAL: MERMA (descartar tubo entero) -->
-<div class="modal-overlay" id="modalMerma" style="display:none" onclick="if(event.target===this)closeModalSafe('modalMerma')">
+<div class="modal-overlay" id="modalMerma" style="display:none">
   <div class="modal" style="max-width:440px">
     <div class="modal-title"><i class="ti ti-trash-x" style="color:#e85a5a"></i>Marcar como AGOTADO (descarte)</div>
     <div style="background:#2e1a1a;border:.5px solid #e85a5a44;color:#e85a5a;font-size:12px;padding:10px 12px;border-radius:8px;margin-bottom:12px">
@@ -1703,7 +1714,7 @@ html[data-theme="light"]{ --brand:#2563c9; --brand-dark:#1e4fa8; }
 </div>
 
 <!-- MODAL: Ranking de materiales consumidos -->
-<div class="modal-overlay" id="modalRanking" style="display:none" onclick="if(event.target===this)closeModal('modalRanking')">
+<div class="modal-overlay" id="modalRanking" style="display:none">
   <div class="modal" style="max-width:680px">
     <div class="modal-title"><i class="ti ti-trophy" style="color:#f5a623"></i>Ranking de materiales más consumidos</div>
     <div style="font-size:11px;color:var(--text-soft);margin-bottom:10px">Total de mm consumidos por material (todo el histórico del sistema). Busca para filtrar.</div>
@@ -1718,7 +1729,7 @@ html[data-theme="light"]{ --brand:#2563c9; --brand-dark:#1e4fa8; }
 </div>
 
 <!-- MODAL: Stock sin movimiento -->
-<div class="modal-overlay" id="modalStockMuerto" style="display:none" onclick="if(event.target===this)closeModal('modalStockMuerto')">
+<div class="modal-overlay" id="modalStockMuerto" style="display:none">
   <div class="modal" style="max-width:760px">
     <div class="modal-title"><i class="ti ti-clock-pause" style="color:#f5a623"></i>Stock sin movimiento</div>
     <div style="font-size:11px;color:var(--text-soft);margin-bottom:10px">Materiales con stock disponible que <strong>no han tenido ningún movimiento</strong> (entrada, consumo, ajuste…) en el período elegido. Útil para detectar stock "muerto".</div>
@@ -1742,7 +1753,7 @@ html[data-theme="light"]{ --brand:#2563c9; --brand-dark:#1e4fa8; }
 </div>
 
 <!-- MODAL: Rotación de materiales (sin / poco / bastante movimiento) -->
-<div class="modal-overlay" id="modalExportMovs" style="display:none" onclick="if(event.target===this)closeModal('modalExportMovs')">
+<div class="modal-overlay" id="modalExportMovs" style="display:none">
   <div class="modal" style="max-width:900px">
     <div class="modal-title"><i class="ti ti-arrows-shuffle" style="color:#5b9bd5"></i>Rotación de materiales</div>
     <div style="font-size:11px;color:var(--text-soft);margin-bottom:10px">Clasifica los materiales por cuánto se consumieron en el período. La clasificación es <strong>automática por ranking</strong>: el tercio que más se movió = <strong>alta rotación</strong>, el del medio = <strong>media</strong>, el que menos = <strong>baja</strong>; sin consumo = <strong>sin rotación</strong>. El consumo se muestra en <strong>mm</strong> y su equivalente en <strong>tubos</strong> (mm ÷ largo del tubo).</div>
@@ -1777,7 +1788,7 @@ html[data-theme="light"]{ --brand:#2563c9; --brand-dark:#1e4fa8; }
 </div>
 
 <!-- MODAL: Editar instancia (tubo físico) -->
-<div class="modal-overlay" id="modalInstancia" style="display:none" onclick="if(event.target===this)closeModalSafe('modalInstancia')">
+<div class="modal-overlay" id="modalInstancia" style="display:none">
   <div class="modal" style="max-width:460px">
     <div class="modal-title"><i class="ti ti-edit" style="color:#5b9bd5"></i>Editar tubo físico</div>
     <div id="instInfo" style="font-size:12px;color:var(--text);margin-bottom:12px"></div>
@@ -1803,7 +1814,7 @@ html[data-theme="light"]{ --brand:#2563c9; --brand-dark:#1e4fa8; }
 </div>
 
 <!-- MODAL: Separar / reservar tubo físico -->
-<div class="modal-overlay" id="modalSeparar" style="display:none" onclick="if(event.target===this)closeModalSafe('modalSeparar')">
+<div class="modal-overlay" id="modalSeparar" style="display:none">
   <div class="modal" style="max-width:440px">
     <div class="modal-title"><i class="ti ti-bookmark" style="color:#5b9bd5"></i>Separar / reservar tubo</div>
     <div id="sepInfo" style="font-size:12px;color:var(--text);margin-bottom:12px"></div>
@@ -1827,7 +1838,7 @@ html[data-theme="light"]{ --brand:#2563c9; --brand-dark:#1e4fa8; }
 </div>
 
 <!-- MODAL: Mercadería (CRUD producto) -->
-<div class="modal-overlay" id="modalMerc" style="display:none" onclick="if(event.target===this)closeModalSafe('modalMerc')">
+<div class="modal-overlay" id="modalMerc" style="display:none">
   <div class="modal" style="max-width:640px">
     <div class="modal-title"><i class="ti ti-circle-dot" style="color:#5b9bd5"></i><span id="modalMercTitle">Nuevo producto</span></div>
     <div class="form-row">
@@ -1879,10 +1890,11 @@ html[data-theme="light"]{ --brand:#2563c9; --brand-dark:#1e4fa8; }
 <datalist id="proveedoresList"></datalist>
 
 <!-- MODAL: Movimiento Mercadería (entrada/salida) -->
-<div class="modal-overlay" id="modalMercMov" style="display:none" onclick="if(event.target===this)closeModalSafe('modalMercMov')">
+<div class="modal-overlay" id="modalMercMov" style="display:none">
   <div class="modal" style="max-width:620px">
     <div class="modal-title"><i class="ti ti-arrows-transfer-up" id="modalMercMovIcon"></i><span id="modalMercMovTitle">Entrada</span></div>
     <div id="mercMovInfo" style="background:var(--bg-card);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--text);margin-bottom:12px"></div>
+    <div class="form-group"><label class="form-label">Fecha</label><input class="form-input" id="mm_fecha" type="date"></div>
     <div class="form-row">
       <div class="form-group"><label class="form-label">Cantidad <span class="req">*</span></label><input class="form-input" id="mm_cant" type="number" min="0.01" step="0.01"></div>
       <div class="form-group">
@@ -1923,7 +1935,7 @@ html[data-theme="light"]{ --brand:#2563c9; --brand-dark:#1e4fa8; }
 </div>
 
 <!-- MODAL: Almacén Mecaniza producto -->
-<div class="modal-overlay" id="modalAlm" style="display:none" onclick="if(event.target===this)closeModalSafe('modalAlm')">
+<div class="modal-overlay" id="modalAlm" style="display:none">
   <div class="modal" style="max-width:560px">
     <div class="modal-title"><i class="ti ti-box" style="color:#a78bfa"></i><span id="modalAlmTitle">Nuevo producto</span></div>
     <div class="form-row">
@@ -1963,10 +1975,11 @@ html[data-theme="light"]{ --brand:#2563c9; --brand-dark:#1e4fa8; }
 </div>
 
 <!-- MODAL: Movimiento Almacén Mecaniza -->
-<div class="modal-overlay" id="modalAlmMov" style="display:none" onclick="if(event.target===this)closeModalSafe('modalAlmMov')">
+<div class="modal-overlay" id="modalAlmMov" style="display:none">
   <div class="modal" style="max-width:620px">
     <div class="modal-title"><i class="ti ti-arrows-transfer-up" id="modalAlmMovIcon"></i><span id="modalAlmMovTitle">Entrada</span></div>
     <div id="almMovInfo" style="background:var(--bg-card);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--text);margin-bottom:12px"></div>
+    <div class="form-group"><label class="form-label">Fecha</label><input class="form-input" id="am_fecha" type="date"></div>
     <div class="form-row">
       <div class="form-group"><label class="form-label">Cantidad <span class="req">*</span></label><input class="form-input" id="am_cant" type="number" min="0.01" step="0.01"></div>
       <div class="form-group">
@@ -2007,7 +2020,7 @@ html[data-theme="light"]{ --brand:#2563c9; --brand-dark:#1e4fa8; }
 </div>
 
 <!-- MODAL: Almacén Suministros producto -->
-<div class="modal-overlay" id="modalSum" style="display:none" onclick="if(event.target===this)closeModalSafe('modalSum')">
+<div class="modal-overlay" id="modalSum" style="display:none">
   <div class="modal" style="max-width:560px">
     <div class="modal-title"><i class="ti ti-tools" style="color:#f5a623"></i><span id="modalSumTitle">Nuevo producto</span></div>
     <div class="form-row">
@@ -2039,10 +2052,11 @@ html[data-theme="light"]{ --brand:#2563c9; --brand-dark:#1e4fa8; }
 </div>
 
 <!-- MODAL: Movimiento Almacén Suministros -->
-<div class="modal-overlay" id="modalSumMov" style="display:none" onclick="if(event.target===this)closeModalSafe('modalSumMov')">
+<div class="modal-overlay" id="modalSumMov" style="display:none">
   <div class="modal">
     <div class="modal-title"><i class="ti ti-arrows-transfer-up" id="modalSumMovIcon"></i><span id="modalSumMovTitle">Entrada</span></div>
     <div id="sumMovInfo" style="background:var(--bg-card);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--text);margin-bottom:12px"></div>
+    <div class="form-group"><label class="form-label">Fecha</label><input class="form-input" id="sm_fecha" type="date"></div>
     <div class="form-row">
       <div class="form-group"><label class="form-label">Cantidad <span class="req">*</span></label><input class="form-input" id="sm_cant" type="number" min="0.01" step="0.01"></div>
       <div class="form-group">
@@ -2080,8 +2094,69 @@ html[data-theme="light"]{ --brand:#2563c9; --brand-dark:#1e4fa8; }
   </div>
 </div>
 
+<!-- MODAL: Entrada/Salida múltiple (Custom / Mecaniza / Suministros) -->
+<div class="modal-overlay" id="modalMovMultiple" style="display:none">
+  <div class="modal" style="max-width:760px">
+    <div class="modal-title"><i class="ti ti-arrows-transfer-up" id="mmmIcon"></i><span id="mmmTitle">Entrada múltiple</span></div>
+    <div style="font-size:11px;color:var(--text-soft);margin-bottom:12px">Cargá los datos una sola vez y agregá todos los productos que necesites a la lista antes de registrar.</div>
+    <input type="hidden" id="mmm_almacen"><input type="hidden" id="mmm_tipo">
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Fecha</label><input class="form-input" id="mmm_fecha" type="date"></div>
+      <div class="form-group"><label class="form-label">Moneda</label><select class="form-input" id="mmm_moneda"><option value="PEN">S/ PEN</option><option value="USD">$ USD</option><option value="EUR">€ EUR</option></select></div>
+    </div>
+    <div class="form-row" id="mmm_prov_box">
+      <div class="form-group"><label class="form-label">Proveedor</label><input class="form-input" id="mmm_proveedor" list="proveedoresList" autocomplete="off" placeholder="Elige o escribe uno nuevo"></div>
+      <div class="form-group"><label class="form-label">Cotización / Doc.</label><input class="form-input" id="mmm_cotiz_entrada" inputmode="numeric" maxlength="7" oninput="this.value=this.value.replace(/\D/g,'').slice(0,7)"></div>
+    </div>
+    <div class="form-row" id="mmm_cli_box" style="display:none">
+      <div class="form-group"><label class="form-label">Cliente</label><input class="form-input" id="mmm_cliente" list="consClientesList" autocomplete="off" placeholder="Elige o escribe un cliente"></div>
+      <div class="form-group"><label class="form-label">Cotización</label><input class="form-input" id="mmm_cotiz" placeholder="Cotización" inputmode="numeric" maxlength="7" oninput="this.value=this.value.replace(/\D/g,'').slice(0,7)"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">N° OP (opcional)</label><input class="form-input" id="mmm_opnum" placeholder="Ej: E009957"></div>
+      <div class="form-group">
+        <label class="form-label">Motivo <span class="req">*</span></label>
+        <select class="form-input" id="mmm_motivo" onchange="toggleMotivoOtro('mmm')"></select>
+      </div>
+    </div>
+    <div id="mmm_motivo_otro_box" style="display:none">
+      <div class="form-group">
+        <label class="form-label">Especificar motivo <span class="req">*</span></label>
+        <input class="form-input" id="mmm_motivo_otro" placeholder="Describe el motivo...">
+      </div>
+    </div>
+
+    <button class="btn btn-blue" style="width:100%;justify-content:center;margin:6px 0 10px" onclick="mmmAbrirBuscar()"><i class="ti ti-search"></i>Buscar y agregar producto…</button>
+
+    <div class="card" style="padding:0;max-height:280px;overflow-y:auto">
+      <table>
+        <thead><tr><th>Producto</th><th style="text-align:right">Stock</th><th style="text-align:right">Cantidad</th><th style="text-align:right">Precio</th><th style="text-align:right">Subtotal</th><th></th></tr></thead>
+        <tbody id="mmm_rows"></tbody>
+      </table>
+    </div>
+
+    <div class="modal-footer" style="justify-content:space-between">
+      <div style="font-size:12px;color:var(--text-soft)"><b id="mmm_count" style="color:var(--text-strong)">0</b> producto(s) · Total: <b id="mmm_total" style="color:var(--green)">S/ 0.00</b></div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-ghost" onclick="closeModalSafe('modalMovMultiple')">Cancelar</button>
+        <button class="btn btn-red" id="btnMmmGuardar" onclick="mmmGuardar()"><i class="ti ti-check"></i>Registrar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Buscar producto (para Entrada/Salida múltiple) -->
+<div class="modal-overlay" id="modalMmmBuscar" style="display:none;z-index:250">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-title"><i class="ti ti-search" style="color:var(--blue)"></i>Buscar producto</div>
+    <input class="form-input" id="mmm_buscar_q" placeholder="Código, nombre o medida… ej: 2.5 x 125" autocomplete="off" oninput="mmmRenderBuscar()" style="margin-bottom:10px">
+    <div id="mmm_buscar_results" style="max-height:340px;overflow-y:auto;display:flex;flex-direction:column;gap:4px"></div>
+    <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('modalMmmBuscar')">Cerrar</button></div>
+  </div>
+</div>
+
 <!-- MODAL: Historial de movimientos (Mercaderías / Almacén Mecaniza) -->
-<div class="modal-overlay" id="modalHistorial" style="display:none" onclick="if(event.target===this)closeModalSafe('modalHistorial')">
+<div class="modal-overlay" id="modalHistorial" style="display:none">
   <div class="modal" style="max-width:900px">
     <div class="modal-title"><i class="ti ti-history" style="color:#5b9bd5"></i><span id="histTitle">Historial de movimientos</span></div>
     <div id="histInfo" style="background:var(--bg-card);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--text);margin-bottom:10px"></div>
@@ -2127,7 +2202,7 @@ html[data-theme="light"]{ --brand:#2563c9; --brand-dark:#1e4fa8; }
 
 <!-- MODAL: Editar movimiento de almacén (entrada/salida) -->
 <datalist id="ed_motivoList"></datalist>
-<div class="modal-overlay" id="modalEditMov" style="display:none;z-index:300" onclick="if(event.target===this)closeModalSafe('modalEditMov')">
+<div class="modal-overlay" id="modalEditMov" style="display:none;z-index:300">
   <div class="modal" style="max-width:520px">
     <div class="modal-title"><i class="ti ti-edit" style="color:#5b9bd5"></i>Editar movimiento</div>
     <div id="editMovInfo" style="background:var(--bg-card);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--text);margin-bottom:12px"></div>
@@ -2160,7 +2235,7 @@ html[data-theme="light"]{ --brand:#2563c9; --brand-dark:#1e4fa8; }
 </div>
 
 <!-- MODAL: Renombrar material (vista previa + confirmar) -->
-<div class="modal-overlay" id="modalRenameMat" style="display:none;z-index:300" onclick="if(event.target===this)closeModal('modalRenameMat')">
+<div class="modal-overlay" id="modalRenameMat" style="display:none;z-index:300">
   <div class="modal" style="max-width:520px">
     <div class="modal-title"><i class="ti ti-edit" style="color:#5b9bd5"></i>Renombrar material</div>
     <div style="font-size:11px;color:var(--text-soft);margin-bottom:10px">Se aplica a <strong>todas sus medidas</strong> y en <strong>ambas sedes</strong>. Revisa la vista previa antes de confirmar.</div>
@@ -2177,7 +2252,7 @@ html[data-theme="light"]{ --brand:#2563c9; --brand-dark:#1e4fa8; }
 </div>
 
 <!-- MODAL: Personalizar mi dashboard (cada usuario) -->
-<div class="modal-overlay" id="modalPersDash" style="display:none" onclick="if(event.target===this)closeModalSafe('modalPersDash')">
+<div class="modal-overlay" id="modalPersDash" style="display:none">
   <div class="modal" style="max-width:420px">
     <div class="modal-title"><i class="ti ti-adjustments" style="color:#5b9bd5"></i>Personalizar mi dashboard</div>
     <div style="font-size:11px;color:var(--text-soft);margin-bottom:10px">Activa u oculta los widgets que quieres ver en <strong>tu</strong> dashboard (de los que tu rol permite).</div>
@@ -2190,7 +2265,7 @@ html[data-theme="light"]{ --brand:#2563c9; --brand-dark:#1e4fa8; }
 </div>
 
 <!-- MODAL: Filtros de reporte (reutilizable — pide rango/opciones antes de generar) -->
-<div class="modal-overlay" id="modalRepFiltros" style="display:none" onclick="if(event.target===this)closeModalSafe('modalRepFiltros')">
+<div class="modal-overlay" id="modalRepFiltros" style="display:none">
   <div class="modal" style="max-width:640px">
     <div class="modal-title"><i class="ti ti-filter" style="color:var(--blue)"></i><span id="repFiltTitulo">Filtros del reporte</span></div>
     <div style="font-size:11px;color:var(--text-soft);margin-bottom:14px">Elige el rango y los filtros; luego se genera. Deja las fechas <strong>vacías</strong> para incluir TODO.</div>
@@ -2203,7 +2278,7 @@ html[data-theme="light"]{ --brand:#2563c9; --brand-dark:#1e4fa8; }
 </div>
 
 <!-- MODAL: Hoja de conteo de inventario físico (Materia Prima) -->
-<div class="modal-overlay" id="modalConteo" style="display:none" onclick="if(event.target===this)closeModalSafe('modalConteo')">
+<div class="modal-overlay" id="modalConteo" style="display:none">
   <div class="modal" style="max-width:560px">
     <div class="modal-title"><i class="ti ti-clipboard-check" style="color:#5b9bd5"></i>Hoja de conteo físico</div>
     <div style="font-size:11px;color:var(--text-soft);margin-bottom:10px">Genera una hoja A4 para imprimir y anotar a mano tu inventario. Incluye <strong>solo materiales con stock</strong> (tubos enteros + retazos).</div>
@@ -2217,7 +2292,7 @@ html[data-theme="light"]{ --brand:#2563c9; --brand-dark:#1e4fa8; }
 </div>
 
 <!-- MODAL: Hoja de conteo físico de almacenes (Custom / Mecaniza / Suministros) -->
-<div class="modal-overlay" id="modalConteoAlm" style="display:none" onclick="if(event.target===this)closeModalSafe('modalConteoAlm')">
+<div class="modal-overlay" id="modalConteoAlm" style="display:none">
   <div class="modal" style="max-width:560px">
     <div class="modal-title"><i class="ti ti-clipboard-check" style="color:#5b9bd5"></i><span id="modalConteoAlmTitle">Hoja de conteo físico</span></div>
     <div style="font-size:11px;color:var(--text-soft);margin-bottom:10px">Genera una hoja A4 para imprimir y anotar a mano. Se agrupa por <strong>categoría</strong> e incluye el stock del sistema y una columna en blanco para el conteo físico.</div>
@@ -2235,7 +2310,7 @@ html[data-theme="light"]{ --brand:#2563c9; --brand-dark:#1e4fa8; }
 </div>
 
 <!-- MODAL: Rotación de productos (Custom / Mecaniza / Suministros) -->
-<div class="modal-overlay" id="modalRotProd" style="display:none" onclick="if(event.target===this)closeModal('modalRotProd')">
+<div class="modal-overlay" id="modalRotProd" style="display:none">
   <div class="modal" style="max-width:900px">
     <div class="modal-title"><i class="ti ti-arrows-shuffle" style="color:#5b9bd5"></i><span id="modalRotProdTitle">Rotación de productos</span></div>
     <div style="font-size:11px;color:var(--text-soft);margin-bottom:10px">Clasifica los productos por cuántas unidades <strong>salieron</strong> en el período. La clasificación es <strong>automática por ranking</strong>: el tercio que más se movió = <strong>alta rotación</strong>, el del medio = <strong>media</strong>, el que menos = <strong>baja</strong>; sin salidas = <strong>sin rotación</strong>.</div>
@@ -2271,7 +2346,7 @@ html[data-theme="light"]{ --brand:#2563c9; --brand-dark:#1e4fa8; }
 </div>
 
 <!-- MODAL: Historial de movimientos de un material (Materia Prima) -->
-<div class="modal-overlay" id="modalHistTubo" style="display:none" onclick="if(event.target===this)closeModalSafe('modalHistTubo')">
+<div class="modal-overlay" id="modalHistTubo" style="display:none">
   <div class="modal" style="max-width:1180px">
     <div class="modal-title"><i class="ti ti-history" style="color:#5b9bd5"></i><span id="htTitle">Historial — Materia Prima</span></div>
     <div id="htInfo" style="background:var(--bg-card);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--text);margin-bottom:10px"></div>
@@ -2308,7 +2383,7 @@ html[data-theme="light"]{ --brand:#2563c9; --brand-dark:#1e4fa8; }
 </div>
 
 <!-- MODAL: Reporte de movimientos de Materia Prima (con balance de compras) -->
-<div class="modal-overlay" id="modalRepMovTubos" style="display:none" onclick="if(event.target===this)closeModalSafe('modalRepMovTubos')">
+<div class="modal-overlay" id="modalRepMovTubos" style="display:none">
   <div class="modal" style="max-width:720px">
     <div class="modal-title"><i class="ti ti-report" style="color:#5b9bd5"></i><span id="rmtTitle">Reporte de movimientos — Materia Prima</span></div>
     <div style="font-size:11px;color:var(--text-soft);margin-bottom:10px">Lista los movimientos del período. Para las <strong>entradas</strong> muestra el precio y el total (balance de compras). Puedes filtrar por tipo de material, <strong>un material puntual</strong> y el <strong>subtipo de entrada</strong>.</div>
@@ -2351,7 +2426,7 @@ html[data-theme="light"]{ --brand:#2563c9; --brand-dark:#1e4fa8; }
 </div>
 
 <!-- MODAL: Reporte de movimientos de almacén (por categoría) -->
-<div class="modal-overlay" id="modalRepMov" style="display:none" onclick="if(event.target===this)closeModalSafe('modalRepMov')">
+<div class="modal-overlay" id="modalRepMov" style="display:none">
   <div class="modal" style="max-width:760px">
     <div class="modal-title"><i class="ti ti-report" style="color:#5b9bd5"></i><span id="rmTitle">Reporte de movimientos</span></div>
     <div style="font-size:11px;color:var(--text-soft);margin-bottom:10px">Genera un reporte de entradas/salidas del almacén. Puedes filtrar por período, categoría, tipo, <strong>un producto puntual</strong> y <strong>motivo</strong>.</div>
@@ -2378,7 +2453,7 @@ html[data-theme="light"]{ --brand:#2563c9; --brand-dark:#1e4fa8; }
 </div>
 
 <!-- MODAL: Análisis de precios de venta (ganancia/pérdida vs precio registrado) -->
-<div class="modal-overlay" id="modalAnalPrecios" style="display:none" onclick="if(event.target===this)closeModalSafe('modalAnalPrecios')">
+<div class="modal-overlay" id="modalAnalPrecios" style="display:none">
   <div class="modal" style="max-width:720px">
     <div class="modal-title"><i class="ti ti-chart-dots" style="color:#22c55e"></i><span id="apTitle">Análisis de precios</span></div>
     <div style="font-size:11px;color:var(--text-soft);margin-bottom:12px">Compara el precio de cada <strong>venta (salida)</strong> contra el precio registrado del producto. Detecta ventas por debajo (pérdida) o por encima (ganancia). Solo considera salidas con precio.</div>
@@ -2399,7 +2474,7 @@ html[data-theme="light"]{ --brand:#2563c9; --brand-dark:#1e4fa8; }
 </div>
 
 <!-- MODAL: Nuevo material (completo, 17 campos) -->
-<div class="modal-overlay" id="modalMaterial" style="display:none" onclick="if(event.target===this)closeModalSafe('modalMaterial')">
+<div class="modal-overlay" id="modalMaterial" style="display:none">
   <div class="modal" style="max-width:680px">
     <div class="modal-title"><i class="ti ti-package" style="color:var(--red)"></i><span id="modalMaterialTitle">Nuevo material</span></div>
     <div class="cli-section"><i class="ti ti-tag"></i>Identificación</div>
@@ -2482,7 +2557,7 @@ html[data-theme="light"]{ --brand:#2563c9; --brand-dark:#1e4fa8; }
 </div>
 
 <!-- MODAL: Catálogo (editar/crear entrada del catálogo maestro) -->
-<div class="modal-overlay" id="modalCatalogo" style="display:none" onclick="if(event.target===this)closeModalSafe('modalCatalogo')">
+<div class="modal-overlay" id="modalCatalogo" style="display:none">
   <div class="modal" style="max-width:620px">
     <div class="modal-title"><i class="ti ti-list-search" style="color:var(--red)"></i><span id="modalCatTitle">Material del catálogo</span></div>
     <div class="form-row">
@@ -2511,7 +2586,7 @@ html[data-theme="light"]{ --brand:#2563c9; --brand-dark:#1e4fa8; }
 </div>
 
 <!-- MODAL: Nueva categoría (MP familia/subfamilia o Mercaderías) -->
-<div class="modal-overlay" id="modalCategoria" style="display:none" onclick="if(event.target===this)closeModalSafe('modalCategoria')">
+<div class="modal-overlay" id="modalCategoria" style="display:none">
   <div class="modal" style="max-width:480px">
     <div class="modal-title"><i class="ti ti-category-plus" style="color:var(--red)"></i><span id="catModalTitle">Nueva categoría</span></div>
     <input type="hidden" id="cat_scope">
@@ -2576,10 +2651,11 @@ html[data-theme="light"]{ --brand:#2563c9; --brand-dark:#1e4fa8; }
 </div>
 
 <!-- MODAL: Tubo -->
-<div class="modal-overlay" id="modalTubo" style="display:none" onclick="if(event.target===this)closeModalSafe('modalTubo')">
+<div class="modal-overlay" id="modalTubo" style="display:none">
   <div class="modal">
     <div class="modal-title"><i class="ti ti-cylinder" style="color:var(--red)"></i><span id="modalTuboTitle">Registrar entrada de tubos</span></div>
     <input type="hidden" id="t_target_id">
+    <div class="form-group"><label class="form-label">Fecha</label><input class="form-input" id="t_fecha" type="date"></div>
     <div class="form-group" id="t_mat_select_group">
       <label class="form-label">Seleccionar Material <span class="req">*</span></label>
       <select class="form-input" id="t_mat_select" onchange="onTuboMatSelect()">
@@ -2629,7 +2705,7 @@ html[data-theme="light"]{ --brand:#2563c9; --brand-dark:#1e4fa8; }
 </div>
 
 <!-- MODAL: Usuario -->
-<div class="modal-overlay" id="modalUsuario" style="display:none" onclick="if(event.target===this)closeModalSafe('modalUsuario')">
+<div class="modal-overlay" id="modalUsuario" style="display:none">
   <div class="modal" style="max-width:480px">
     <div class="modal-title"><i class="ti ti-user-plus" style="color:var(--red)"></i><span id="modalUsuarioTitle">Nuevo usuario</span></div>
     <div class="form-row">
@@ -2693,7 +2769,7 @@ html[data-theme="light"]{ --brand:#2563c9; --brand-dark:#1e4fa8; }
 </div>
 
 <!-- MODAL: Reset password (admin) -->
-<div class="modal-overlay" id="modalResetPw" style="display:none" onclick="if(event.target===this)closeModalSafe('modalResetPw')">
+<div class="modal-overlay" id="modalResetPw" style="display:none">
   <div class="modal" style="max-width:420px">
     <div class="modal-title"><i class="ti ti-lock-open" style="color:#f5a623"></i>Restablecer contraseña</div>
     <div id="resetPwInfo" style="background:var(--bg-card);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--text);margin-bottom:12px"></div>
@@ -2714,14 +2790,6 @@ html[data-theme="light"]{ --brand:#2563c9; --brand-dark:#1e4fa8; }
 </div>
 
 <!-- MODAL: Ayuda en pantalla (¿cómo funciona?) -->
-<div class="modal-overlay" id="modalAyuda" style="display:none" onclick="if(event.target===this)closeModal('modalAyuda')">
-  <div class="modal" style="max-width:560px">
-    <div class="modal-title"><i class="ti ti-help-circle" style="color:#5b9bd5"></i><span id="ayudaTitle">¿Cómo funciona?</span></div>
-    <div id="ayudaBody" style="font-size:13px;color:var(--text);line-height:1.7"></div>
-    <div class="modal-footer"><button class="btn btn-red" onclick="closeModal('modalAyuda')"><i class="ti ti-check"></i>Entendido</button></div>
-  </div>
-</div>
-
 <div class="toast" id="toast"></div>
 
 <script>
@@ -2830,36 +2898,6 @@ async function _insertConFix(tabla,payload){
   }
   return res;
 }
-// ── Ayuda en pantalla (¿cómo funciona?) ──
-function mostrarAyuda(titulo,html){
-  document.getElementById("ayudaTitle").textContent=titulo;
-  document.getElementById("ayudaBody").innerHTML=html;
-  document.getElementById("modalAyuda").style.display="flex";
-}
-function ayudaMP(){mostrarAyuda("Materia Prima — ¿cómo funciona?",`
-  <ul style="padding-left:18px;display:flex;flex-direction:column;gap:8px;margin:0">
-    <li>Cada <b>material</b> agrupa sus <b>tubos físicos</b> (T1, T2…) con los mm que le quedan a cada uno.</li>
-    <li><b>Nuevo material</b> crea el tipo; <b>Agregar tubos</b> suma tubos físicos (puedes poner el <b>precio</b> si fue una compra).</li>
-    <li>Pulsa <b>Consultar stock</b> para entrar al material y gestionar sus tubos: editar mm, separar, agotar o trasladar a Mecaniza (uno o varios a la vez).</li>
-    <li><b>Historial</b>: todos los movimientos; la <b>OP es un enlace</b> y verás a qué <b>tubo (T#)</b> afectó cada uno. Si borras un movimiento, el stock vuelve atrás.</li>
-    <li><b>Conteo físico</b> imprime una hoja para contar a mano · <b>Rotación</b> ordena por lo más/menos usado.</li>
-  </ul>`);}
-function ayudaConsumos(){mostrarAyuda("Consumos — ¿cómo funciona?",`
-  <ul style="padding-left:18px;display:flex;flex-direction:column;gap:8px;margin:0">
-    <li><b>Nuevo registro</b>: anota la OP como en Excel (Material, medidas, Enviado). Solo <b>anota</b>, todavía no descuenta stock.</li>
-    <li>Cuando vuelve el material, usa <b>Cerrar OP</b> (👁 / ✔): pones lo <b>devuelto</b> y eliges de qué tubo se descuenta. Ahí recién baja el stock.</li>
-    <li><b>Consumido = Enviado − Devuelto.</b></li>
-    <li>El lápiz ✏️ abre <b>toda la OP</b> con sus líneas para corregirlas juntas.</li>
-    <li>Si un sobrante ya no sirve, márcalo como <b>descarte</b> al cerrar (o agota el tubo desde Materia Prima).</li>
-  </ul>`);}
-function ayudaAlmacen(){mostrarAyuda("Almacenes — ¿cómo funciona?",`
-  <ul style="padding-left:18px;display:flex;flex-direction:column;gap:8px;margin:0">
-    <li>Cada producto tiene un <b>stock</b>. Muévelo con <b>Entrada</b> (compras/ingresos) y <b>Salida</b> (ventas/uso).</li>
-    <li><b>Categoría</b> agrupa productos; créalas con <b>+ Categoría</b>.</li>
-    <li><b>Historial</b>: movimientos del producto, con el botón <b>Precios</b> (precios de compra por proveedor).</li>
-    <li><b>Ver en</b>: cambia la moneda en que se muestran los precios (Soles, Dólares, Euros).</li>
-    <li><b>Conteo físico</b> imprime una hoja para contar · <b>Reporte mov.</b> resume entradas/salidas.</li>
-  </ul>`);}
 // Traduce CUALQUIER error técnico (Supabase/Postgres/red) a un mensaje claro y simple.
 function errMsg(error){
   if(!error) return "Ocurrió un error inesperado.";
@@ -3745,7 +3783,7 @@ function verReporte(titulo,subtitulo,aoa,resumenHtml,filename){
   const thead=headers.map((h,i)=>`<th style="text-align:${derecha[i]?"right":"left"};white-space:nowrap">${esc(String(h))}</th>`).join("");
   const tbody=filas.length?filas.map(r=>`<tr>${headers.map((_,i)=>`<td style="text-align:${derecha[i]?"right":"left"};white-space:nowrap">${esc(String(r[i]??""))}</td>`).join("")}</tr>`).join(""):`<tr><td colspan="${headers.length||1}" class="no-data">Sin datos</td></tr>`;
   document.getElementById("reporteOverlay")?.remove();
-  const html=`<div id="reporteOverlay" class="modal-overlay" onclick="if(event.target===this)document.getElementById('reporteOverlay').remove()">
+  const html=`<div id="reporteOverlay" class="modal-overlay">
     <div class="modal" style="max-width:1150px;max-height:90vh">
       <div class="modal-title"><i class="ti ti-file-analytics" style="color:var(--blue)"></i>${esc(titulo)}</div>
       <div style="font-size:12px;color:var(--text-soft);margin-bottom:8px">${subtitulo?esc(subtitulo)+" · ":""}${filas.length} fila(s)</div>
@@ -4060,6 +4098,46 @@ function _aMoneda(v,from,to){
   return pen;
 }
 function _r2(n){return Math.round((Number(n)||0)*100)/100;}
+// Devuelve {fecha:"..."} SOLO si el usuario atrasó la fecha del movimiento (campo <input type=date>
+// distinto de hoy) — si no la tocó, se omite y el registro toma la hora exacta actual (now(), como
+// siempre), preservando el orden cronológico normal del día.
+function _fechaOverride(inputId){
+  const v=document.getElementById(inputId)?.value;
+  const hoy=new Date().toISOString().slice(0,10);
+  return (v && v!==hoy) ? {fecha:v+"T12:00:00"} : {};
+}
+// ── Anti-typo: N° de OP / Cotización fuera de secuencia (el mismo tipo de error que dejó
+// "pegada" la sugerencia de OP en E099777). Avisa (no bloquea) cuando el número escrito a mano
+// está muy por delante de la numeración real reciente — típico de un dedazo con un dígito de más.
+let _opCotizMaxCache=null;
+async function _opCotizMax(){
+  if(_opCotizMaxCache && Date.now()-_opCotizMaxCache.ts<5*60*1000) return _opCotizMaxCache;
+  let opMax=0, cotiMax=0;
+  try{
+    const [nextOp,nextCoti]=await Promise.all([siguienteNumeroOp(),siguienteNumeroCotizacion()]);
+    opMax=(parseInt(String(nextOp).replace(/\D/g,""))||1)-1;
+    cotiMax=(parseInt(nextCoti)||1)-1;
+  }catch(e){}
+  _opCotizMaxCache={opMax,cotiMax,ts:Date.now()};
+  return _opCotizMaxCache;
+}
+async function _opSospechosa(valor){
+  const v=String(valor||"").trim();
+  const m=v.match(/^E0*(\d+)$/i);
+  if(!m) return null; // formato libre (ej. "INT-...") no se juzga aquí
+  const n=parseInt(m[1]);
+  const {opMax}=await _opCotizMax();
+  if(opMax>0 && n>opMax+300) return `El N° de OP "${v}" parece un error de tipeo: la numeración actual va por E${String(opMax+1).padStart(6,"0")} y esto es mucho más alto.`;
+  return null;
+}
+async function _cotizSospechosa(valor){
+  const v=String(valor||"").replace(/\D/g,"");
+  if(!v) return null;
+  const n=parseInt(v);
+  const {cotiMax}=await _opCotizMax();
+  if(cotiMax>0 && n>cotiMax+300) return `La cotización "${v}" parece un error de tipeo: la numeración actual va por ${cotiMax+1} y esto es mucho más alto.`;
+  return null;
+}
 // Largo de referencia para el costo por mm de un material:
 //   IMPORTADOS  -> largo NOMINAL del modelo (tubos.altura_total)  [costo por mm constante]
 //   NACIONALES  -> altura de COMPRA (la de la instancia, que se carga junto con el precio)
@@ -4070,15 +4148,21 @@ function _largoRef(tubo, instAltura){
   const nominal = Number(tubo.altura_total)||0;
   return esNac ? (Number(instAltura)||nominal) : nominal;
 }
-// Fuerza MAYÚSCULAS en vivo en todos los campos de nombre de cliente / proveedor.
+// Fuerza MAYÚSCULAS en vivo en TODO campo de texto libre del sistema (pedido explícito del
+// usuario). Excepciones: email/password/url/números/fechas (no tiene sentido ahí), campos
+// deshabilitados/solo-lectura, y la pantalla de login (el usuario/contraseña deben quedar
+// EXACTOS como se escribieron — forzar mayúscula ahí podría impedir iniciar sesión).
 (function(){
-  const CAMPOS_NOMBRE=['cli_nombre','cli_nom_comercial','cli_nombre_nat','cli_ape_pat','cli_ape_mat'];
-  const esNombreCliProv=el=>{
-    if(!el||(el.tagName!=="INPUT"&&el.tagName!=="TEXTAREA")||!el.id)return false;
-    return /(_cliente|_proveedor)$/.test(el.id)||CAMPOS_NOMBRE.includes(el.id);
+  const TIPOS_EXCLUIDOS=new Set(["email","password","url","file","hidden","number","date","datetime-local","time","month","week","color","range"]);
+  const esTexto=el=>{
+    if(!el||(el.tagName!=="INPUT"&&el.tagName!=="TEXTAREA")) return false;
+    if(el.disabled||el.readOnly) return false;
+    if(el.closest("#loginScreen")) return false;   // usuario/contraseña: nunca tocar
+    if(el.tagName==="INPUT" && TIPOS_EXCLUIDOS.has((el.type||"text").toLowerCase())) return false;
+    return true;
   };
   document.addEventListener("input",e=>{
-    const el=e.target; if(!esNombreCliProv(el))return;
+    const el=e.target; if(!esTexto(el))return;
     const pos=el.selectionStart, u=el.value.toUpperCase();
     if(el.value!==u){el.value=u; try{el.setSelectionRange(pos,pos);}catch(_){}}
   },true);
@@ -4089,14 +4173,64 @@ async function repCostoCotizacion(f){
   const moneda=(f.moneda||"PEN"); const sym=(_MONEDA_SIMBOLO[moneda]||moneda);
   const sede=(f.sede||"todas"); const wantCustom=(sede==="todas"||sede==="custom"), wantMec=(sede==="todas"||sede==="mecaniza");
   try{
-    // 1) Consumos de MP (CON y SIN cotización) — filtra por sede
-    let cons=[];
-    for(let from=0;;from+=1000){
-      let q=sb.from("consumos_ops").select("id,cotizacion,op,cliente_nombre,material,consumido,tubo_id,tubo_instancia_id,di,de,largo,fecha,sede,observaciones").range(from,from+999);
-      if(f.desde)q=q.gte("fecha",f.desde); if(f.hasta)q=q.lte("fecha",f.hasta);
-      if(cotizF)q=q.eq("cotizacion",cotizF); if(opF)q=q.eq("op",opF);
-      const {data,error}=await q; if(error||!data?.length)break; cons=cons.concat(data); if(data.length<1000)break;
+    const busquedaPuntual=!!(cotizF||opF);
+    const almDefs=[];
+    if(wantCustom)almDefs.push({mov:"mercaderia_movimientos",prod:"mercaderias",fk:"mercaderia_id",lbl:"Almacén Custom"});
+    if(wantMec)almDefs.push({mov:"alm_mecaniza_movimientos",prod:"alm_mecaniza_productos",fk:"producto_id",lbl:"Almacén Mecaniza"});
+
+    // ── Paso 0: si hay rango de fechas (y no es búsqueda puntual de una cotización/OP), primero
+    //    identificamos QUÉ cotizaciones/OPs tuvieron actividad en ese rango. Después se trae el
+    //    HISTORIAL COMPLETO de esas cotizaciones (sin filtro de fecha) — así una cotización con
+    //    líneas en julio Y agosto aparece entera aunque el reporte se genere solo para agosto.
+    let cotizActivas=null, opsSinCotiz=null; // null = sin restringir (trae todo, comportamiento normal)
+    if(!busquedaPuntual && (f.desde||f.hasta)){
+      const setC=new Set(), setOp=new Set();
+      for(let from=0;;from+=1000){
+        let q=sb.from("consumos_ops").select("cotizacion,op").range(from,from+999);
+        if(f.desde)q=q.gte("fecha",f.desde); if(f.hasta)q=q.lte("fecha",f.hasta);
+        const {data,error}=await q; if(error||!data?.length)break;
+        data.forEach(r=>{const c=String(r.cotizacion||"").trim(); if(c)setC.add(c); else if(r.op)setOp.add(r.op);});
+        if(data.length<1000)break;
+      }
+      for(const d of almDefs){
+        let q=sb.from(d.mov).select("op_numero,op").eq("tipo","salida").not("op_numero","is",null);
+        if(f.desde)q=q.gte("fecha",f.desde); if(f.hasta)q=q.lte("fecha",f.hasta+"T23:59:59");
+        const {data}=await q; (data||[]).forEach(r=>{const c=String(r.op_numero||"").trim(); if(c)setC.add(c);});
+      }
+      cotizActivas=[...setC]; opsSinCotiz=[...setOp];
+      if(!cotizActivas.length && !opsSinCotiz.length){ repCargando(false); toast("No hay datos para los filtros elegidos","err"); return; }
     }
+    // Trae TODAS las filas de una tabla que pertenezcan a las cotizaciones/OPs indicadas, sin
+    // filtro de fecha (se usa para "expandir" al historial completo). Si `cotizActivas` es null,
+    // aplica el filtro de fecha/búsqueda normal (comportamiento de siempre).
+    // `incluirSinCotiz`: solo aplica al concepto "sin cotización, agrupar por OP" — consumos_ops SÍ
+    // lo maneja así (siempre tuvo esa lógica); las salidas de almacén NUNCA lo tuvieron (antes exigían
+    // op_numero no nulo), así que ese caso se preserva pasando incluirSinCotiz=false para almacén.
+    const _fetchExpandido=async(tabla,cols,cotizCol,opCol,extra,incluirSinCotiz=true)=>{
+      let rows=[];
+      const paginar=async(build)=>{
+        for(let from=0;;from+=1000){
+          let q=build(sb.from(tabla).select(cols)).range(from,from+999);
+          const {data,error}=await q; if(error||!data?.length)break; rows=rows.concat(data); if(data.length<1000)break;
+        }
+      };
+      if(cotizActivas!=null){
+        for(let i=0;i<cotizActivas.length;i+=300){const slice=cotizActivas.slice(i,i+300);await paginar(q0=>{let q=q0.in(cotizCol,slice);return extra?extra(q):q;});}
+        if(incluirSinCotiz) for(let i=0;i<opsSinCotiz.length;i+=300){const slice=opsSinCotiz.slice(i,i+300);await paginar(q0=>{let q=q0.is(cotizCol,null).in(opCol,slice);return extra?extra(q):q;});}
+      }else{
+        await paginar(q0=>{
+          let q=extra?extra(q0):q0;
+          if(!incluirSinCotiz)q=q.not(cotizCol,"is",null);   // como antes: almacén exige op_numero
+          if(f.desde)q=q.gte("fecha",f.desde);
+          if(f.hasta)q=q.lte("fecha",tabla==="consumos_ops"?f.hasta:f.hasta+"T23:59:59");
+          if(cotizF)q=q.eq(cotizCol,cotizF); if(opF)q=q.eq(opCol,opF);
+          return q;
+        });
+      }
+      const seen=new Set(); return rows.filter(r=>{const k=r.id;if(seen.has(k))return false;seen.add(k);return true;});
+    };
+    // 1) Consumos de MP (CON y SIN cotización) — filtra por sede
+    let cons=await _fetchExpandido("consumos_ops","id,cotizacion,op,cliente_nombre,material,consumido,tubo_id,tubo_instancia_id,di,de,largo,fecha,sede,observaciones","cotizacion","op");
     cons=cons.filter(c=>((c.sede||"custom")==="mecaniza")?wantMec:wantCustom);
     const tids=[...new Set(cons.map(c=>c.tubo_id).filter(Boolean))];
     const iids=[...new Set(cons.map(c=>c.tubo_instancia_id).filter(Boolean))];
@@ -4104,17 +4238,10 @@ async function repCostoCotizacion(f){
     for(let i=0;i<tids.length;i+=300){const {data:ts}=await sb.from("tubos").select("id,precio,moneda,altura_total,origen,codigo_mat").in("id",tids.slice(i,i+300));(ts||[]).forEach(t=>tmap[t.id]=t);}
     for(let i=0;i<iids.length;i+=300){const {data:is}=await sb.from("tubo_instancias").select("id,altura_total").in("id",iids.slice(i,i+300));(is||[]).forEach(x=>imap[x.id]=x.altura_total);}
     // 2) Salidas de almacén con cotización (op_numero) — SOLO Custom/Mecaniza, sin suministros, sin traslados
-    const almDefs=[];
-    if(wantCustom)almDefs.push({mov:"mercaderia_movimientos",prod:"mercaderias",fk:"mercaderia_id",lbl:"Almacén Custom"});
-    if(wantMec)almDefs.push({mov:"alm_mecaniza_movimientos",prod:"alm_mecaniza_productos",fk:"producto_id",lbl:"Almacén Mecaniza"});
     let alm=[];
     for(const d of almDefs){
-      let q=sb.from(d.mov).select(`id,op_numero,op,cantidad,cliente_nombre,fecha,motivo,precio_unitario,moneda,${d.fk}`).eq("tipo","salida").not("op_numero","is",null).limit(50000);
-      // OJO: en los movimientos de almacén `fecha` es timestamptz → el "hasta" necesita fin de día,
-      // si no se pierde el último día completo del rango.
-      if(f.desde)q=q.gte("fecha",f.desde); if(f.hasta)q=q.lte("fecha",f.hasta+"T23:59:59");
-      if(cotizF)q=q.eq("op_numero",cotizF); if(opF)q=q.eq("op",opF);
-      const {data}=await q; (data||[]).forEach(m=>{ if(m.motivo!==MOTIVO_TRANSFER) alm.push({...m,_d:d}); });
+      const rowsD=await _fetchExpandido(d.mov,`id,op_numero,op,cantidad,cliente_nombre,fecha,motivo,precio_unitario,moneda,${d.fk}`,"op_numero","op",q=>q.eq("tipo","salida"),false);
+      rowsD.forEach(m=>{ if(m.motivo!==MOTIVO_TRANSFER) alm.push({...m,_d:d}); });
     }
     const pmap={};
     for(const d of almDefs){
@@ -4277,7 +4404,7 @@ function _renderCostoCotiz(arr,precios,meta){
     </style>`);
   }
   const rowsHtml=arr.map((g,i)=>_ccRowHtml(g,i)).join("");
-  const html=`<div id="reporteOverlay" class="modal-overlay" onclick="if(event.target===this)this.remove()">
+  const html=`<div id="reporteOverlay" class="modal-overlay">
     <div class="modal" style="max-width:1150px;max-height:92vh;display:flex;flex-direction:column">
       <div class="modal-title"><i class="ti ti-file-analytics" style="color:var(--blue)"></i>Costo por cotización</div>
       <div style="font-size:12px;color:var(--text-soft);margin-bottom:8px">${esc(meta.sub)} · Moneda: <b style="color:var(--green)">${esc(meta.sym)}</b> · Sede: ${esc(meta.sedeLbl)} · ${arr.length} cotización(es)</div>
@@ -6048,7 +6175,7 @@ async function openDashModal(tipo){
     tendencia:"Tendencia de consumo",
     rotcli:"Rotación y top clientes"
   };
-  let html=`<div id="dashModalOverlay" class="modal-overlay" onclick="if(event.target===this)document.getElementById('dashModalOverlay').remove()">
+  let html=`<div id="dashModalOverlay" class="modal-overlay">
     <div class="modal" style="max-width:780px;max-height:88vh">
       <div class="modal-title"><i class="ti ti-zoom-in" style="color:var(--blue)"></i>${esc(titles[tipo]||tipo)}</div>
       <div id="dashModalBody"><div class="loading"><div class="spinner"></div>Cargando detalle...</div></div>
@@ -7201,7 +7328,7 @@ async function loadTubos(forceReload=false){
   const btnsCrear=userCanCRUD("crear","Tubos")
     ?`<button class="btn btn-red" onclick="openModalMaterial()"><i class="ti ti-plus"></i>Nuevo material</button>
       <button class="btn btn-ghost" onclick="openCategoriaModal('mp')"><i class="ti ti-settings-cog"></i>Gestionar materiales</button>`:"";
-  actRow.innerHTML=`${btnsCrear}${btnExport}${btnRepMov}${btnMuerto}${btnMovs}<button class="btn btn-ghost" onclick="loadTubos(true)"><i class="ti ti-refresh"></i>Actualizar</button><button class="btn btn-ghost" onclick="ayudaMP()" title="¿Cómo funciona esta pantalla?"><i class="ti ti-help-circle"></i>¿Cómo funciona?</button>${cacheBadge}`;
+  actRow.innerHTML=`${btnsCrear}${btnExport}${btnRepMov}${btnMuerto}${btnMovs}<button class="btn btn-ghost" onclick="loadTubos(true)"><i class="ti ti-refresh"></i>Actualizar</button>${cacheBadge}`;
 
   wireTubosSearch();
 
@@ -9066,6 +9193,7 @@ function resetTuboLotes(prefAltura=""){
 function openModalTubo(){
   document.getElementById("modalTuboTitle").textContent="Registrar entrada de tubos";
   ["t_cod","t_desc","t_altura","t_target_id","t_precio"].forEach(id=>document.getElementById(id).value="");
+  document.getElementById("t_fecha").value=new Date().toISOString().slice(0,10);
   document.getElementById("t_moneda").value=cfgStr("general_moneda_default","PEN");
   document.getElementById("t_origen").value=_lastTuboOrigen;
   // Modo entrada general: el material se elige del desplegable y la altura es editable
@@ -9095,6 +9223,7 @@ function openModalTuboFor(tuboId){
   document.getElementById("modalTuboTitle").textContent="Agregar tubos — "+(t.codigo_mat||t.descripcion||"");
   // Modo "agregar al mismo material": fijamos el tubo destino para que NO se cree un material duplicado
   document.getElementById("t_target_id").value=t.id;
+  document.getElementById("t_fecha").value=new Date().toISOString().slice(0,10);
   document.getElementById("t_cod").value=t.codigo_mat||"";
   document.getElementById("t_desc").value=t.descripcion||"";
   document.getElementById("t_altura").value=t.altura_total||"";
@@ -9177,7 +9306,8 @@ async function saveTubo(){
   const nota=idsCreadas.length?`${notaBase} ⟨#ids:${idsCreadas.join(",")}⟩`:notaBase;
   await sb.from("movimientos").insert({
     tubo_id:tuboId, tipo:"entrada", cantidad:totalCant, usuario_id:CU?.id, nota,
-    precio_unitario:precioVal, moneda:precioVal!=null?monedaVal:null
+    precio_unitario:precioVal, moneda:precioVal!=null?monedaVal:null,
+    ..._fechaOverride("t_fecha"),
   });
   // Si registró un precio, actualizar el precio del material (último precio de compra)
   if(precioVal!=null){
@@ -9906,30 +10036,50 @@ function gridUpdateResumen(){
 // Toma el mayor número existente de las OP tipo "E######" y le suma 1.
 async function siguienteNumeroOp(){
   try{
-    let max=0;
+    // OJO: un solo N° de OP mal tipeado (ej. "E099777" en vez de "E009777") se convierte en el
+    // máximo histórico PARA SIEMPRE, porque cualquier OP real posterior (E009778, E009779…) es
+    // numéricamente MENOR → la sugerencia queda "pegada" en ese error, sin avanzar más.
+    // Por eso el máximo se saca solo de la actividad RECIENTE (90 días): un typo viejo deja de
+    // pesar solo. Si no hay nada reciente, cae al máximo histórico como respaldo.
+    const desde90=new Date(Date.now()-90*24*3600*1000).toISOString().slice(0,10);
+    let maxAll=0, maxRecent=0;
     for(let from=0;;from+=1000){
-      const {data,error}=await sb.from("consumos_ops").select("op").ilike("op","E%").range(from,from+999);
+      const {data,error}=await sb.from("consumos_ops").select("op,fecha").ilike("op","E%").range(from,from+999);
       if(error||!data?.length) break;
-      data.forEach(r=>{const m=String(r.op||"").match(/^E0*(\d+)$/i);if(m){const n=parseInt(m[1]);if(n>max)max=n;}});
+      data.forEach(r=>{
+        const m=String(r.op||"").match(/^E0*(\d+)$/i); if(!m) return;
+        const n=parseInt(m[1]); if(n>maxAll) maxAll=n;
+        if(String(r.fecha||"")>=desde90 && n>maxRecent) maxRecent=n;
+      });
       if(data.length<1000) break;
     }
+    const max = maxRecent>0 ? maxRecent : maxAll;
+    if(maxAll>max+500) console.warn(`[siguienteNumeroOp] Posible OP mal tipeada: hay una con N° ${maxAll} pero la más reciente (90 días) es ${max}. Se usó ${max}.`);
     return "E"+String(max+1).padStart(6,"0");
   }catch(e){ return "E000001"; }
 }
 // Siguiente N° de cotización: 7 dígitos, primeros 2 = año (2026 → base 2600000), +1 desde el máximo.
 // Revisa tanto consumos_ops.cotizacion como el campo de cotización de los almacenes (op_numero).
 async function siguienteNumeroCotizacion(){
+  // Mismo resguardo que siguienteNumeroOp: una cotización mal tipeada (ej. 2699999 en vez de
+  // 2602999) quedaría como el "máximo" para siempre. Se prioriza el máximo de los últimos 90 días.
+  const desde90=new Date(Date.now()-90*24*3600*1000).toISOString().slice(0,10);
   const maxDe=async(tabla,col)=>{
-    let max=0;
+    let maxAll=0, maxRecent=0;
     try{
       for(let from=0;;from+=1000){
-        const {data,error}=await sb.from(tabla).select(col).not(col,"is",null).range(from,from+999);
+        const {data,error}=await sb.from(tabla).select(col+",fecha").not(col,"is",null).range(from,from+999);
         if(error||!data?.length) break;
-        data.forEach(r=>{const n=parseInt(String(r[col]||"").replace(/\D/g,""));if(!isNaN(n)&&n>max&&n<9999999)max=n;});
+        data.forEach(r=>{
+          const n=parseInt(String(r[col]||"").replace(/\D/g,""));
+          if(isNaN(n)||n>=9999999) return;
+          if(n>maxAll) maxAll=n;
+          if(String(r.fecha||"")>=desde90 && n>maxRecent) maxRecent=n;
+        });
         if(data.length<1000) break;
       }
     }catch(e){}
-    return max;
+    return {maxAll,maxRecent};
   };
   try{
     const [c,m,a,s]=await Promise.all([
@@ -9938,7 +10088,10 @@ async function siguienteNumeroCotizacion(){
       maxDe("alm_mecaniza_movimientos","op_numero"),
       maxDe("suministros_movimientos","op_numero"),
     ]);
-    const max=Math.max(c,m,a,s,0);
+    const maxAll=Math.max(c.maxAll,m.maxAll,a.maxAll,s.maxAll,0);
+    const maxRecent=Math.max(c.maxRecent,m.maxRecent,a.maxRecent,s.maxRecent,0);
+    const max = maxRecent>0 ? maxRecent : maxAll;
+    if(maxAll>max+500) console.warn(`[siguienteNumeroCotizacion] Posible cotización mal tipeada: hay una con N° ${maxAll} pero la más reciente (90 días) es ${max}. Se usó ${max}.`);
     const base=(new Date().getFullYear()%100)*100000; // 2026 → 2600000
     return String(Math.max(max+1, base));
   }catch(e){ return String((new Date().getFullYear()%100)*100000); }
@@ -10054,6 +10207,13 @@ async function gridSave(){
     else {toast("El N° de OP es obligatorio","err");return;}
   }
   if(!esInterno&&ruleBool("consumo_exigir_cliente",false)&&!headerVal){toast("El cliente es obligatorio (configurable)","err");return;}
+  // Anti-typo: avisar si el N° de OP o de cotización quedó muy por delante de la numeración real.
+  const _wOp=await _opSospechosa(op);
+  if(_wOp && !confirm(_wOp+"\n\n¿Guardar así de todas formas?")) return;
+  if(cotiz){
+    const _wC=await _cotizSospechosa(cotiz);
+    if(_wC && !confirm(_wC+"\n\n¿Guardar así de todas formas?")) return;
+  }
   const trs=[...document.querySelectorAll("#grid-body tr")];
   const _matMap=await _resolverMateriales();
   const rows=[]; let n=0; const corr=[];
@@ -10169,6 +10329,13 @@ async function eopSave(){
   const cliente=document.getElementById("eop_cliente").value.trim();
   const cotiz=(document.getElementById("eop_cotiz").value||"").replace(/\D/g,"").slice(0,7)||null;
   if(!fecha||!op){toast("Fecha y N° OP son obligatorios","err");return;}
+  // Anti-typo: N° de OP / cotización muy por delante de la numeración real.
+  const _wOp=await _opSospechosa(op);
+  if(_wOp && !confirm(_wOp+"\n\n¿Guardar así de todas formas?")) return;
+  if(cotiz){
+    const _wC=await _cotizSospechosa(cotiz);
+    if(_wC && !confirm(_wC+"\n\n¿Guardar así de todas formas?")) return;
+  }
   const trs=[...document.querySelectorAll("#eop-body tr")];
   if(!trs.length){toast("No hay líneas para guardar","err");return;}
   const _matMap=await _resolverMateriales();
@@ -10567,6 +10734,9 @@ async function saveConsumo(){
   if(!id&&tipoOp!=="interno"&&ruleBool("consumo_exigir_cliente",false)&&!cliente){
     toast("El cliente es obligatorio (configurable en Configuración)","err");return;
   }
+  // Anti-typo: N° de OP muy por delante de la numeración real (se junta con las demás advertencias).
+  const _wOp=await _opSospechosa(op);
+  if(_wOp) _warnAntitypo=(_warnAntitypo||[]).concat([_wOp]);
 
   // Recolectar líneas
   const cards=Array.from(document.querySelectorAll("#co_lineas .card"));
@@ -11271,22 +11441,23 @@ function _cierreToggleAlt(btn){
 }
 
 async function guardarCierreLinea(lineId,btn,skipRender=false){
+  if(btn.disabled) return false;   // ya está guardando esta línea (evita doble clic)
+  setBtnLoading2(btn,true,"Guardando...");   // deshabilita YA el botón, antes de validar nada
   const card=btn.closest(".cierre-card");
   const env=parseFloat(card.dataset.enviado)||0;
   const tuboVal=card.querySelector(".ck-tubo").value;
   const devStr=card.querySelector(".ck-dev").value.trim();
-  if(!tuboVal){if(!skipRender)toast("Elige el tubo del que descontar","err");return false;}
-  if(devStr===""){if(!skipRender)toast("Ingresa el DEVUELTO (usa 0 si no devolvió nada)","err");return false;}
+  if(!tuboVal){setBtnLoading2(btn,false);if(!skipRender)toast("Elige el tubo del que descontar","err");return false;}
+  if(devStr===""){setBtnLoading2(btn,false);if(!skipRender)toast("Ingresa el DEVUELTO (usa 0 si no devolvió nada)","err");return false;}
   const devuelto=parseFloat(devStr);
-  if(isNaN(devuelto)||devuelto<0){if(!skipRender)toast("DEVUELTO inválido","err");return false;}
-  if(devuelto>env&&!ruleBool("consumo_permitir_devuelto_mayor",false)){if(!skipRender)toast(`DEVUELTO (${devuelto}) no puede ser mayor que ENVIADO (${env})`,"err");return false;}
+  if(isNaN(devuelto)||devuelto<0){setBtnLoading2(btn,false);if(!skipRender)toast("DEVUELTO inválido","err");return false;}
+  if(devuelto>env&&!ruleBool("consumo_permitir_devuelto_mayor",false)){setBtnLoading2(btn,false);if(!skipRender)toast(`DEVUELTO (${devuelto}) no puede ser mayor que ENVIADO (${env})`,"err");return false;}
   const [tuboIdStr,instIdStr]=tuboVal.split(":");
   const tuboId=parseInt(tuboIdStr), instId=parseInt(instIdStr);
   const consumido=env-devuelto;
   // Aviso: si el DEVUELTO iguala al ENVIADO, el consumo queda en 0 (no se descuenta nada).
-  if(consumido===0 && !skipRender && !confirm(`El consumo de esta línea quedará en 0 mm (devolviste los ${env}mm completos, no se descontará material del tubo). ¿Guardar así?`)) return false;
-
-  setBtnLoading2(btn,true,"Guardando...");
+  if(consumido===0 && !skipRender && !confirm(`El consumo de esta línea quedará en 0 mm (devolviste los ${env}mm completos, no se descontará material del tubo). ¿Guardar así?`))
+    {setBtnLoading2(btn,false);return false;}
   // Traer datos frescos del tubo e instancia
   const {data:tubo}=await sb.from("tubos").select("altura_total,descripcion,familia,subfamilia,altura_min_aprovechable").eq("id",tuboId).maybeSingle();
   const {data:inst}=await sb.from("tubo_instancias").select("*").eq("id",instId).maybeSingle();
@@ -11467,40 +11638,51 @@ function renderRankingMateriales(){
   }).join("");
 }
 
+let _finalizandoOp=false; // candado anti-doble-clic: sin esto, "Finalizar OP" se podía re-disparar
+// (showLoading() es un no-op — ver más abajo — así que sin este candado el botón parecía "colgado"
+// y un segundo clic volvía a guardar las mismas líneas → consumos duplicados).
 async function finalizarOp(){
   if(!getEffectivePerms().editarConsumos){toast("Sin permiso","err");return;}
-  // Recolectar líneas pendientes con DEVUELTO y tubo completados → autoguardar
-  const pendIds=_cierreState.lineas.filter(l=>l.devuelto==null&&!l.es_merma).map(l=>l.id);
-  const listas=[];const incompletas=[];
-  for(const lineId of pendIds){
-    const card=document.querySelector(`.cierre-card[data-lineid="${lineId}"]`);
-    if(!card){incompletas.push(lineId);continue;}
-    const tuboVal=card.querySelector(".ck-tubo")?.value||"";
-    const devStr=(card.querySelector(".ck-dev")?.value||"").trim();
-    const devNum=parseFloat(devStr);
-    if(tuboVal&&devStr!==""&&!isNaN(devNum)&&devNum>=0){
-      listas.push({lineId,btn:card.querySelector("button.btn-green")});
-    }else incompletas.push(lineId);
-  }
-  let okAuto=0,errAuto=0;
-  if(listas.length){
-    showLoading(true,`Guardando ${listas.length} línea(s)...`);
-    for(const it of listas){
-      const ok=await guardarCierreLinea(it.lineId,it.btn,true);
-      if(ok) okAuto++; else errAuto++;
+  if(_finalizandoOp) return; _finalizandoOp=true;
+  const btnFin=document.getElementById("btnFinalizarOp");
+  setBtnLoading("btnFinalizarOp",true,"Guardando...");   // deshabilita YA el botón (evita doble clic)
+  try{
+    // Recolectar líneas pendientes con DEVUELTO y tubo completados → autoguardar
+    const pendIds=_cierreState.lineas.filter(l=>l.devuelto==null&&!l.es_merma).map(l=>l.id);
+    const listas=[];const incompletas=[];
+    for(const lineId of pendIds){
+      const card=document.querySelector(`.cierre-card[data-lineid="${lineId}"]`);
+      if(!card){incompletas.push(lineId);continue;}
+      const tuboVal=card.querySelector(".ck-tubo")?.value||"";
+      const devStr=(card.querySelector(".ck-dev")?.value||"").trim();
+      const devNum=parseFloat(devStr);
+      if(tuboVal&&devStr!==""&&!isNaN(devNum)&&devNum>=0){
+        listas.push({lineId,btn:card.querySelector("button.btn-green")});
+      }else incompletas.push(lineId);
     }
-    await loadConsMatTuboCache(true);
-    showLoading(false);
+    let okAuto=0,errAuto=0;
+    if(listas.length){
+      for(let k=0;k<listas.length;k++){
+        const it=listas[k];
+        setBtnLoading("btnFinalizarOp",true,`Guardando ${k+1}/${listas.length}...`);
+        const ok=await guardarCierreLinea(it.lineId,it.btn,true);
+        if(ok) okAuto++; else errAuto++;
+      }
+      await loadConsMatTuboCache(true);
+    }
+    const pendRest=_cierreState.lineas.filter(l=>l.devuelto==null&&!l.es_merma).length;
+    if(pendRest>0){
+      renderCierre();
+      if(errAuto>0){toast(`${okAuto} guardadas · ${errAuto} con error · ${pendRest} pendientes`,"err");return;}
+      if(!confirm(`Aún hay ${pendRest} línea(s) sin DEVUELTO o sin tubo elegido.\n\n¿Cerrar la ventana y dejarlas pendientes?`)) return;
+    }
+    closeModal("modalCierre");
+    toast(pendRest>0?`OP ${_cierreState.op} guardada · ${okAuto} cerrada(s) · ${pendRest} pendiente(s)`:`✓ OP ${_cierreState.op} cerrada completa${okAuto?` (${okAuto} línea${okAuto>1?"s":""} autoguardada${okAuto>1?"s":""})`:""}`,"ok");
+    clearCache("consumos");clearCache("tubos_custom");clearCache("tubos_mecaniza");clearCache("materiales_list");_consMatTuboCache=null;loadConsumos(true);
+  }finally{
+    _finalizandoOp=false;
+    setBtnLoading("btnFinalizarOp",false);
   }
-  const pendRest=_cierreState.lineas.filter(l=>l.devuelto==null&&!l.es_merma).length;
-  if(pendRest>0){
-    renderCierre();
-    if(errAuto>0){toast(`${okAuto} guardadas · ${errAuto} con error · ${pendRest} pendientes`,"err");return;}
-    if(!confirm(`Aún hay ${pendRest} línea(s) sin DEVUELTO o sin tubo elegido.\n\n¿Cerrar la ventana y dejarlas pendientes?`)) return;
-  }
-  closeModal("modalCierre");
-  toast(pendRest>0?`OP ${_cierreState.op} guardada · ${okAuto} cerrada(s) · ${pendRest} pendiente(s)`:`✓ OP ${_cierreState.op} cerrada completa${okAuto?` (${okAuto} línea${okAuto>1?"s":""} autoguardada${okAuto>1?"s":""})`:""}`,"ok");
-  clearCache("consumos");clearCache("tubos_custom");clearCache("tubos_mecaniza");clearCache("materiales_list");_consMatTuboCache=null;loadConsumos(true);
 }
 
 // helper para botones inline sin id (setBtnLoading requiere id)
@@ -11608,6 +11790,8 @@ async function loadMercaderias(forceReload=false){
   const bC=document.getElementById("btnNuevaCatMerc");if(bC)bC.style.display=userCanCRUD("crear","Merc")?"inline-flex":"none";
   const bCnt=document.getElementById("btnConteoMerc");if(bCnt)bCnt.style.display=perm.exportar?"inline-flex":"none";
   const bRot=document.getElementById("btnRotMerc");if(bRot)bRot.style.display=perm.verMovimientos?"inline-flex":"none";
+  const bEM=document.getElementById("btnEntMultMerc");if(bEM)bEM.style.display=perm.editarMerc?"inline-flex":"none";
+  const bSM=document.getElementById("btnSalMultMerc");if(bSM)bSM.style.display=perm.editarMerc?"inline-flex":"none";
   {const bSy=document.getElementById("btnSyncFichas");if(bSy)bSy.style.display=CU?.rol==="admin"?"inline-flex":"none";}
   poblarCategoriasMerc();
   if(!forceReload){
@@ -11925,6 +12109,7 @@ function openMercMov(id,tipo){
   document.getElementById("mercMovInfo").innerHTML=`<strong style="color:var(--text-strong)">${esc(m.nombre)}</strong> <span style="color:var(--text-soft)">(${esc(m.codigo)})</span><br>Stock actual: <strong style="color:${m.stock_actual<=0?'#e85a5a':'#4caf8c'}">${m.stock_actual} ${esc(m.unidad)}</strong>`;
   document.getElementById("mm_id").value=id;
   document.getElementById("mm_tipo").value=tipo;
+  document.getElementById("mm_fecha").value=new Date().toISOString().slice(0,10);
   document.getElementById("mm_cant").value="";
   document.getElementById("mm_precio").value=m.precio_unitario||"";
   document.getElementById("mm_moneda").value=m.moneda||cfgStr("general_moneda_default","PEN");
@@ -11963,6 +12148,7 @@ async function saveMercMov(){
   if(stockDespues<0){toast(`Stock insuficiente (disponible: ${stockAntes})`,"err");return;}
   const _coti=document.getElementById("mm_op").value.trim();
   if(_coti&&_coti.length<7&&!confirm(`El N° de cotización "${_coti}" tiene menos de 7 dígitos. ¿Guardar así?`))return;
+  if(_coti){const _wC=await _cotizSospechosa(_coti);if(_wC && !confirm(_wC+"\n\n¿Guardar así de todas formas?"))return;}
   const _opnum=document.getElementById("mm_opnum").value.trim();
   if(tipo==="salida"&&!_opnum&&!confirm("Esta salida no tiene N° OP.\n¿Es una venta directa (sin OP)?"))return;
   setBtnLoading("btnSaveMercMov",true,"Procesando...");
@@ -11975,6 +12161,7 @@ async function saveMercMov(){
     op_numero:document.getElementById("mm_op").value.trim()||null, op:_opnum||null,
     stock_antes:stockAntes,stock_despues:stockDespues,
     usuario_id:CU?.id,
+    ..._fechaOverride("mm_fecha"),
   };
   const {error:e1}=await sb.from("mercaderia_movimientos").insert(mov);
   if(e1){setBtnLoading("btnSaveMercMov",false);toast("Error mov: "+e1.message,"err");return;}
@@ -12013,6 +12200,8 @@ async function loadAlmMecaniza(forceReload=false){
   const bCA=document.getElementById("btnNuevaCatAlm");if(bCA)bCA.style.display=userCanCRUD("crear","AlmMec")?"inline-flex":"none";
   const bCntA=document.getElementById("btnConteoAlm");if(bCntA)bCntA.style.display=perm.exportar?"inline-flex":"none";
   const bRotA=document.getElementById("btnRotAlm");if(bRotA)bRotA.style.display=perm.verMovimientos?"inline-flex":"none";
+  const bEMA=document.getElementById("btnEntMultAlm");if(bEMA)bEMA.style.display=perm.editarAlmMec?"inline-flex":"none";
+  const bSMA=document.getElementById("btnSalMultAlm");if(bSMA)bSMA.style.display=perm.editarAlmMec?"inline-flex":"none";
   poblarCategoriasMerc();
   if(!forceReload){
     const cached=getCached("alm_mecaniza");
@@ -12200,6 +12389,7 @@ function openAlmMov(id,tipo){
   document.getElementById("almMovInfo").innerHTML=`<strong style="color:var(--text-strong)">${esc(a.nombre)}</strong> <span style="color:var(--text-soft)">(${esc(a.codigo)})</span><br>Stock actual: <strong style="color:${a.stock_actual<=0?'#e85a5a':'#4caf8c'}">${a.stock_actual} ${esc(a.unidad)}</strong>`;
   document.getElementById("am_id").value=id;
   document.getElementById("am_tipo").value=tipo;
+  document.getElementById("am_fecha").value=new Date().toISOString().slice(0,10);
   document.getElementById("am_cant").value="";
   document.getElementById("am_precio").value=a.precio_unitario||"";
   document.getElementById("am_moneda").value=a.moneda||cfgStr("general_moneda_default","PEN");
@@ -12238,6 +12428,7 @@ async function saveAlmMov(){
   if(stockDespues<0){toast(`Stock insuficiente (disponible: ${stockAntes})`,"err");return;}
   const _coti=document.getElementById("am_op").value.trim();
   if(_coti&&_coti.length<7&&!confirm(`El N° de cotización "${_coti}" tiene menos de 7 dígitos. ¿Guardar así?`))return;
+  if(_coti){const _wC=await _cotizSospechosa(_coti);if(_wC && !confirm(_wC+"\n\n¿Guardar así de todas formas?"))return;}
   const _opnum=document.getElementById("am_opnum").value.trim();
   if(tipo==="salida"&&!_opnum&&!confirm("Esta salida no tiene N° OP.\n¿Es una venta directa (sin OP)?"))return;
   setBtnLoading("btnSaveAlmMov",true,"Procesando...");
@@ -12250,6 +12441,7 @@ async function saveAlmMov(){
     op_numero:document.getElementById("am_op").value.trim()||null, op:_opnum||null,
     stock_antes:stockAntes,stock_despues:stockDespues,
     usuario_id:CU?.id,
+    ..._fechaOverride("am_fecha"),
   };
   const {error:e1}=await sb.from("alm_mecaniza_movimientos").insert(mov);
   if(e1){setBtnLoading("btnSaveAlmMov",false);toast("Error: "+e1.message,"err");return;}
@@ -12292,6 +12484,8 @@ async function loadSuministros(forceReload=false){
   const bCS=document.getElementById("btnNuevaCatSum");if(bCS)bCS.style.display=userCanCRUD("crear","Sum")?"inline-flex":"none";
   const bCntS=document.getElementById("btnConteoSum");if(bCntS)bCntS.style.display=perm.exportar?"inline-flex":"none";
   const bRotS=document.getElementById("btnRotSum");if(bRotS)bRotS.style.display=perm.verMovimientos?"inline-flex":"none";
+  const bEMS=document.getElementById("btnEntMultSum");if(bEMS)bEMS.style.display=perm.editarSum?"inline-flex":"none";
+  const bSMS=document.getElementById("btnSalMultSum");if(bSMS)bSMS.style.display=perm.editarSum?"inline-flex":"none";
   poblarCategoriasSum();
   if(!forceReload){
     const cached=getCached("suministros");
@@ -12465,6 +12659,7 @@ function openSumMov(id,tipo){
   document.getElementById("sumMovInfo").innerHTML=`<strong style="color:var(--text-strong)">${esc(a.nombre)}</strong> <span style="color:var(--text-soft)">(${esc(a.codigo)})</span><br>Stock actual: <strong style="color:${a.stock_actual<=0?'#e85a5a':'#4caf8c'}">${a.stock_actual} ${esc(a.unidad)}</strong>`;
   document.getElementById("sm_id").value=id;
   document.getElementById("sm_tipo").value=tipo;
+  document.getElementById("sm_fecha").value=new Date().toISOString().slice(0,10);
   document.getElementById("sm_cant").value="";
   document.getElementById("sm_precio").value=a.precio_unitario||"";
   document.getElementById("sm_moneda").value=a.moneda||cfgStr("general_moneda_default","PEN");
@@ -12499,6 +12694,9 @@ async function saveSumMov(){
   const stockAntes=a.stock_actual;
   const stockDespues=tipo==="entrada"?stockAntes+cant:stockAntes-cant;
   if(stockDespues<0){toast(`Stock insuficiente (disponible: ${stockAntes})`,"err");return;}
+  const _coti=(tipo==="entrada"?document.getElementById("sm_op").value:document.getElementById("sm_op_sal").value).trim();
+  if(_coti&&_coti.length<7&&!confirm(`El N° de cotización "${_coti}" tiene menos de 7 dígitos. ¿Guardar así?`))return;
+  if(_coti){const _wC=await _cotizSospechosa(_coti);if(_wC && !confirm(_wC+"\n\n¿Guardar así de todas formas?"))return;}
   setBtnLoading("btnSaveSumMov",true,"Procesando...");
   const mov={
     producto_id:id,tipo,cantidad:cant,
@@ -12509,6 +12707,7 @@ async function saveSumMov(){
     op_numero:tipo==="entrada"?(document.getElementById("sm_op").value.trim()||null):(document.getElementById("sm_op_sal").value.trim()||null),
     stock_antes:stockAntes,stock_despues:stockDespues,
     usuario_id:CU?.id,
+    ..._fechaOverride("sm_fecha"),
   };
   const {error:e1}=await sb.from("suministros_movimientos").insert(mov);
   if(e1){setBtnLoading("btnSaveSumMov",false);toast("Error: "+e1.message,"err");return;}
@@ -12640,6 +12839,149 @@ function resolverMotivo(prefix){
     return t;
   }
   return v;
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+//  ENTRADA / SALIDA MÚLTIPLE — Custom, Mecaniza, Suministros (mismo mecanismo,
+//  parametrizado por ALM_DEFS). Se registran varios productos de una sola vez:
+//  datos compartidos arriba (fecha, proveedor/cliente, cotización, motivo) y
+//  cada producto con su propia cantidad/precio en la lista.
+// ════════════════════════════════════════════════════════════════════════════
+let _mmmCarrito=[]; // {id, nombre, codigo, unidad, stock, precio, cant}
+let _mmmGuardando=false;
+let _mmmAlm=null, _mmmTipo=null;
+
+function abrirMovMultiple(almT,tipoMov){
+  const def=_almT(almT);
+  if(!userCanCRUD("editar",def.mod)){toast("Sin permiso","err");return;}
+  _mmmAlm=almT; _mmmTipo=tipoMov; _mmmCarrito=[];
+  document.getElementById("mmm_almacen").value=almT;
+  document.getElementById("mmm_tipo").value=tipoMov;
+  document.getElementById("mmmTitle").textContent=`${tipoMov==="entrada"?"Entrada":"Salida"} múltiple — ${def.nombre}`;
+  document.getElementById("mmmIcon").className=tipoMov==="entrada"?"ti ti-arrow-down":"ti ti-arrow-up";
+  document.getElementById("mmmIcon").style.color=tipoMov==="entrada"?"#4caf8c":"#f5a623";
+  document.getElementById("mmm_fecha").value=new Date().toISOString().slice(0,10);
+  document.getElementById("mmm_moneda").value=cfgStr("general_moneda_default","PEN");
+  document.getElementById("mmm_proveedor").value="";
+  document.getElementById("mmm_cliente").value="";
+  document.getElementById("mmm_cotiz_entrada").value="";
+  document.getElementById("mmm_cotiz").value="";
+  document.getElementById("mmm_opnum").value="";
+  document.getElementById("mmm_prov_box").style.display=tipoMov==="entrada"?"":"none";
+  document.getElementById("mmm_cli_box").style.display=tipoMov==="salida"?"":"none";
+  document.getElementById("mmm_motivo_otro_box").style.display="none"; // se reactiva solo si eligen "Otro"
+  // Motivos: mismos que el movimiento individual, SIN "Transferencia entre almacenes"
+  // (esa requiere la lógica especial de espejo en el otro almacén; queda fuera del lote por ahora).
+  const motivosBase=almT==="sum"?MOTIVOS_SUM:MOTIVOS_ALMACEN;
+  const opts=(motivosBase[tipoMov]||[]).filter(m=>m!==MOTIVO_TRANSFER);
+  poblarMotivos("mmm_motivo",tipoMov,{[tipoMov]:opts});
+  toggleMotivoOtro("mmm");
+  cargarProveedoresList();
+  if(tipoMov==="salida") getClientesList().then(cs=>{const dl=document.getElementById("consClientesList");if(dl)dl.innerHTML=cs.map(c=>`<option value="${escAttr(c.nombre)}"></option>`).join("");});
+  mmmRenderCarrito();
+  document.getElementById("modalMovMultiple").style.display="flex";
+}
+
+function mmmAbrirBuscar(){
+  document.getElementById("mmm_buscar_q").value="";
+  mmmRenderBuscar();
+  document.getElementById("modalMmmBuscar").style.display="flex";
+  setTimeout(()=>document.getElementById("mmm_buscar_q").focus(),50);
+}
+function mmmRenderBuscar(){
+  const def=_almT(_mmmAlm);
+  const q=(document.getElementById("mmm_buscar_q").value||"").trim().toLowerCase();
+  const box=document.getElementById("mmm_buscar_results");
+  const lista=(def.getCache()||[]).filter(p=>p.activo!==false);
+  const matches = q ? lista.filter(p=>`${p.codigo||""} ${p.nombre||""} ${p.material||""} ${p.marca||""}`.toLowerCase().includes(q)) : lista;
+  if(!matches.length){box.innerHTML=`<div style="text-align:center;padding:20px;color:var(--text-faint);font-size:12px">Sin resultados</div>`;return;}
+  box.innerHTML=matches.slice(0,200).map(p=>{
+    const yaAgregado=_mmmCarrito.some(c=>c.id===p.id);
+    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:9px 11px;border-radius:9px;cursor:${yaAgregado?"default":"pointer"};border:1px solid transparent;${yaAgregado?"opacity:.4":""}"
+      ${yaAgregado?"":`onclick="mmmAgregar(${p.id})" onmouseover="this.style.background='var(--bg-card-2)'" onmouseout="this.style.background=''"`}>
+      <div><div style="font-size:12.5px;color:var(--text-strong);font-weight:600">${esc(p.nombre||"")}</div><div style="font-size:10px;color:var(--text-faint)">${esc(p.codigo||"")}</div></div>
+      ${yaAgregado?'<span style="font-size:9.5px;color:var(--text-faint);font-weight:700">✓ ya agregado</span>':`<span style="font-size:11px;color:${(p.stock_actual||0)>0?"var(--green)":"var(--red)"};font-weight:600;white-space:nowrap">${p.stock_actual||0} ${esc(p.unidad||"")}</span>`}
+    </div>`;
+  }).join("");
+}
+function mmmAgregar(prodId){
+  const def=_almT(_mmmAlm);
+  const p=(def.getCache()||[]).find(x=>x.id===prodId); if(!p) return;
+  if(_mmmCarrito.some(c=>c.id===p.id)) return;
+  _mmmCarrito.push({id:p.id,nombre:p.nombre,codigo:p.codigo,unidad:p.unidad||"",stock:p.stock_actual||0,precio:p.precio_unitario||0,cant:1});
+  mmmRenderCarrito();
+  closeModal("modalMmmBuscar");
+  toast(`✓ ${p.nombre} agregado a la lista`,"ok");
+}
+function mmmQuitar(i){ _mmmCarrito.splice(i,1); mmmRenderCarrito(); }
+function mmmRenderCarrito(){
+  const box=document.getElementById("mmm_rows");
+  if(!_mmmCarrito.length){
+    box.innerHTML=`<tr><td colspan="6" class="no-data">Sin productos aún — usá "Buscar y agregar producto"</td></tr>`;
+  }else{
+    box.innerHTML=_mmmCarrito.map((c,i)=>`<tr>
+      <td><strong style="color:var(--text-strong)">${esc(c.nombre)}</strong><div style="font-size:10px;color:var(--text-faint)">${esc(c.codigo)}</div></td>
+      <td style="text-align:right;color:var(--text-soft)">${c.stock} ${esc(c.unidad)}</td>
+      <td style="text-align:right"><input class="form-input" type="number" min="0.01" step="0.01" value="${c.cant}" style="width:80px;text-align:right;padding:5px 7px" oninput="_mmmCarrito[${i}].cant=parseFloat(this.value)||0;mmmRenderCarrito()"></td>
+      <td style="text-align:right"><input class="form-input" type="number" min="0" step="0.01" value="${c.precio}" style="width:90px;text-align:right;padding:5px 7px" oninput="_mmmCarrito[${i}].precio=parseFloat(this.value)||0;mmmRenderCarrito()"></td>
+      <td style="text-align:right;color:var(--text-strong);font-weight:600">${(c.cant*c.precio).toFixed(2)}</td>
+      <td style="text-align:center"><button class="btn btn-ghost" style="padding:3px 7px;color:var(--red)" onclick="mmmQuitar(${i})"><i class="ti ti-x"></i></button></td>
+    </tr>`).join("");
+  }
+  document.getElementById("mmm_count").textContent=_mmmCarrito.length;
+  const sym=_MONEDA_SIMBOLO[document.getElementById("mmm_moneda").value]||"S/";
+  document.getElementById("mmm_total").textContent=sym+" "+_mmmCarrito.reduce((a,c)=>a+c.cant*c.precio,0).toFixed(2);
+}
+document.addEventListener("change",e=>{ if(e.target && e.target.id==="mmm_moneda") mmmRenderCarrito(); });
+
+async function mmmGuardar(){
+  if(_mmmGuardando) return; _mmmGuardando=true;
+  setBtnLoading("btnMmmGuardar",true,"Guardando...");
+  try{
+    const almT=_mmmAlm, tipoMov=_mmmTipo, def=_almT(almT);
+    if(!_mmmCarrito.length){toast("Agregá al menos un producto","err");return;}
+    const motivo=resolverMotivo("mmm");
+    if(!motivo){toast("Motivo obligatorio","err");return;}
+    const fecha=document.getElementById("mmm_fecha").value;
+    const moneda=document.getElementById("mmm_moneda").value||cfgStr("general_moneda_default","PEN");
+    const proveedor=tipoMov==="entrada"?(document.getElementById("mmm_proveedor").value.trim()||null):null;
+    const cliente=tipoMov==="salida"?(document.getElementById("mmm_cliente").value.trim()||null):null;
+    const cotiz=(tipoMov==="entrada"?document.getElementById("mmm_cotiz_entrada").value:document.getElementById("mmm_cotiz").value).trim();
+    const opnum=document.getElementById("mmm_opnum").value.trim();
+    if(cotiz&&cotiz.length<7&&!confirm(`El N° de cotización "${cotiz}" tiene menos de 7 dígitos. ¿Guardar así?`)){return;}
+    if(cotiz){const w=await _cotizSospechosa(cotiz);if(w && !confirm(w+"\n\n¿Guardar así de todas formas?")){return;}}
+    if(tipoMov==="salida"&&!opnum&&!confirm("Esta salida no tiene N° OP.\n¿Es una venta directa (sin OP)?")){return;}
+    // Validar stock suficiente ANTES de empezar a guardar (salidas)
+    if(tipoMov==="salida"){
+      const faltante=_mmmCarrito.find(c=>c.cant>c.stock);
+      if(faltante){toast(`Stock insuficiente para "${faltante.nombre}" (disponible: ${faltante.stock})`,"err");return;}
+    }
+    let ok=0,err=0;
+    for(let i=0;i<_mmmCarrito.length;i++){
+      const c=_mmmCarrito[i];
+      setBtnLoading("btnMmmGuardar",true,`Guardando ${i+1}/${_mmmCarrito.length}...`);
+      const stockAntes=c.stock;
+      const stockDespues=tipoMov==="entrada"?stockAntes+c.cant:stockAntes-c.cant;
+      const mov={
+        [def.fk]:c.id, tipo:tipoMov, cantidad:c.cant,
+        precio_unitario:c.precio||null, moneda, motivo,
+        proveedor, cliente_nombre:cliente,
+        op_numero:cotiz||null, op:opnum||null,
+        stock_antes:stockAntes, stock_despues:stockDespues,
+        usuario_id:CU?.id,
+        ..._fechaOverride("mmm_fecha"),
+      };
+      const {error:e1}=await sb.from(def.mov).insert(mov);
+      if(e1){err++;console.error(e1);continue;}
+      const {error:e2}=await sb.from(def.prod).update({stock_actual:stockDespues,fec_act:new Date().toISOString(),user_act:CU?.id}).eq("id",c.id);
+      if(e2){err++;console.error(e2);continue;}
+      ok++;
+    }
+    closeModal("modalMovMultiple");
+    toast(`✓ ${ok} producto(s) registrado(s)${err?` · ${err} con error`:""}`, err?"err":"ok");
+    clearCache(def.cache); def.reload();
+  }catch(e){ toast(errMsg(e),"err"); }
+  finally{ _mmmGuardando=false; setBtnLoading("btnMmmGuardar",false); }
 }
 
 // ────────────────────────────────────────────────────────────────────────────
