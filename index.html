@@ -2138,7 +2138,7 @@ html[data-theme="light"]{ --brand:#2563c9; --brand-dark:#1e4fa8; }
     <div class="modal-footer" style="justify-content:space-between">
       <div style="font-size:12px;color:var(--text-soft)"><b id="mmm_count" style="color:var(--text-strong)">0</b> producto(s) · Total: <b id="mmm_total" style="color:var(--green)">S/ 0.00</b></div>
       <div style="display:flex;gap:8px">
-        <button class="btn btn-ghost" onclick="closeModalSafe('modalMovMultiple')">Cancelar</button>
+        <button class="btn btn-ghost" onclick="closeModal('modalMovMultiple')">Cancelar</button>
         <button class="btn btn-red" id="btnMmmGuardar" onclick="mmmGuardar()"><i class="ti ti-check"></i>Registrar</button>
       </div>
     </div>
@@ -3104,13 +3104,22 @@ const PAGINAS_DISPONIBLES=[
 // ── PERMISOS POR ROL ─────────────────────────────────────────────────────────
 // PERMISOS_BASE = defaults de fábrica (hardcoded). PERMISOS = efectivo en runtime,
 // que puede ser sobrescrito desde Configuración (admin) vía cfg.roles_permisos.
+// NOTA (auditoría 2026-08-15): eliminarTubos/eliminarCat/eliminarClientes/eliminarMerc/
+// eliminarAlmMec/eliminarSum/eliminarConsumos quedan EXPLÍCITOS por rol (antes no existían
+// y userCanCRUD("eliminar",...) caía al fallback de editarX). En la base de datos, TODAS las
+// políticas RLS de borrado (catalogo, clientes, tubos, tubo_instancias, mercaderias,
+// alm_mecaniza_productos, suministros_productos, consumos_ops, movimientos y sus tablas de
+// movimientos) exigen current_rol()='admin' sin excepción — así que solo admin lleva estos
+// en true; el resto en false para que el botón "Eliminar" ni aparezca donde la base lo iba
+// a bloquear igual. Un admin puede seguir habilitándolo por rol desde Configuración → Roles,
+// pero ahí seguirá fallando por RLS si lo hace (el fix de deletes ya avisa en vez de mentir).
 const PERMISOS_BASE={
-  admin:    {nav:["dashboard","mp_custom","mp_mecaniza","mercaderias","alm_mecaniza","suministros","consumos","consumos_mec","clientes","carga","usuarios","config"],editarCat:true,editarTubos:true,editarClientes:true,editarMerc:true,editarAlmMec:true,editarSum:true,editarConsumos:true,verPrecios:true,canConsumir:true,verMovimientos:true,exportar:true,importar:true},
-  gerente:  {nav:["dashboard","mp_custom","mp_mecaniza","mercaderias","alm_mecaniza","suministros","consumos","reportes","clientes","config"],editarCat:false,editarTubos:false,editarClientes:false,editarMerc:false,editarAlmMec:false,editarSum:false,editarConsumos:false,verPrecios:true,canConsumir:false,verMovimientos:true,exportar:true,importar:false},
-  supervisor:{nav:["dashboard","mp_custom","mp_mecaniza","mercaderias","alm_mecaniza","suministros","consumos","reportes","clientes","config"],editarCat:true,editarTubos:true,editarClientes:true,editarMerc:true,editarAlmMec:true,editarSum:true,editarConsumos:true,verPrecios:true,canConsumir:true,verMovimientos:true,exportar:true,importar:true},
-  almacen:  {nav:["dashboard","mp_custom","mp_mecaniza","mercaderias","alm_mecaniza","suministros","consumos","reportes","carga","config"],editarCat:true,editarTubos:true,editarClientes:false,editarMerc:true,editarAlmMec:true,editarSum:true,editarConsumos:true,verPrecios:true,canConsumir:true,verMovimientos:true,exportar:true,importar:true},
-  produccion:{nav:["dashboard","mp_custom","mp_mecaniza","mercaderias","alm_mecaniza","suministros","consumos","config"],editarCat:false,editarTubos:false,editarClientes:false,editarMerc:false,editarAlmMec:false,editarSum:false,editarConsumos:true,verPrecios:false,canConsumir:true,verMovimientos:true,exportar:false,importar:false},
-  vendedor: {nav:["dashboard","mp_custom","mp_mecaniza","mercaderias","alm_mecaniza","consumos","clientes","config"],editarCat:false,editarTubos:false,editarClientes:true,editarMerc:false,editarAlmMec:false,editarSum:false,editarConsumos:false,verPrecios:true,canConsumir:false,verMovimientos:false,exportar:false,importar:false},
+  admin:    {nav:["dashboard","mp_custom","mp_mecaniza","mercaderias","alm_mecaniza","suministros","consumos","consumos_mec","clientes","carga","usuarios","config"],editarCat:true,editarTubos:true,editarClientes:true,editarMerc:true,editarAlmMec:true,editarSum:true,editarConsumos:true,eliminarTubos:true,eliminarCat:true,eliminarClientes:true,eliminarMerc:true,eliminarAlmMec:true,eliminarSum:true,eliminarConsumos:true,verPrecios:true,canConsumir:true,verMovimientos:true,exportar:true,importar:true},
+  gerente:  {nav:["dashboard","mp_custom","mp_mecaniza","mercaderias","alm_mecaniza","suministros","consumos","reportes","clientes","config"],editarCat:false,editarTubos:false,editarClientes:false,editarMerc:false,editarAlmMec:false,editarSum:false,editarConsumos:false,eliminarTubos:false,eliminarCat:false,eliminarClientes:false,eliminarMerc:false,eliminarAlmMec:false,eliminarSum:false,eliminarConsumos:false,verPrecios:true,canConsumir:false,verMovimientos:true,exportar:true,importar:false},
+  supervisor:{nav:["dashboard","mp_custom","mp_mecaniza","mercaderias","alm_mecaniza","suministros","consumos","reportes","clientes","config"],editarCat:true,editarTubos:true,editarClientes:true,editarMerc:true,editarAlmMec:true,editarSum:true,editarConsumos:true,eliminarTubos:false,eliminarCat:false,eliminarClientes:false,eliminarMerc:false,eliminarAlmMec:false,eliminarSum:false,eliminarConsumos:false,verPrecios:true,canConsumir:true,verMovimientos:true,exportar:true,importar:true},
+  almacen:  {nav:["dashboard","mp_custom","mp_mecaniza","mercaderias","alm_mecaniza","suministros","consumos","reportes","carga","config"],editarCat:true,editarTubos:true,editarClientes:false,editarMerc:true,editarAlmMec:true,editarSum:true,editarConsumos:true,eliminarTubos:false,eliminarCat:false,eliminarClientes:false,eliminarMerc:false,eliminarAlmMec:false,eliminarSum:false,eliminarConsumos:false,verPrecios:true,canConsumir:true,verMovimientos:true,exportar:true,importar:true},
+  produccion:{nav:["dashboard","mp_custom","mp_mecaniza","mercaderias","alm_mecaniza","suministros","consumos","config"],editarCat:false,editarTubos:false,editarClientes:false,editarMerc:false,editarAlmMec:false,editarSum:false,editarConsumos:true,eliminarTubos:false,eliminarCat:false,eliminarClientes:false,eliminarMerc:false,eliminarAlmMec:false,eliminarSum:false,eliminarConsumos:false,verPrecios:false,canConsumir:true,verMovimientos:true,exportar:false,importar:false},
+  vendedor: {nav:["dashboard","mp_custom","mp_mecaniza","mercaderias","alm_mecaniza","consumos","clientes","config"],editarCat:false,editarTubos:false,editarClientes:true,editarMerc:false,editarAlmMec:false,editarSum:false,editarConsumos:false,eliminarTubos:false,eliminarCat:false,eliminarClientes:false,eliminarMerc:false,eliminarAlmMec:false,eliminarSum:false,eliminarConsumos:false,verPrecios:true,canConsumir:false,verMovimientos:false,exportar:false,importar:false},
 };
 // PERMISOS efectivo: arranca igual a base; loadConfig() lo reconstruye con overrides.
 let PERMISOS=JSON.parse(JSON.stringify(PERMISOS_BASE));
@@ -3132,7 +3141,7 @@ function rebuildPermisos(){
   const base=JSON.parse(JSON.stringify(PERMISOS_BASE));
   const ov=getRolesConfig();
   Object.keys(ov).forEach(rol=>{
-    const b=base[rol]||{nav:[],editarCat:false,editarTubos:false,editarClientes:false,editarMerc:false,editarAlmMec:false,editarSum:false,editarConsumos:false,verPrecios:false,canConsumir:false};
+    const b=base[rol]||{nav:[],editarCat:false,editarTubos:false,editarClientes:false,editarMerc:false,editarAlmMec:false,editarSum:false,editarConsumos:false,eliminarTubos:false,eliminarCat:false,eliminarClientes:false,eliminarMerc:false,eliminarAlmMec:false,eliminarSum:false,eliminarConsumos:false,verPrecios:false,canConsumir:false};
     base[rol]={...b,...ov[rol]};
     if(ov[rol] && Array.isArray(ov[rol].nav)) base[rol].nav=ov[rol].nav.slice();
   });
@@ -3272,26 +3281,9 @@ function toast(msg,type="ok"){
   clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove("show"),3500);
 }
 function closeModal(id){document.getElementById(id).style.display="none";}
-// Cierre "seguro" para clics FUERA del modal (en el fondo oscuro): si hay datos
-// escritos sin guardar, pide confirmación para evitar perder el progreso por un clic accidental.
-function closeModalSafe(id){
-  const m=document.getElementById(id);if(!m)return;
-  let dirty=false;
-  m.querySelectorAll("input,textarea").forEach(el=>{
-    if(el.type==="hidden"||el.type==="file"||el.disabled||el.readOnly) return;
-    if(el.type==="checkbox"||el.type==="radio"){ if(el.checked!==el.defaultChecked) dirty=true; }
-    else if((el.value||"").trim()!=="" && (el.value||"")!==(el.defaultValue||"")) dirty=true;
-  });
-  // Los <select> también cuentan (ej. elegir el tubo en el cierre de OP): antes se ignoraban
-  // y la ventana se cerraba sin avisar, perdiendo lo seleccionado.
-  m.querySelectorAll("select").forEach(el=>{
-    if(el.disabled) return;
-    const orig=[...el.options].find(o=>o.defaultSelected);
-    if(orig ? el.value!==orig.value : (el.selectedIndex>0)) dirty=true;
-  });
-  if(dirty && !confirm("Tienes datos sin guardar en esta ventana.\n¿Cerrar y perder lo escrito?")) return;
-  closeModal(id);
-}
+// (Antes existía closeModalSafe(): avisaba si había datos sin guardar al cerrar por clic FUERA
+// del modal. Ya no hace falta — ningún modal se cierra por clic afuera, solo con su botón
+// explícito "Cancelar/Cerrar", así que ese riesgo de perder datos por accidente desapareció.)
 // showLoading: ahora es no-op. Usar progress bars/spinners locales para feedback.
 // Si quieres re-habilitar el modal global, pon SHOW_GLOBAL_LOADER=true.
 const SHOW_GLOBAL_LOADER=false;
@@ -3798,10 +3790,22 @@ function verReporte(titulo,subtitulo,aoa,resumenHtml,filename){
   document.body.insertAdjacentHTML("beforeend",html);
 }
 function _reporteAPDF(){ if(_reporteActual) abrirReporteHTML(_reporteActual.titulo,_reporteActual.subtitulo,_reporteActual.aoa,_reporteActual.resumenHtml); }
+// Seguridad: si un nombre de cliente/proveedor/material (texto libre, escrito por cualquier
+// usuario) empieza con = + - @ (o tab/retorno), Excel lo interpreta como FÓRMULA al abrir el
+// archivo exportado, no como texto — es un vector de ataque conocido ("CSV/Excel formula
+// injection"). Se antepone una comilla simple para neutralizarlo, sin alterar el dato real.
+function _sanitizarCeldaExcel(v){
+  if(typeof v!=="string") return v;
+  if(/^[=+\-@\t\r]/.test(v)) return "'"+v;
+  return v;
+}
+function _sanitizarAoaExcel(aoa){
+  return (aoa||[]).map(fila=>(fila||[]).map(_sanitizarCeldaExcel));
+}
 function _reporteAExcel(){
   if(!_reporteActual)return;
   if(typeof XLSX==="undefined"){toast("La librería de Excel no está disponible","err");return;}
-  const ws=XLSX.utils.aoa_to_sheet(_reporteActual.aoa);
+  const ws=XLSX.utils.aoa_to_sheet(_sanitizarAoaExcel(_reporteActual.aoa));
   const wb=XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb,ws,"Reporte");
   XLSX.writeFile(wb,`${String(_reporteActual.filename).replace(/[^\w\-]+/g,"_")}_${new Date().toISOString().slice(0,10)}.xlsx`);
@@ -4112,14 +4116,22 @@ function _fechaOverride(inputId){
 let _opCotizMaxCache=null;
 async function _opCotizMax(){
   if(_opCotizMaxCache && Date.now()-_opCotizMaxCache.ts<5*60*1000) return _opCotizMaxCache;
-  let opMax=0, cotiMax=0;
+  // Este chequeo escanea varias tablas completas (siguienteNumeroOp/Cotizacion). En una conexión
+  // lenta o inestable eso puede tardar mucho — y sin límite, el botón de Guardar quedaba "cargando"
+  // indefinidamente esperando esta verificación de más. Con el timeout, si no responde a tiempo se
+  // OMITE el aviso anti-typo (no bloquea el guardado real) y NO se cachea el fallo, para reintentar
+  // pronto en la próxima venta en vez de quedar 5 minutos sin avisar.
   try{
-    const [nextOp,nextCoti]=await Promise.all([siguienteNumeroOp(),siguienteNumeroCotizacion()]);
-    opMax=(parseInt(String(nextOp).replace(/\D/g,""))||1)-1;
-    cotiMax=(parseInt(nextCoti)||1)-1;
-  }catch(e){}
-  _opCotizMaxCache={opMax,cotiMax,ts:Date.now()};
-  return _opCotizMaxCache;
+    const timeout=new Promise((_,rej)=>setTimeout(()=>rej(new Error("timeout _opCotizMax")),4000));
+    const [nextOp,nextCoti]=await Promise.race([Promise.all([siguienteNumeroOp(),siguienteNumeroCotizacion()]),timeout]);
+    const opMax=(parseInt(String(nextOp).replace(/\D/g,""))||1)-1;
+    const cotiMax=(parseInt(nextCoti)||1)-1;
+    _opCotizMaxCache={opMax,cotiMax,ts:Date.now()};
+    return _opCotizMaxCache;
+  }catch(e){
+    console.warn("[_opCotizMax] Sin respuesta a tiempo, se omite el aviso anti-typo esta vez:",e.message);
+    return {opMax:0,cotiMax:0};
+  }
 }
 async function _opSospechosa(valor){
   const v=String(valor||"").trim();
@@ -4516,7 +4528,7 @@ function _ccExcel(){
     const venta=_ccVentaVal(i);const {gan,pct}=_ccGan(g.costo,venta);
     aoa.push([g.nocoti?"(sin coti.)":g.coti,[...g.ops].join(", "),g.cliente,"TOTAL","","","",_r2(g.costo),venta==null?"—":_r2(venta),gan==null?"—":_r2(gan),pct==null?"—":pct.toFixed(1)+"%"]);
   });
-  const ws=XLSX.utils.aoa_to_sheet(aoa);const wb=XLSX.utils.book_new();
+  const ws=XLSX.utils.aoa_to_sheet(_sanitizarAoaExcel(aoa));const wb=XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb,ws,"Costo por cotización");
   XLSX.writeFile(wb,`Costo_por_cotizacion_${new Date().toISOString().slice(0,10)}.xlsx`);
 }
@@ -7158,7 +7170,7 @@ async function exportarConsumosExcel(){
         const consumido=c.consumido!=null?c.consumido:(c.devuelto!=null?(c.enviado||0)-(c.devuelto||0):"");
         aoa.push([c.fecha||"",c.op||"",c.cliente_nombre||"",c.material||"",c.di??"",c.de??"",c.largo??"",c.enviado??"",c.devuelto??"",consumido,estado(c),c.observaciones||""]);
       });
-      const ws=XLSX.utils.aoa_to_sheet(aoa);
+      const ws=XLSX.utils.aoa_to_sheet(_sanitizarAoaExcel(aoa));
       const sheetName=(mes||"sin-fecha").replace(/[\\\/\?\*\[\]:]/g,"-").slice(0,31);
       XLSX.utils.book_append_sheet(wb,ws,sheetName);
     });
@@ -7887,16 +7899,19 @@ async function deleteInstanciasSeleccionadas(tuboId){
   showLoading(true,`Eliminando ${ids.length} tubo(s)...`);
   try{
     const CHUNK=200;
+    let borrados=0;
     for(let i=0;i<ids.length;i+=CHUNK){
       const slice=ids.slice(i,i+CHUNK);
       // soltar referencias en consumos y movimientos
       await sb.from("consumos_ops").update({tubo_instancia_id:null}).in("tubo_instancia_id",slice);
       await sb.from("movimientos").update({tubo_instancia_id:null}).in("tubo_instancia_id",slice);
-      const {error}=await sb.from("tubo_instancias").delete().in("id",slice);
+      const {data:del,error}=await sb.from("tubo_instancias").delete().in("id",slice).select();
       if(error) throw error;
+      borrados+=(del||[]).length;
     }
     showLoading(false);
-    toast(`✓ ${ids.length} tubo(s) eliminado(s)`,"ok");
+    if(!borrados){toast("No se eliminó ninguno (la base lo bloqueó: solo el admin puede borrar tubos físicos).","err");return;}
+    toast(borrados<ids.length?`⚠ Solo se eliminaron ${borrados} de ${ids.length} (el resto lo bloqueó la base: solo el admin puede borrar).`:`✓ ${borrados} tubo(s) eliminado(s)`,borrados<ids.length?"err":"ok");
     clearCache("tubos_custom");clearCache("tubos_mecaniza");clearCache("materiales_list");_consMatTuboCache=null;
     if(tuboId) verDetalleTubo(tuboId); else loadTubos(true);
   }catch(err){showLoading(false);toast(errMsg(err),"err");}
@@ -7913,9 +7928,10 @@ async function deleteInstancia(instId){
   showLoading(true,"Eliminando tubo físico...");
   // Soltar referencias en consumos y movimientos primero
   if(count>0) await sb.from("consumos_ops").update({tubo_instancia_id:null}).eq("tubo_instancia_id",instId);
-  const {error}=await sb.from("tubo_instancias").delete().eq("id",instId);
+  const {data:del,error}=await sb.from("tubo_instancias").delete().eq("id",instId).select();
   showLoading(false);
   if(error){toast(errMsg(error),"err");return;}
+  if(!del||!del.length){toast("No se eliminó (la base lo bloqueó: solo el admin puede borrar tubos físicos). El tubo sigue existiendo.","err");return;}
   toast("✓ Tubo físico eliminado","ok");
   clearCache("tubos_custom");clearCache("tubos_mecaniza");clearCache("materiales_list");_consMatTuboCache=null;
   loadTubos(true);
@@ -7934,9 +7950,10 @@ async function deleteTuboModelo(tuboId){
   }
   await sb.from("consumos_ops").update({tubo_id:null}).eq("tubo_id",tuboId);
   if(instIds.length) await sb.from("tubo_instancias").delete().in("id",instIds);
-  const {error}=await sb.from("tubos").delete().eq("id",tuboId);
+  const {data:del,error}=await sb.from("tubos").delete().eq("id",tuboId).select();
   showLoading(false);
   if(error){toast(errMsg(error),"err");return;}
+  if(!del||!del.length){toast("No se eliminó (la base lo bloqueó: solo el admin puede borrar materiales). El material sigue existiendo.","err");return;}
   toast("✓ Material eliminado","ok");
   _tubosState.detalleId=null;
   clearCache("tubos_custom");clearCache("tubos_mecaniza");clearCache("materiales_list");_consMatTuboCache=null;
@@ -8173,7 +8190,7 @@ async function generarConteoExcel(){
   closeModal("modalConteo");
   const aoa=[["#","Material","Código","Enteros (sist.)","Retazos (cant.)","Retazos (mm)","Conteo físico","Observaciones"]];
   filas.forEach((f,i)=>aoa.push([i+1,f.desc,f.cod,f.enteros,f.retazos.length,f.retazos.join(", "),"",""]));
-  const ws=XLSX.utils.aoa_to_sheet(aoa);
+  const ws=XLSX.utils.aoa_to_sheet(_sanitizarAoaExcel(aoa));
   const wb=XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb,ws,"Conteo");
   XLSX.writeFile(wb,`Conteo_fisico_${sede}_${new Date().toISOString().slice(0,10)}.xlsx`);
@@ -9110,9 +9127,10 @@ async function deleteCatalogo(id){
       await sb.from("tubos").delete().in("id",tubosLink);
       clearCache("tubos_custom");clearCache("tubos_mecaniza");clearCache("materiales_list");_consMatTuboCache=null;
     }
-    const {error}=await sb.from("catalogo").delete().eq("id",id);
+    const {data:del,error}=await sb.from("catalogo").delete().eq("id",id).select();
     showLoading(false);
     if(error){toast(errMsg(error),"err");return;}
+    if(!del||!del.length){toast("No se eliminó (la base lo bloqueó: solo el admin puede borrar del catálogo). El material sigue existiendo.","err");return;}
     toast(purgar?"✓ Material y sus tubos eliminados":"✓ Material eliminado del catálogo","ok");
     loadCatalogoList();
   }catch(err){showLoading(false);toast(errMsg(err),"err");}
@@ -9549,9 +9567,10 @@ async function deleteCliente(id){
   const c=_clientesCache.find(x=>x.id===id);
   if(!confirmDel(`¿Eliminar el cliente "${c?.nombre||id}"?\n\nNo afecta a consumos ni movimientos ya registrados (se conserva el nombre). Esta acción no se puede deshacer.`))return;
   showLoading(true,"Eliminando cliente...");
-  const {error}=await sb.from("clientes").delete().eq("id",id);
+  const {data:del,error}=await sb.from("clientes").delete().eq("id",id).select();
   showLoading(false);
   if(error){toast(errMsg(error),"err");return;}
+  if(!del||!del.length){toast("No se eliminó (la base lo bloqueó: solo el admin puede borrar clientes). El cliente sigue existiendo.","err");return;}
   toast("✓ Cliente eliminado","ok");
   clearCache("clientes");clearCache("clientes_kpis");clearCache("clientes_list");
   await loadClientes(true);
@@ -11756,7 +11775,7 @@ async function importConsumosExcel(e){
           });
         }
       }
-      if(!rowsAll.length){toast("Sin filas válidas en el archivo","err");prog.style.display="none";showLoading(false);return;}
+      if(!rowsAll.length){toast("Sin filas válidas en el archivo","err");prog.style.display="none";return;}
       const CHUNK=500;
       let ok=0,err2=0,firstErr=null;
       for(let i=0;i<rowsAll.length;i+=CHUNK){
@@ -11772,8 +11791,13 @@ async function importConsumosExcel(e){
       e.target.value="";
       clearCache("consumos");clearCache("tubos_custom");clearCache("tubos_mecaniza");clearCache("materiales_list");_consMatTuboCache=null;loadConsumos(true);
     }catch(err){console.error(err);toast(errMsg(err),"err");prog.style.display="none";}
-    showLoading(false);
-    _suspendRealtimeRender=false;
+    finally{
+      // SIEMPRE se ejecuta (aunque el try haga return temprano o lance error) — antes, si el
+      // Excel no tenía filas válidas, este reseteo se saltaba y la sincronización en vivo
+      // (Realtime) quedaba apagada para el resto de la sesión sin ningún aviso.
+      showLoading(false);
+      _suspendRealtimeRender=false;
+    }
   };
   r.readAsArrayBuffer(f);
 }
@@ -12096,7 +12120,7 @@ async function importProductosExcel(e,tabla){
       _d.reload();
       renderCargasResumen(tabla);
     }catch(err){console.error(err);toast(errMsg(err),"err");if(prog)prog.style.display="none";}
-    _suspendRealtimeRender=false;
+    finally{ _suspendRealtimeRender=false; } // siempre, aunque el try haga return temprano
   };
   r.readAsArrayBuffer(f);
 }
@@ -12163,7 +12187,7 @@ async function saveMercMov(){
     usuario_id:CU?.id,
     ..._fechaOverride("mm_fecha"),
   };
-  const {error:e1}=await sb.from("mercaderia_movimientos").insert(mov);
+  const {data:movIns,error:e1}=await sb.from("mercaderia_movimientos").insert(mov).select().single();
   if(e1){setBtnLoading("btnSaveMercMov",false);toast("Error mov: "+e1.message,"err");return;}
   const {error:e2}=await sb.from("mercaderias").update({stock_actual:stockDespues,fec_act:new Date().toISOString(),user_act:CU?.id}).eq("id",id);
   if(e2){setBtnLoading("btnSaveMercMov",false);toast("Error stock: "+e2.message,"err");return;}
@@ -12176,8 +12200,19 @@ async function saveMercMov(){
       transferMsg=` → ${r.destNombre}: stock ${r.stockDestino}${r.creado?" (producto creado)":""}`;
       clearCache("alm_mecaniza");
     }catch(err){
+      // La salida de ORIGEN ya se aplicó (movimiento + stock descontado) antes de intentar crear
+      // la entrada en destino. Si eso falla, el stock quedaría "perdido" (ni en Custom ni en
+      // Mecaniza) — se REVIERTE automáticamente la salida de origen para no dejarlo a medias.
+      let revertido=false;
+      try{
+        if(movIns?.id) await sb.from("mercaderia_movimientos").delete().eq("id",movIns.id);
+        await sb.from("mercaderias").update({stock_actual:stockAntes,fec_act:new Date().toISOString(),user_act:CU?.id}).eq("id",id);
+        revertido=true;
+      }catch(e2){}
       setBtnLoading("btnSaveMercMov",false);
-      toast("Salida OK, pero falló la entrada en Mecaniza: "+err.message,"err");
+      toast(revertido
+        ? "No se pudo completar el traslado a Mecaniza — se REVIRTIÓ la salida en Custom (stock intacto): "+err.message
+        : "⚠ Falló el traslado Y la reversión automática — revisa el stock manualmente: "+err.message, "err");
       clearCache("mercaderias");loadMercaderias(true);
       return;
     }
@@ -12443,7 +12478,7 @@ async function saveAlmMov(){
     usuario_id:CU?.id,
     ..._fechaOverride("am_fecha"),
   };
-  const {error:e1}=await sb.from("alm_mecaniza_movimientos").insert(mov);
+  const {data:movIns,error:e1}=await sb.from("alm_mecaniza_movimientos").insert(mov).select().single();
   if(e1){setBtnLoading("btnSaveAlmMov",false);toast("Error: "+e1.message,"err");return;}
   const {error:e2}=await sb.from("alm_mecaniza_productos").update({stock_actual:stockDespues,fec_act:new Date().toISOString(),user_act:CU?.id}).eq("id",id);
   if(e2){setBtnLoading("btnSaveAlmMov",false);toast("Error: "+e2.message,"err");return;}
@@ -12455,8 +12490,18 @@ async function saveAlmMov(){
       transferMsg=` → ${r.destNombre}: stock ${r.stockDestino}${r.creado?" (producto creado)":""}`;
       clearCache("mercaderias");
     }catch(err){
+      // Misma reversión que en Custom→Mecaniza: si falla la entrada en destino, revertir la
+      // salida de origen (ya aplicada) para no dejar el stock "perdido" entre los dos almacenes.
+      let revertido=false;
+      try{
+        if(movIns?.id) await sb.from("alm_mecaniza_movimientos").delete().eq("id",movIns.id);
+        await sb.from("alm_mecaniza_productos").update({stock_actual:stockAntes,fec_act:new Date().toISOString(),user_act:CU?.id}).eq("id",id);
+        revertido=true;
+      }catch(e2){}
       setBtnLoading("btnSaveAlmMov",false);
-      toast("Salida OK, pero falló la entrada en Custom: "+err.message,"err");
+      toast(revertido
+        ? "No se pudo completar el traslado a Custom — se REVIRTIÓ la salida en Mecaniza (stock intacto): "+err.message
+        : "⚠ Falló el traslado Y la reversión automática — revisa el stock manualmente: "+err.message, "err");
       clearCache("alm_mecaniza");loadAlmMecaniza(true);
       return;
     }
@@ -12960,7 +13005,16 @@ async function mmmGuardar(){
     for(let i=0;i<_mmmCarrito.length;i++){
       const c=_mmmCarrito[i];
       setBtnLoading("btnMmmGuardar",true,`Guardando ${i+1}/${_mmmCarrito.length}...`);
-      const stockAntes=c.stock;
+      // Releer el stock ACTUAL justo antes de escribir (no el que tenía cacheado al agregarlo a la
+      // lista): si alguien más movió este producto mientras el modal estaba abierto, usar el valor
+      // viejo pisaría ese cambio en silencio ("lost update").
+      const {data:fresco,error:eF}=await sb.from(def.prod).select("stock_actual").eq("id",c.id).maybeSingle();
+      if(eF||!fresco){err++;console.error(eF||"producto no encontrado al guardar");continue;}
+      const stockAntes=Number(fresco.stock_actual)||0;
+      if(tipoMov==="salida"&&c.cant>stockAntes){
+        err++; console.warn(`[mmmGuardar] Stock insuficiente al momento de guardar para "${c.nombre}": disponible ${stockAntes}, se pedían ${c.cant} (cambió desde que se agregó a la lista).`);
+        continue;
+      }
       const stockDespues=tipoMov==="entrada"?stockAntes+c.cant:stockAntes-c.cant;
       const mov={
         [def.fk]:c.id, tipo:tipoMov, cantidad:c.cant,
@@ -13021,7 +13075,7 @@ async function descargarPlantillaPreciosMP(){
     if(!lista.length){prog.innerHTML=`<div style="font-size:12px;color:#f5a623">No hay materiales para el filtro elegido (${stockF==="con"?"con stock":"sin stock"}).</div>`;return;}
     const aoa=[["Código","Descripción","Sede(s)","Moneda","Precio nacionalizado"]];
     lista.forEach(g=>aoa.push([g.codigo,g.desc,[...g.sedes].join(" + ")||"—",g.moneda,g.precio??""]));
-    const ws=XLSX.utils.aoa_to_sheet(aoa);
+    const ws=XLSX.utils.aoa_to_sheet(_sanitizarAoaExcel(aoa));
     const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,"Precios MP");
     const suf=stockF==="con"?"_con_stock":stockF==="sin"?"_sin_stock":"";
     XLSX.writeFile(wb,`Plantilla_precios_MP${suf}_${new Date().toISOString().slice(0,10)}.xlsx`);
@@ -13134,15 +13188,18 @@ async function borrarCategoriaProductos(tabla,cat){
     const movT=_d.mov;
     const fk=_d.fk;
     const CHUNK=500;
+    let borrados=0;
     for(let i=0;i<ids.length;i+=CHUNK){
       const slice=ids.slice(i,i+CHUNK);
       const {error:em}=await sb.from(movT).delete().in(fk,slice);
       if(em)throw em;
-      const {error:ep}=await sb.from(tabla).delete().in("id",slice);
-      if(ep)throw ep;
+      const {data:ep,error:eErr}=await sb.from(tabla).delete().in("id",slice).select();
+      if(eErr)throw eErr;
+      borrados+=(ep||[]).length;
     }
     showLoading(false);
-    toast(`✓ ${ids.length} producto(s) eliminado(s)`,"ok");
+    if(!borrados){toast("No se eliminó ninguno (la base lo bloqueó: solo el admin puede borrar en lote).","err");return;}
+    toast(borrados<ids.length?`⚠ Solo se eliminaron ${borrados} de ${ids.length} (el resto lo bloqueó la base: solo el admin puede borrar).`:`✓ ${borrados} producto(s) eliminado(s)`,borrados<ids.length?"err":"ok");
     clearCache(_d.cache);
     _d.reload();
     renderCargasResumen(tabla);
@@ -13158,13 +13215,16 @@ async function borrarTodoAlmacen(tabla){
   if(txt!=="BORRAR"){toast("Cancelado","ok");return;}
   showLoading(true,"Vaciando almacén...");
   try{
+    const {count:antes}=await sb.from(tabla).select("id",{count:"exact",head:true});
     const movT=_d.mov;
     const {error:em}=await sb.from(movT).delete().not("id","is",null);
     if(em)throw em;
-    const {error:ep}=await sb.from(tabla).delete().not("id","is",null);
-    if(ep)throw ep;
+    const {data:ep,error:eErr}=await sb.from(tabla).delete().not("id","is",null).select();
+    if(eErr)throw eErr;
     showLoading(false);
-    toast(`✓ ${nombre} vaciado`,"ok");
+    const borrados=(ep||[]).length;
+    if(!borrados&&(antes||0)>0){toast("No se eliminó nada (la base lo bloqueó: solo el admin puede vaciar el almacén).","err");return;}
+    toast(borrados<(antes||0)?`⚠ Solo se eliminaron ${borrados} de ${antes} (el resto lo bloqueó la base: solo el admin puede borrar).`:`✓ ${nombre} vaciado`,borrados<(antes||0)?"err":"ok");
     clearCache(_d.cache);
     _d.reload();
     renderCargasResumen(tabla);
@@ -13455,7 +13515,7 @@ async function loadCatalogFile(e){
           if(wsMat) break;
         }
       }
-      if(!wsMat){toast("No se encontró hoja MATERIALES","err");prog.style.display="none";showLoading(false);return;}
+      if(!wsMat){toast("No se encontró hoja MATERIALES","err");prog.style.display="none";return;}
 
       // 3) Leer materiales como array de arrays
       const aoa=XLSX.utils.sheet_to_json(wsMat,{header:1,defval:""});
@@ -13471,7 +13531,7 @@ async function loadCatalogFile(e){
         }
         if(hdrRow>=0&&colCod>=0&&colDesc>=0) break;
       }
-      if(hdrRow<0||colCod<0){toast("No se encontraron columnas CODIGO/DESCRIPCION en el archivo","err");prog.style.display="none";showLoading(false);return;}
+      if(hdrRow<0||colCod<0){toast("No se encontraron columnas CODIGO/DESCRIPCION en el archivo","err");prog.style.display="none";return;}
 
       const clean=[];
       for(let i=hdrRow+1;i<aoa.length;i++){
@@ -13503,7 +13563,7 @@ async function loadCatalogFile(e){
           moneda:"EUR"
         });
       }
-      if(!clean.length){toast("Sin códigos válidos","err");prog.style.display="none";showLoading(false);return;}
+      if(!clean.length){toast("Sin códigos válidos","err");prog.style.display="none";return;}
 
       // 4) Upsert del CATÁLOGO en lotes de 500 (primera mitad de la barra)
       // OPTIMIZADO: antes se hacían 2 SELECT + hasta 2 INSERT por material (decenas de
@@ -13545,8 +13605,12 @@ async function loadCatalogFile(e){
       console.log("[Cat] Resumen:",{ok,err2,total:clean.length});
       e.target.value="";
     }catch(err){console.error(err);toast(errMsg(err),"err");prog.style.display="none";}
-    showLoading(false);
-    _suspendRealtimeRender=false;
+    finally{
+      // SIEMPRE (aunque el try haya hecho return temprano en cualquiera de sus 3 salidas) —
+      // si no, el archivo sin la hoja/columnas esperadas dejaba Realtime apagado el resto de la sesión.
+      showLoading(false);
+      _suspendRealtimeRender=false;
+    }
   };
   r.readAsArrayBuffer(f);
 }
@@ -13574,7 +13638,7 @@ async function loadStockFile(e){
       if(!sheetName) sheetName=wb.SheetNames[0];
       const ws=wb.Sheets[sheetName];
       const rows=XLSX.utils.sheet_to_json(ws,{defval:""});
-      if(!rows.length){toast("La hoja "+sheetName+" no tiene filas","err");prog.style.display="none";showLoading(false);return;}
+      if(!rows.length){toast("La hoja "+sheetName+" no tiene filas","err");prog.style.display="none";return;}
 
       // Normalizar y validar filas
       const norm=s=>String(s||"").trim();
@@ -13609,7 +13673,7 @@ async function loadStockFile(e){
       const total=filas.length;
       if(!total){
         prog.innerHTML=`<div class="progress-info done" style="color:#e85a5a">Sin filas válidas. ${sinDesc} sin descripción · ${sinAlt} sin altura_total · ${sinActual} sin altura_actual</div>`;
-        toast("Sin filas válidas para cargar","err");showLoading(false);return;
+        toast("Sin filas válidas para cargar","err");return;
       }
 
       // PASO 1/4 — Upsert de catálogo (materiales nuevos)
@@ -13636,7 +13700,7 @@ async function loadStockFile(e){
         const {data,error}=await sb.from("tubos").upsert(slice,{onConflict:"descripcion,altura_total,sede"}).select("id,descripcion,altura_total,sede");
         if(error){
           prog.innerHTML=`<div class="progress-info done" style="color:#e85a5a">Error en paso 2: ${esc(error.message)}</div>`;
-          toast(errMsg(error),"err");showLoading(false);return;
+          toast(errMsg(error),"err");return;
         }
         tubosCreados=tubosCreados.concat(data||[]);
       }
@@ -13680,8 +13744,13 @@ async function loadStockFile(e){
       toast(`✓ Inventario: ${instsOk} tubos físicos cargados`,instsOk>0?"ok":"err");
       clearCache("tubos_custom");clearCache("tubos_mecaniza");
       e.target.value="";
-      showLoading(false);_suspendRealtimeRender=false;
-    }catch(err){console.error(err);toast(errMsg(err),"err");prog.style.display="none";showLoading(false);_suspendRealtimeRender=false;}
+    }catch(err){console.error(err);toast(errMsg(err),"err");prog.style.display="none";}
+    finally{
+      // SIEMPRE (aunque el try haga return temprano en cualquiera de sus 3 salidas) —
+      // si no, la carga de inventario inicial dejaba Realtime apagado el resto de la sesión.
+      showLoading(false);
+      _suspendRealtimeRender=false;
+    }
   };
   r.readAsArrayBuffer(f);
 }
@@ -13699,7 +13768,7 @@ async function loadClientesFile(e){
       const wb=XLSX.read(ev.target.result,{type:"array"});
       const ws=wb.Sheets[wb.SheetNames[0]];
       const rows=XLSX.utils.sheet_to_json(ws,{defval:"",range:2});
-      if(!rows.length){toast("Sin datos (¿encabezados en fila 3?)","err");prog.style.display="none";showLoading(false);return;}
+      if(!rows.length){toast("Sin datos (¿encabezados en fila 3?)","err");prog.style.display="none";return;}
       const onlyDigits=v=>{const s=String(v||"").replace(/\D/g,"");return s||null;};
       const dateOnly=v=>{if(!v)return null;const d=new Date(v);return isNaN(d.getTime())?null:d.toISOString().slice(0,10);};
       const fec=v=>{if(!v)return null;const d=new Date(v);return isNaN(d.getTime())?null:d.toISOString();};
@@ -13762,8 +13831,10 @@ async function loadClientesFile(e){
       toast(`✓ Clientes: ${ok} cargados`,ok>0?"ok":"err");
       e.target.value="";
     }catch(err){toast(errMsg(err),"err");prog.style.display="none";}
-    showLoading(false);
-    _suspendRealtimeRender=false;
+    finally{
+      showLoading(false);
+      _suspendRealtimeRender=false;
+    }
   };
   r.readAsArrayBuffer(f);
 }
