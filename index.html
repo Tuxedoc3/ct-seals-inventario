@@ -9579,8 +9579,12 @@ async function deleteCliente(id){
 // ────────────────────────────────────────────────────────────────────────────
 //  MATERIAL — Modal completo (Nuevo material en MP Custom/Mecaniza)
 // ────────────────────────────────────────────────────────────────────────────
-function openModalMaterial(id=null){
-  document.getElementById("modalMaterialTitle").textContent=id?"Editar material":`Nuevo material — Sede ${(_tubosState.sede||"custom").toUpperCase()}`;
+async function openModalMaterial(id=null){
+  // El título recién se pone en "Editar material" cuando REALMENTE encontramos el
+  // material (abajo) — si no, quedaría mintiendo "Editar" sobre un formulario vacío
+  // que al guardar crearía un duplicado en vez de actualizar (bug encontrado en
+  // auditoría 2026-08-16: la caché en memoria puede no tener el material todavía).
+  document.getElementById("modalMaterialTitle").textContent=id?"Cargando…":`Nuevo material — Sede ${(_tubosState.sede||"custom").toUpperCase()}`;
   ["mat_id","mat_cod","mat_desc","mat_tipo","mat_subfam","mat_dureza","mat_color","mat_marca","mat_proveedor","mat_precio","mat_di","mat_de","mat_lon","mat_notas","mat_alt_min","mat_init_cant","mat_init_altura"].forEach(k=>{const el=document.getElementById(k);if(el)el.value="";});
   cargarTiposList();
   document.getElementById("mat_familia").value="";
@@ -9596,28 +9600,39 @@ function openModalMaterial(id=null){
   const sfDl=document.getElementById("matSubfamList");
   if(sfDl) sfDl.innerHTML=getSubfamMaestro().map(s=>`<option value="${escAttr(s.sub)}">${escAttr(s.fam||"")}${s.dureza?" · "+escAttr(s.dureza):""}</option>`).join("");
   if(id){
-    const t=_tubosCache.tubos.find(x=>x.id===id);
-    if(t){
-      document.getElementById("mat_id").value=t.id;
-      document.getElementById("mat_cod").value=t.codigo_mat||"";
-      document.getElementById("mat_desc").value=t.descripcion||"";
-      document.getElementById("mat_tipo").value=t.tipo_material||_suggerirTipo(t.descripcion);
-      document.getElementById("mat_familia").value=t.familia||"";
-      document.getElementById("mat_subfam").value=t.subfamilia||"";
-      document.getElementById("mat_dureza").value=t.dureza||"";
-      document.getElementById("mat_color").value=t.color||"";
-      document.getElementById("mat_marca").value=t.marca||"";
-      document.getElementById("mat_proveedor").value=t.proveedor||"";
-      document.getElementById("mat_precio").value=t.precio||"";
-      document.getElementById("mat_moneda").value=t.moneda||"PEN";
-      document.getElementById("mat_origen").value=t.origen||"";
-      document.getElementById("mat_di").value=t.di??"";
-      document.getElementById("mat_de").value=t.de??"";
-      document.getElementById("mat_lon").value=t.altura_total||"";
-      document.getElementById("mat_stock_min").value=t.stock_minimo??2;
-      document.getElementById("mat_notas").value=t.notas||"";
-      document.getElementById("mat_alt_min").value=(t.altura_min_aprovechable==null?"":t.altura_min_aprovechable);
+    let t=_tubosCache.tubos.find(x=>x.id===id);
+    if(!t){
+      // No está en la caché en memoria (recién creado, cambio de sede, etc.) — antes
+      // el modal se abría igual, vacío, diciendo "Editar material". Ahora lo pedimos
+      // directo a la base antes de rendirnos.
+      const {data}=await sb.from("tubos").select("*").eq("id",id).maybeSingle();
+      t=data||null;
     }
+    if(!t){
+      closeModal("modalMaterial");
+      toast("No se pudo cargar el material (¿fue eliminado?). Actualiza la lista e intenta de nuevo.","err");
+      return;
+    }
+    document.getElementById("modalMaterialTitle").textContent="Editar material";
+    document.getElementById("mat_id").value=t.id;
+    document.getElementById("mat_cod").value=t.codigo_mat||"";
+    document.getElementById("mat_desc").value=t.descripcion||"";
+    document.getElementById("mat_tipo").value=t.tipo_material||_suggerirTipo(t.descripcion);
+    document.getElementById("mat_familia").value=t.familia||"";
+    document.getElementById("mat_subfam").value=t.subfamilia||"";
+    document.getElementById("mat_dureza").value=t.dureza||"";
+    document.getElementById("mat_color").value=t.color||"";
+    document.getElementById("mat_marca").value=t.marca||"";
+    document.getElementById("mat_proveedor").value=t.proveedor||"";
+    document.getElementById("mat_precio").value=t.precio||"";
+    document.getElementById("mat_moneda").value=t.moneda||"PEN";
+    document.getElementById("mat_origen").value=t.origen||"";
+    document.getElementById("mat_di").value=t.di??"";
+    document.getElementById("mat_de").value=t.de??"";
+    document.getElementById("mat_lon").value=t.altura_total||"";
+    document.getElementById("mat_stock_min").value=t.stock_minimo??2;
+    document.getElementById("mat_notas").value=t.notas||"";
+    document.getElementById("mat_alt_min").value=(t.altura_min_aprovechable==null?"":t.altura_min_aprovechable);
   }
   document.getElementById("modalMaterial").style.display="flex";
 }
