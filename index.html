@@ -6331,12 +6331,15 @@ async function dashDetalleMerma(){
   const iids=[...new Set(data.map(m=>m.tubo_instancia_id).filter(Boolean))];
   const imap={};
   if(iids.length){for(let i=0;i<iids.length;i+=300){const {data:is}=await sb.from("tubo_instancias").select("id,altura_total").in("id",iids.slice(i,i+300));(is||[]).forEach(x=>imap[x.id]=x.altura_total);}}
-  // Costo por descarte = (precio en soles / largo) × mm. Largo: el de la instancia (nacionales de
-  // largo variable) o, si no, el del tubo. Sin precio o sin largo → costo desconocido ("—").
+  // Costo por descarte = (precio en soles / largo) × mm. Largo: mismo criterio que el resto del
+  // sistema (_largoRef) — importados = nominal del modelo (costo constante); nacionales = largo
+  // real de la instancia. Antes usaba instTot() aquí (sin distinguir origen), lo que podía dar un
+  // costo distinto al del KPI del dashboard para un mismo descarte de material importado con altura
+  // real corregida (fix auditoría 2026-08-16).
   const fila=data.map(m=>{
     const t=tmap[m.tubo_id]||{};
     const mm=Number(m.altura_usada)||0;
-    const largo=instTot({altura_total:imap[m.tubo_instancia_id]},t);
+    const largo=_largoRef(t,imap[m.tubo_instancia_id]);
     const precioPen=(t.precio!=null&&t.precio!=="")?_aPen(t.precio,t.moneda):null;
     const costo=(precioPen!=null&&largo>0)?(precioPen/largo)*mm:null;
     return {fecha:m.fecha,op:m.op_numero,tubo:t.descripcion||"—",motivo:m.motivo||m.nota||"—",mm,costo,sede:(t.sede==="mecaniza"?"mecaniza":"custom")};
@@ -6368,13 +6371,16 @@ async function dashDetalleMerma(){
   };
   return `<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:6px">
       <div style="font-size:12px;color:var(--text-soft)">${fila.length} descarte(s) · ${Math.round(totMm).toLocaleString()} mm · <strong style="color:var(--red)">${S(totCosto)} perdido</strong>${totSinP?` · ${totSinP} sin precio`:""}</div>
-      <button class="btn btn-blue" style="padding:5px 10px;font-size:11px" onclick="exportMermaReport()"><i class="ti ti-printer"></i>Exportar</button>
+      <div style="display:flex;gap:6px;flex-shrink:0">
+        <button class="btn btn-ghost" style="padding:5px 10px;font-size:11px" onclick="exportMermaExcel()"><i class="ti ti-file-spreadsheet"></i>Excel</button>
+        <button class="btn btn-blue" style="padding:5px 10px;font-size:11px" onclick="exportMermaReport()"><i class="ti ti-printer"></i>PDF / Imprimir</button>
+      </div>
     </div>
     ${totCosto===0?`<div style="font-size:11px;color:var(--text-faint);background:var(--bg-card);border-radius:6px;padding:7px 10px;margin-bottom:4px"><i class="ti ti-info-circle"></i> Aún no hay precios de tubo cargados, por eso el dinero perdido sale en S/ 0.00. Cuando cargues los precios, el costo se calcula solo: (precio ÷ largo) × mm.</div>`:""}
     ${secc("custom")}${secc("mecaniza")}`;
 }
-function exportMermaReport(){
-  if(!_mermaReport||!_mermaReport.fila?.length){toast("No hay mermas para exportar","err");return;}
+// Filas compartidas por las dos exportaciones (PDF y Excel) del informe de mermas.
+function _mermaAoa(){
   const r2=n=>Math.round(n*100)/100;
   const aoa=[["Sede","Fecha","OP","Tubo","Motivo","mm descartados","Costo (S/)"]];
   ["custom","mecaniza"].forEach(sede=>{
@@ -6382,8 +6388,24 @@ function exportMermaReport(){
       aoa.push([sede==="custom"?"Custom":"Mecaniza",fmtFecha(r.fecha),r.op||"",r.tubo,r.motivo,Math.round(r.mm),r.costo!=null?r2(r.costo):"sin precio"]);
     });
   });
+  return aoa;
+}
+function exportMermaReport(){
+  if(!_mermaReport||!_mermaReport.fila?.length){toast("No hay mermas para exportar","err");return;}
+  const r2=n=>Math.round(n*100)/100;
+  const aoa=_mermaAoa();
   const resumen=`<div style="font-size:13px;margin-bottom:8px">Total descartado: <b>${Math.round(_mermaReport.totMm).toLocaleString()} mm</b> · Dinero perdido estimado: <b style="color:#b00">S/ ${r2(_mermaReport.totCosto).toLocaleString("es-PE",{minimumFractionDigits:2})}</b>${_mermaReport.totSinP?` · ${_mermaReport.totSinP} tubo(s) sin precio`:""}</div>`;
   abrirReporteHTML("Informe de mermas",`${_mermaReport.fila.length} descarte(s)`,aoa,resumen);
+}
+// Descarga el informe de mermas como .xlsx real (antes solo existía la vista imprimible/PDF).
+function exportMermaExcel(){
+  if(!_mermaReport||!_mermaReport.fila?.length){toast("No hay mermas para exportar","err");return;}
+  if(typeof XLSX==="undefined"){toast("La librería de Excel no está disponible","err");return;}
+  const ws=XLSX.utils.aoa_to_sheet(_sanitizarAoaExcel(_mermaAoa()));
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,"Mermas");
+  XLSX.writeFile(wb,`Informe_mermas_${new Date().toISOString().slice(0,10)}.xlsx`);
+  toast("✓ Excel descargado","ok");
 }
 
 async function dashDetalleEficiencia(){
