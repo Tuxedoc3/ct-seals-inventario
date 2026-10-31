@@ -759,7 +759,10 @@ html[data-theme="light"]{ --brand:#2563c9; --brand-dark:#1e4fa8; }
       <div class="card" id="tubosSearchCard" style="padding:10px 14px;margin-bottom:10px;display:none">
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;align-items:center">
           <input class="fi" id="tubosSearch" type="text" placeholder="Buscar material, código..." style="grid-column:span 2" autocomplete="off">
-          <select class="fi" id="tubosMatFilter"><option value="">Todos los materiales</option></select>
+          <div style="display:flex;gap:5px;align-items:center">
+            <select class="fi" id="tubosMatFilter" style="flex:1"><option value="">Todos los materiales</option></select>
+            <button class="btn btn-ghost" id="tubosMatFavBtn" onclick="toggleMaterialFavorito(event)" title="Marcar el material seleccionado como favorito" style="padding:5px 9px;font-size:16px;line-height:1">☆</button>
+          </div>
           <input class="fi" id="tubosFDi" type="text" placeholder="DI (con DE = busca servibles)" autocomplete="off">
           <input class="fi" id="tubosFDe" type="text" placeholder="DE (ej: 52 o 50-60)" autocomplete="off">
           <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:#94a3b8;cursor:pointer;white-space:nowrap">
@@ -5300,8 +5303,10 @@ function poblarFiltrosTubos(){
   if(!selMat)return;
   // Agrupa por TIPO de material (explícito o sugerido), no por el texto de la descripción.
   const matsSet=new Set((_tubosCache.tubos||[]).map(t=>_tipoMaterial(t)).filter(Boolean));
-  selMat.innerHTML=`<option value="">Todos los materiales</option>`+[...matsSet].sort().map(m=>`<option value="${escAttr(m)}">${escAttr(m)}</option>`).join("");
+  const fav=_leerFavoritosMateriales();
+  selMat.innerHTML=`<option value="">Todos los materiales</option>`+[...matsSet].sort((a,b)=>(fav.has(a)?0:1)-(fav.has(b)?0:1)||a.localeCompare(b)).map(m=>`<option value="${escAttr(m)}">${fav.has(m)?"★ ":"☆ "}${esc(m)}</option>`).join("");
   selMat.value=_tubosState.fMat||"";
+  _actualizarBotonMaterialFavorito();
 }
 // Rellena los desplegables de categoría en Mercaderías (filtro + modal)
 function poblarCategoriasMerc(){
@@ -7384,6 +7389,28 @@ function toggleTuboFavorito(id,e){
   localStorage.setItem(_favoritosTubosKey(),JSON.stringify([...fav]));
   renderTubosResumen();
 }
+function _favoritosMaterialesKey(){return `mp_materiales_favoritos_${CU?.id||CU?.username||"anon"}_${_tubosState.sede||"custom"}`;}
+function _leerFavoritosMateriales(){
+  try{return new Set(JSON.parse(localStorage.getItem(_favoritosMaterialesKey())||"[]"));}catch(e){return new Set();}
+}
+function _actualizarBotonMaterialFavorito(){
+  const b=document.getElementById("tubosMatFavBtn"),sel=document.getElementById("tubosMatFilter");
+  if(!b||!sel)return;
+  const activo=!!sel.value&&_leerFavoritosMateriales().has(sel.value);
+  b.textContent=activo?"★":"☆";
+  b.style.color=activo?"#f5c542":"var(--text-faint)";
+  b.title=activo?"Quitar material de favoritos":"Marcar material seleccionado como favorito";
+}
+function toggleMaterialFavorito(e){
+  e?.preventDefault();e?.stopPropagation();
+  const sel=document.getElementById("tubosMatFilter");
+  if(!sel?.value){toast("Selecciona un material para marcarlo como favorito","info");return;}
+  const fav=_leerFavoritosMateriales();
+  if(fav.has(sel.value)) fav.delete(sel.value); else fav.add(sel.value);
+  localStorage.setItem(_favoritosMaterialesKey(),JSON.stringify([...fav]));
+  poblarFiltrosTubos();
+  renderTubosResumen();
+}
 
 function parseMaterial(desc){
   const m=(desc||"").match(/^([A-Z\-]+(?:\s[A-Z0-9]+)?)/i);
@@ -7486,6 +7513,7 @@ function wireTubosSearch(){
   };
   wInput("tubosSearch","query");
   wSelect("tubosMatFilter","fMat");
+  document.getElementById("tubosMatFilter")?.addEventListener("change",_actualizarBotonMaterialFavorito);
   wInput("tubosFDi","fDi");
   wInput("tubosFDe","fDe");
 }
@@ -7681,9 +7709,9 @@ function renderTubosResumen(){
   }
   // Ordenar: por nombre de material, y dentro de cada uno por medidas NUMÉRICAS (DI, DE, Largo) ascendente
   const _n=v=>{const x=Number(v);return isNaN(x)?0:x;};
-  const favoritos=_leerFavoritosTubos();
+  const favoritos=_leerFavoritosMateriales();
   resumen.sort((a,b)=>{
-    const favA=favoritos.has(String(a.t.id))?0:1, favB=favoritos.has(String(b.t.id))?0:1;
+    const favA=favoritos.has(a.mat)?0:1, favB=favoritos.has(b.mat)?0:1;
     if(favA!==favB) return favA-favB;
     const mc=(a.mat||"").localeCompare(b.mat||"");
     if(mc!==0) return mc;
@@ -7712,14 +7740,11 @@ function renderTubosResumen(){
 
   const filasHtml=visible.map(r=>{
     const {t,insts,disp,mmRest,mmTot,med}=r;
-    const esFavorito=favoritos.has(String(t.id));
     const pct=mmTot>0?Math.round((mmTot-mmRest)/mmTot*100):0;
     const medStr=(med.di!=null||med.de!=null)?`DI ${med.di??"?"} · DE ${med.de??"?"} · L ${med.lon??"?"}`:(t.altura_total?`${t.altura_total} mm`:"—");
     const colorDisp=disp===0?"#e85a5a":disp<=2?"#f5a623":"#4caf8c";
     return `<tr>
-      <td><div style="display:flex;align-items:center;gap:6px;font-weight:500;color:var(--text-strong)">
-        <button class="btn btn-ghost" onclick="toggleTuboFavorito(${t.id},event)" title="${esFavorito?"Quitar de favoritos":"Agregar a favoritos"}" style="padding:1px 5px;font-size:17px;line-height:1;color:${esFavorito?"#f5c542":"var(--text-faint)"};border-color:transparent">${esFavorito?"★":"☆"}</button>
-        <span>${esc(t.descripcion)}</span></div>
+      <td><div style="font-weight:500;color:var(--text-strong)">${esc(t.descripcion)}</div>
         <div style="font-size:10px;color:var(--text-faint)">${esc(t.codigo_mat)||"—"}</div></td>
       <td style="color:var(--text);white-space:nowrap">${medStr}</td>
       <td style="text-align:center"><span style="color:${colorDisp};font-weight:600;font-size:13px">${disp}</span><span style="color:var(--text-faint)"> / ${insts.length}</span></td>
