@@ -7372,6 +7372,19 @@ let _tubosState={detalleId:null,page:1,perPage:30,query:"",fMat:"",fSubFam:"",fD
 let _detalleInsts=[],_detalleTubo=null;
 let _tubosCache={tubos:[],instByTubo:{}};
 
+function _favoritosTubosKey(){return `mp_favoritos_${CU?.id||CU?.username||"anon"}_${_tubosState.sede||"custom"}`;}
+function _leerFavoritosTubos(){
+  try{return new Set(JSON.parse(localStorage.getItem(_favoritosTubosKey())||"[]").map(String));}catch(e){return new Set();}
+}
+function _tuboEsFavorito(id){return _leerFavoritosTubos().has(String(id));}
+function toggleTuboFavorito(id,e){
+  e?.preventDefault();e?.stopPropagation();
+  const fav=_leerFavoritosTubos(),key=String(id);
+  if(fav.has(key)) fav.delete(key); else fav.add(key);
+  localStorage.setItem(_favoritosTubosKey(),JSON.stringify([...fav]));
+  renderTubosResumen();
+}
+
 function parseMaterial(desc){
   const m=(desc||"").match(/^([A-Z\-]+(?:\s[A-Z0-9]+)?)/i);
   return m?m[1].trim().toUpperCase():"OTROS";
@@ -7668,7 +7681,10 @@ function renderTubosResumen(){
   }
   // Ordenar: por nombre de material, y dentro de cada uno por medidas NUMÉRICAS (DI, DE, Largo) ascendente
   const _n=v=>{const x=Number(v);return isNaN(x)?0:x;};
+  const favoritos=_leerFavoritosTubos();
   resumen.sort((a,b)=>{
+    const favA=favoritos.has(String(a.t.id))?0:1, favB=favoritos.has(String(b.t.id))?0:1;
+    if(favA!==favB) return favA-favB;
     const mc=(a.mat||"").localeCompare(b.mat||"");
     if(mc!==0) return mc;
     return (_n(a.med.di)-_n(b.med.di))||(_n(a.med.de)-_n(b.med.de))||(_n(a.med.lon)-_n(b.med.lon))||(a.t.descripcion||"").localeCompare(b.t.descripcion||"");
@@ -7696,11 +7712,14 @@ function renderTubosResumen(){
 
   const filasHtml=visible.map(r=>{
     const {t,insts,disp,mmRest,mmTot,med}=r;
+    const esFavorito=favoritos.has(String(t.id));
     const pct=mmTot>0?Math.round((mmTot-mmRest)/mmTot*100):0;
     const medStr=(med.di!=null||med.de!=null)?`DI ${med.di??"?"} · DE ${med.de??"?"} · L ${med.lon??"?"}`:(t.altura_total?`${t.altura_total} mm`:"—");
     const colorDisp=disp===0?"#e85a5a":disp<=2?"#f5a623":"#4caf8c";
     return `<tr>
-      <td><div style="font-weight:500;color:var(--text-strong)">${esc(t.descripcion)}</div>
+      <td><div style="display:flex;align-items:center;gap:6px;font-weight:500;color:var(--text-strong)">
+        <button class="btn btn-ghost" onclick="toggleTuboFavorito(${t.id},event)" title="${esFavorito?"Quitar de favoritos":"Agregar a favoritos"}" style="padding:1px 5px;font-size:17px;line-height:1;color:${esFavorito?"#f5c542":"var(--text-faint)"};border-color:transparent">${esFavorito?"★":"☆"}</button>
+        <span>${esc(t.descripcion)}</span></div>
         <div style="font-size:10px;color:var(--text-faint)">${esc(t.codigo_mat)||"—"}</div></td>
       <td style="color:var(--text);white-space:nowrap">${medStr}</td>
       <td style="text-align:center"><span style="color:${colorDisp};font-weight:600;font-size:13px">${disp}</span><span style="color:var(--text-faint)"> / ${insts.length}</span></td>
