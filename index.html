@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -7295,17 +7294,23 @@ async function exportarConsumosExcel(){
     }
     if(!all.length){setBtnLoading("btnExportCons",false);toast("No hay consumos para exportar en esta sede","err");return;}
     const tuboMap=await _mapaTubosConsumos(all);
+    const usuarioMap={};
+    const usuarioIds=[...new Set(all.map(c=>c.usuario_id).filter(Boolean))];
+    for(let i=0;i<usuarioIds.length;i+=300){
+      const {data:usuarios}=await sb.from("perfiles").select("id,nombre,username").in("id",usuarioIds.slice(i,i+300));
+      (usuarios||[]).forEach(u=>usuarioMap[u.id]=u.nombre||u.username||"");
+    }
     // Agrupar por mes (YYYY-MM)
     const byMonth={};
     all.forEach(c=>{const m=String(c.fecha||"").slice(0,7)||"sin-fecha";(byMonth[m]=byMonth[m]||[]).push(c);});
-    const header=["Fecha","OP","Cotización","Cliente","Material","DI","DE","Largo","Enviado","Devuelto","Consumido","Estado","Observaciones"];
+    const header=["Fecha","OP","Cotización","Cliente","Material","DI","DE","Largo","Enviado","Devuelto","Consumido","Estado","Observaciones","Hecho por"];
     const estado=c=>c.es_merma?"Descarte":(c.devuelto!=null?"Cerrada":"Pendiente");
     const wb=XLSX.utils.book_new();
     Object.keys(byMonth).sort().forEach(mes=>{
       const aoa=[header];
       byMonth[mes].forEach(c=>{
         const consumido=c.consumido!=null?c.consumido:(c.devuelto!=null?(c.enviado||0)-(c.devuelto||0):"");
-        aoa.push([c.fecha||"",c.op||"",c.cotizacion||"",c.cliente_nombre||"",_materialVisibleConsumo(c,tuboMap),c.di??"",c.de??"",c.largo??"",c.enviado??"",c.devuelto??"",consumido,estado(c),c.observaciones||""]);
+        aoa.push([c.fecha||"",c.op||"",c.cotizacion||"",c.cliente_nombre||"",_materialVisibleConsumo(c,tuboMap),c.di??"",c.de??"",c.largo??"",c.enviado??"",c.devuelto??"",consumido,estado(c),c.observaciones||"",usuarioMap[c.usuario_id]||""]);
       });
       const ws=XLSX.utils.aoa_to_sheet(_sanitizarAoaExcel(aoa));
       const sheetName=(mes||"sin-fecha").replace(/[\\\/\?\*\[\]:]/g,"-").slice(0,31);
